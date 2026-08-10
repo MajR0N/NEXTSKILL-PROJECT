@@ -240,8 +240,8 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | 013 | CS server connection & player redirect (`steam://connect`) | open |
 | 014 | Discord integration — OAuth, bot, notifications | open |
 | 015 | Admin panel / CMS — scope, roles, what's editable | open |
-| 016 | Code optimization posture | open |
-| 017 | Docker & deployment topology | open |
+| [016](docs/decisions/017-deployment-and-cicd.md#code-optimisation-016) | Code optimisation | **decided** — no optimisation without measurement; only design-time choices (indexes, N+1 avoidance, cursor pagination) done up front |
+| [017](docs/decisions/017-deployment-and-cicd.md) | Deployment & Docker | **decided** — Docker Compose, single EU host, CDN in front, no Kubernetes, no Redis. **Tested restores, not just backups** |
 
 ### Frontend
 
@@ -264,9 +264,9 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 
 | # | Decision | Status |
 | --- | --- | --- |
-| 032 | CI/CD — dev → production, GitHub branch/commit verification in admin panel | open |
-| 033 | Maintenance mode | open |
-| 034 | Test strategy — how a full match is exercised without ten humans | open |
+| [032](docs/decisions/017-deployment-and-cicd.md#decision-no-deploy-panel--deliberately-skipped) | CI/CD | **decided** — GitHub Actions on push to `main`. **Deploy panel deliberately skipped** — it is remote code execution as a feature. Revisit when someone needs to deploy without repo access |
+| [033](docs/decisions/033-maintenance-mode.md) | Maintenance mode | **decided** — **degrade, don't stop**. Matches run on organisers' servers, so events stay accepted while new matches are blocked |
+| [034](docs/decisions/034-test-strategy.md) | Test strategy | **decided** — four layers; the **plugin simulator** is the centrepiece and covers flow, integrity, security and identity in one component |
 | [035](docs/decisions/035-match-result-integrity.md) | Match result integrity | **decided** |
 | [036](docs/decisions/036-authorization.md) | Authorization & multi-tenancy | **decided** — EF Core global query filters make tenant scoping the default; resource-based authz, never ad-hoc role checks |
 | [037](docs/decisions/037-platform-hosting.md) | Platform hosting & tenancy | **decided** — single hosted instance on our own domain; organisers are tenants, not installers |
