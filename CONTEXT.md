@@ -245,7 +245,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [012](docs/decisions/012-security.md) | Security measures | **decided** — HMAC + replay window, demo-upload hardening, secrets never logged, rate limits, GDPR retention/anonymisation |
 | [013](docs/decisions/013-server-connect.md) | Connecting players to the server | **decided** — **always show both** `steam://` button and copyable console command; `steam://` silently fails for non-Steam 1.6 players |
 | [014](docs/decisions/014-discord.md) | Discord integration | **decided** — outgoing **webhooks only**, no bot. Webhook URL is a credential *and* an SSRF sink |
-| 015 | Admin panel / CMS — scope, roles, what's editable | open |
+| [015](docs/decisions/015-admin-panel.md) | Admin panel & CMS | **decided** — fixed formats + parameters + clonable templates. **No rule engine.** CMS manages news, static pages, map pools — not layouts |
 | [016](docs/decisions/017-deployment-and-cicd.md#code-optimisation-016) | Code optimisation | **decided** — no optimisation without measurement; only design-time choices (indexes, N+1 avoidance, cursor pagination) done up front |
 | [017](docs/decisions/017-deployment-and-cicd.md) | Deployment & Docker | **decided** — Docker Compose, single EU host, CDN in front, no Kubernetes, no Redis. **Tested restores, not just backups** |
 
