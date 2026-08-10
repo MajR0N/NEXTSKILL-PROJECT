@@ -133,6 +133,39 @@ These are binding, not aspirational.
 
 ---
 
+## 3a. How we work on this project
+
+**NEXTSKILL is a learning project as much as a product.** The decision to build from
+scratch ([003](docs/decisions/003-build-basis.md)) was made deliberately to understand the
+domain, and the same applies to the web stack.
+
+Working agreement:
+
+- **Explain the *why*, in plain terms, as part of the work.** New concepts get one plain
+  sentence the first time they appear — not a lecture, not a link dump.
+- **Show the failure mode a technique prevents.** "Strict deserialisation" means little;
+  "a missing score silently becoming `0` and the wrong team advancing" is what makes it
+  stick.
+- **Name the trade-off, not just the choice.** Every decision doc in `docs/decisions/`
+  records what was given up, not only what was gained.
+- **Push back with evidence, not opinion.** Research beats guessing; a test beats an
+  assertion.
+
+## 3b. First partner
+
+**Pukawka** — an established Polish CS community — is the intended first organiser and is
+a **trusted** partner.
+
+This is recorded as a fact about *partner #1*, not an assumption baked into the
+architecture. Trust is modelled as a per-organiser attribute
+(`organiser.trusted`), which relaxes the result-confirmation gate for them while leaving it
+in place for everyone else. No reputation system is being built speculatively —
+but `matches.integrity` ([035](docs/decisions/035-match-result-integrity.md)) exists from
+the first migration because adding it later is a painful migration.
+
+Pukawka's involvement also confirms **CS 1.6 is a real requirement, not nostalgia** — which
+is what surfaced the identity problem in [010](docs/decisions/010-identity-binding.md).
+
 ## 4. Environment
 
 | Item | Value |
@@ -172,8 +205,8 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | --- | --- | --- |
 | 008 | Database(s): users, matches, server data, stats | open |
 | 009 | API design — our own match config + event contract | open |
-| 010 | Authentication — Steam OpenID, sessions vs. JWT | open |
-| 011 | Authorization — roles, org scoping | open |
+| [010](docs/decisions/010-identity-binding.md) | Player identity & in-game binding | **decided** — identity is the web account; 1.6 sessions bound by single-use link code, never by SteamID |
+| 011 | Login providers & session management | **grilling** |
 | 012 | Security measures — webhook HMAC, RCON secrets, CSRF, headers | open |
 | 013 | CS server connection & player redirect (`steam://connect`) | open |
 | 014 | Discord integration — OAuth, bot, notifications | open |
@@ -208,6 +241,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | 033 | Maintenance mode | open |
 | 034 | Test strategy — how a full match is exercised without ten humans | open |
 | [035](docs/decisions/035-match-result-integrity.md) | Match result integrity | **decided** |
+| 036 | Authorization — roles, organiser scoping | open |
 
 ---
 
