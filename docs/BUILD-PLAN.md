@@ -5,6 +5,9 @@ implementation sequence, derived from [038 — build order](decisions/038-build-
 
 **Status legend:** ☐ pending · ◐ in progress · ☑ done
 
+Each phase names the **skill lenses** to apply. They are not decoration: the lens sets the
+questions asked before code is written.
+
 ---
 
 ## Environment (verified 2026-08-10)
@@ -30,12 +33,16 @@ implementation sequence, derived from [038 — build order](decisions/038-build-
 
 ## Phase 0 — Foundation
 
+**Lenses:** `frontend-design` · `ui-ux-pro-max:design-system` · `csharp-developer`
+
 - ☑ **Scaffold solution** — `NextSkill.Api`, `NextSkill.Contracts`, `NextSkill.Simulator`, `NextSkill.Checks`
 - ☐ **Verify the `net8.0` target actually compiles** — if it doesn't, the plugin contract-sharing plan breaks and 004 needs revisiting
 - ☐ **Design system CSS** — tokens and the 18 components from [019](decisions/019-visual-identity.md) + [041](decisions/041-layout-system.md)
 - ☐ **Localisation** — 4 locales, locale route segment, `IStringLocalizer` ([018](decisions/018-frontend-architecture.md))
 
 ## Phase 1 — Data foundation
+
+**Lenses:** `postgres-pro` · `sql-pro` · `secure-code-guardian` (tenancy is a breach surface, not a feature)
 
 - ☐ **First migration.** These are locked by earlier decisions and are painful to add later:
   - `matches.game` — game discriminator ([001](decisions/001-game-scope.md))
@@ -49,6 +56,8 @@ implementation sequence, derived from [038 — build order](decisions/038-build-
 - ☐ **Authorization** — resource-based handlers, no ad-hoc role checks ([036](decisions/036-authorization.md))
 
 ## Phase 2 — Pure engines (highest value, cheapest to test)
+
+**Lenses:** `test-master` · `tdd` · `csharp-developer`
 
 Built before any UI, because they are pure functions and they hide the silent bugs.
 
@@ -68,6 +77,8 @@ Built before any UI, because they are pure functions and they hide the silent bu
 
 ## Phase 3 — Wire contract & simulator
 
+**Lenses:** `api-designer` · `secure-code-guardian` (HMAC, replay window) · `test-master`
+
 - ☐ **OpenAPI 3.1 spec** for the plugin contract ([009](decisions/009-api-contract.md))
 - ☐ **Contracts DTOs** — `required` members, unknown fields rejected ([035](decisions/035-match-result-integrity.md))
 - ☐ **Simulator** ([038](decisions/038-build-order.md)) — a real HTTP client, not a stub. Must misbehave on demand:
@@ -79,6 +90,35 @@ Built before any UI, because they are pure functions and they hide the silent bu
   - ☐ retry after 503 → succeeds later, **no duplicate result** ([033](decisions/033-maintenance-mode.md))
 
 ## Phase 4 — Web platform, slice by slice
+
+> ### ⚠ Phase 4 requires further grilling before it starts
+>
+> [021](decisions/021-site-structure.md) settled **which pages exist** and
+> [041](decisions/041-layout-system.md) settled **how a page is composed**. Neither settled
+> **what is actually on most pages.**
+>
+> Grilled so far: ranking, match detail, bracket, lobby/veto, profile, login, footer,
+> admin panel.
+>
+> **Not yet grilled — each needs a pass before its slice is built:**
+>
+> | Page | Open questions |
+> | --- | --- |
+> | **Home `/`** | What does a logged-out visitor see first? Live matches, pinned news, top teams, a signup pitch? This is the page that converts a pasted Discord link into a user — and it has had no discussion at all |
+> | **Tournament detail `/t/{id}`** | Overview, teams, bracket, rules, schedule — as tabs or one page? What does it show before registration opens vs. mid-event vs. after? |
+> | **Team page `/teams/{id}`** | Roster with roles, match history, rating trend, trophies, open slots? Who can edit what? |
+> | **LFT board `/lft`** | Filters, listing shape, expiry rules, how a team contacts a player, abuse controls |
+> | **News `/news`** | Index and post layout, pinning, localisation fallback presentation |
+> | **Seasons `/seasons/{n}`** | What does a frozen archive look like — standings only, or full browsable history? |
+> | **Registration flow** | Solo player vs. team captain vs. organiser — three different first-runs |
+> | **Notifications** | Is there an in-app inbox at all, or only Discord/email? Not yet decided anywhere |
+> | **Search** | Is there any? Teams, players, tournaments — or none at v1? |
+> | **Error pages** | 404, 500, banned, maintenance ([033](decisions/033-maintenance-mode.md)) |
+>
+> **Phases 0–3 do not depend on these** — foundation, engines and the wire contract are all
+> settled. Build those first; grill Phase 4 pages before their slices.
+
+**Lenses:** `grilling` (**first — the pages above are undecided**) · `fullstack-guardian` · `frontend-design` · `secure-code-guardian` · `code-reviewer`
 
 Vertical slices ([006](decisions/006-architecture.md)). Each slice is a folder containing
 endpoint, request, handler and validator together.
@@ -105,6 +145,9 @@ endpoint, request, handler and validator together.
 
 ## Phase 5 — Plugins
 
+**Lenses:** `csharp-developer` (CS2 / CounterStrikeSharp) · `test-master` · `debugging-wizard`
+**No lens fits Pawn/AMXX** — CS 1.6 plugin work is unassisted by the available skills, which is itself a reason to sequence it last
+
 Concretely, one at a time. **No shared abstraction until both exist** ([001](decisions/001-game-scope.md)).
 
 - ☐ **CS2 plugin** ([002](decisions/002-cs2-plugin.md)) — CounterStrikeSharp, original code
@@ -114,6 +157,8 @@ Concretely, one at a time. **No shared abstraction until both exist** ([001](dec
 - ☐ **Round backup/restore verified by actually killing a server mid-match** ([034](decisions/034-test-strategy.md))
 
 ## Phase 6 — Ship
+
+**Lenses:** `devops-engineer` · `monitoring-expert` · `security-reviewer` (full pass before launch) · `sre-engineer` (backups, restore drill)
 
 - ☐ Docker Compose + reverse proxy + CDN in front ([017](decisions/017-deployment-and-cicd.md))
 - ☐ **Backups with a tested restore** — an untested backup is a hope
