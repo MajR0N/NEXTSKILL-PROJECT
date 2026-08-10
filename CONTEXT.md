@@ -231,8 +231,8 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 
 | # | Decision | Status |
 | --- | --- | --- |
-| 008 | Database(s): users, matches, server data, stats | open |
-| 009 | API design — our own match config + event contract | open |
+| [008](docs/decisions/008-database.md) | Database | **decided** — one PostgreSQL; no Redis yet; demo files on disk, metadata rows only |
+| 009 | API design — our own match config + event contract | **next up** — blocks the simulator ([038](docs/decisions/038-build-order.md)) |
 | [010](docs/decisions/010-identity-binding.md) | Player identity & in-game binding | **decided** — identity is the web account; 1.6 sessions bound by single-use link code, never by SteamID |
 | [011](docs/decisions/011-accounts-and-login.md) | Accounts, login & two-factor binding | **decided** — native account primary, Steam/Discord optional links; in-game binding requires `setinfo` token **and** per-match code |
 | 012 | Security measures — webhook HMAC, RCON secrets, CSRF, headers | open |
@@ -269,7 +269,9 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | 033 | Maintenance mode | open |
 | 034 | Test strategy — how a full match is exercised without ten humans | open |
 | [035](docs/decisions/035-match-result-integrity.md) | Match result integrity | **decided** |
-| 036 | Authorization — roles, organiser scoping | open |
+| 036 | Authorization — roles, organiser scoping | open — **raised in importance by [037](docs/decisions/037-platform-hosting.md)**; multi-tenant means a missing scope check is a data breach |
+| [037](docs/decisions/037-platform-hosting.md) | Platform hosting & tenancy | **decided** — single hosted instance on our own domain; organisers are tenants, not installers |
+| [038](docs/decisions/038-build-order.md) | Build order | **decided** — web platform first; plugins replaced by a real HTTP **simulator**, not a stub |
 
 ---
 
