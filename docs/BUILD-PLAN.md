@@ -137,6 +137,14 @@ Built before any UI, because they are pure functions and they hide the silent bu
   - ☑ Strictness reaches *inside* the payload, not just the envelope
   - ☑ Unknown contract version is detectable before parsing further
   - ☑ `MatchConfig` carries **decided** maps and sides and **no veto rules** — a check that fails if [028](decisions/028-veto-and-lobby.md) is ever quietly reversed
+- ☑ **Request signing** ([012](decisions/012-security.md)) — **6/6 checks**: valid accepted, tampered body rejected, wrong secret rejected, replay rejected, **future-dated rejected**, malformed distinguished from invalid. Constant-time comparison; timestamp inside the signed payload
+- ☑ **Integrity rules as pure functions** ([035](decisions/035-match-result-integrity.md)) — **7/7 checks**:
+  - ☑ Sequence: in-order accepted, repeat is an idempotent no-op, gap detected
+  - ☑ **Duplicates are expected**, because the plugin retries until acknowledged — a retry that double-counted would corrupt a score on every network hiccup
+  - ☑ Reconciliation: agreement → `confirmed`; **mismatch → `disputed`**; agreement-despite-a-gap → `suspect`, because that agreement is luck rather than evidence
+  - ☑ Bracket blocked unless `confirmed`
+  - ☑ **A trusted organiser skips team confirmation but NOT the integrity gate** — trust is about intent, integrity is about whether we received the result correctly
+  - ☑ Referee override advances anything, and is audited — without it a genuine dispute could deadlock a tournament
 - ☐ **OpenAPI 3.1 spec** generated from these types
 - ☐ **Simulator** ([038](decisions/038-build-order.md)) — a real HTTP client, not a stub. Must misbehave on demand:
   - ☐ dropped `seq` → match `suspect`, bracket does **not** advance

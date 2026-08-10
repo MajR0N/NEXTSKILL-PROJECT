@@ -439,6 +439,10 @@ Console.WriteLine();
 Console.WriteLine("WIRE CONTRACT  (decisions 009, 035)");
 NextSkill.Checks.ContractChecks.Run(Check, That);
 
+Console.WriteLine();
+Console.WriteLine("SIGNING & INTEGRITY  (decisions 009, 012, 035)");
+NextSkill.Checks.IntegrityChecks.Run(Check, That);
+
 // Tenancy needs a real PostgreSQL — a mock would prove nothing about whether
 // EF's global query filters actually reach the SQL (decision 034).
 var connectionString = Environment.GetEnvironmentVariable("NEXTSKILL_DB")
