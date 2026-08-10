@@ -276,6 +276,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [034](docs/decisions/034-test-strategy.md) | Test strategy | **decided** — four layers; the **plugin simulator** is the centrepiece and covers flow, integrity, security and identity in one component |
 | [035](docs/decisions/035-match-result-integrity.md) | Match result integrity | **decided** |
 | [036](docs/decisions/036-authorization.md) | Authorization & multi-tenancy | **decided** — EF Core global query filters make tenant scoping the default; resource-based authz, never ad-hoc role checks |
+| [042](docs/decisions/042-hosting.md) | Hosting, CDN & object storage | **decided** — Cloudflare free + **R2** (zero egress) + small EU VPS. Free tiers rejected with reasons |
 | [037](docs/decisions/037-platform-hosting.md) | Platform hosting & tenancy | **decided** — single hosted instance on our own domain; organisers are tenants, not installers |
 | [038](docs/decisions/038-build-order.md) | Build order | **decided** — web platform first; plugins replaced by a real HTTP **simulator**, not a stub |
 | [039](docs/decisions/039-public-api.md) | Public API + API style | **decided** — REST (gRPC impossible for CS 1.6, GraphQL solves a problem we don't have); **SSE** for live updates, not WebSockets |
