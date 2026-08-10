@@ -11,8 +11,22 @@ var builder = WebApplication.CreateBuilder(args);
 
 // One PostgreSQL database (decision 008): recording a result, advancing a
 // bracket and updating ratings must happen in ONE transaction (035).
-builder.Services.AddDbContext<NextSkillDb>(o =>
-    o.UseNpgsql(builder.Configuration.GetConnectionString("NextSkill")));
+//
+// Fail fast with a sentence rather than letting a missing value surface 70
+// frames deep inside Npgsql as "The ConnectionString property has not been
+// initialized" — which is technically accurate and tells you nothing about
+// what to do.
+var connectionString = builder.Configuration.GetConnectionString("NextSkill");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        $"No connection string 'NextSkill' for environment '{builder.Environment.EnvironmentName}'. " +
+        "In development it comes from appsettings.Development.json, which is only loaded when " +
+        "ASPNETCORE_ENVIRONMENT=Development. In production set ConnectionStrings__NextSkill as an " +
+        "environment variable (decision 012: secrets never live in files).");
+}
+
+builder.Services.AddDbContext<NextSkillDb>(o => o.UseNpgsql(connectionString));
 
 // Injected so signature expiry can be tested without waiting five minutes.
 builder.Services.AddSingleton(TimeProvider.System);
@@ -65,6 +79,14 @@ app.MapRazorPages().WithStaticAssets();
 
 // Plugin-facing API: HMAC-signed, plugin-initiated in every direction (009).
 app.MapPluginApi();
+
+// The platform organiser must exist before anything can use it (043). Seeding
+// runs with NO tenant in scope, which is fine: Organiser and Season are global.
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<NextSkillDb>();
+    await PlatformSeed.EnsureAsync(db);
+}
 
 // A bare "/" carries no locale. Redirect to the best match rather than
 // rendering an unlocalised page, so every real page has exactly one canonical
