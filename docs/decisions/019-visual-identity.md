@@ -1,6 +1,6 @@
 # 019 — Visual identity
 
-**Status:** proposed — awaiting decision
+**Status:** **decided in principle** — validated against built mockups, refined over several rounds of feedback
 **Date:** 2026-08-10
 **Lens applied:** frontend-design
 
@@ -16,7 +16,105 @@
 | Server-rendered, progressive | [018](018-frontend-architecture.md) | Design must work before JS loads |
 | Link previews matter | [018](018-frontend-architecture.md) | Open Graph images are a **design surface**, not an afterthought |
 
-## The idea: take the palette from the game, not from the genre
+## Four directions
+
+A palette only makes sense inside a design *language*. Four genuinely different ones,
+each with its own palette, personality and risk.
+
+---
+
+### A. Server Browser — functional, dense, insider
+
+The tool the scene runs on. Cues from the CS server browser and the TAB scoreboard: rows,
+hairlines, monospace data, no ornament. Colour taken from the maps, not the genre.
+
+```
+--ground #121110  --surface #1C1A17  --line #34302B  --text #EDE7DC
+--t #E0B44A (T gold, primary)   --ct #6E9FD4 (CT blue)   --live #D9483B
+
+│  1  ▌ Pukawka Five      1847 ±32   24-6   CS2 │
+│  2  ▌ Nokaut            1802 ±41   19-8   CS2 │
+```
+
+**Says:** we are the infrastructure. Built by people who run servers.
+**Risk:** can read as plain if the typography isn't disciplined.
+
+---
+
+### B. Match Report — editorial, authoritative, archival
+
+The scene's **record of results**. Light, generous, strong typographic hierarchy. Results
+presented the way a serious sports desk presents them. Deliberately *not* cream + serif +
+terracotta — cool paper and ink, with a single Polish red.
+
+```
+--paper #F2F3F5  --ink #16181D  --rule #C9CDD4  --dim #6B7280
+--accent #D4213D (Polish red)   --ct #2F6FB5   --t #B98A1F
+
+  PUKAWKA FIVE          13
+  NOKAUT                11        de_dust2 · 24 rounds
+  ─────────────────────────────────────────────────────
+```
+
+**Says:** this is the official record. Trustworthy, permanent, quotable.
+**Risk:** light mode is unusual for a CS audience; may feel corporate.
+
+---
+
+### C. Poster School — scene-owned, graphic, loud
+
+Draws on the **Polish Poster School** — a genuinely world-famous design tradition, and
+native to the primary audience rather than borrowed from esports. High contrast, heavy
+condensed type, hard geometric blocks, asymmetry, one screaming accent.
+
+```
+--ink #0D0D0D  --paper #EDE9E0  --accent #FF3B1F  --ct #1B4FD8  --t #F2C230
+
+  ┏━━━━━━━━━━━━━━━┓
+  ┃  PUKAWKA  13  ┃  ◤ de_dust2
+  ┗━━━━━━━━━━━━━━━┛
+     NOKAUT    11
+```
+
+**Says:** this belongs to the scene, not to a corporation. Has attitude.
+**Risk:** the boldest option. Loud designs age faster and are harder to keep
+consistent across 40 pages.
+
+---
+
+### D. Tactical HUD — game-native, technical
+
+Reads like the game's own interface: bracket corners on panels, amber readouts, radar-style
+framing, sharp edges everywhere.
+
+```
+--ground #0B0F0C  --panel #131A15  --line #2A3A2E  --text #D6E2D8
+--accent #FFB000 (HUD amber)   --ct #4FA8FF   --live #FF3B30
+
+  ┌─ MATCH 04 ──────────────────┐
+  │ PUKAWKA FIVE      13        │
+  │ NOKAUT            11        │
+  └─────────────────────────────┘
+```
+
+**Says:** built by players, for players. Immersive.
+**Risk:** closest to generic "gamer UI"; amber sits near FACEIT's orange; hardest to keep
+legible across four languages.
+
+---
+
+## Recommended: A, with one borrowed idea from C
+
+**A (Server Browser)** as the base — it suits a content-dense platform across four
+languages, ages well, and stays legible. **Borrow C's confidence for the display face and
+the veto strip**, so the product has one loud, memorable gesture inside an otherwise
+disciplined system.
+
+That is the "spend your boldness in one place" principle: quiet system, one strong signature.
+
+---
+
+## The idea behind A: take the palette from the game, not from the genre
 
 Esports platforms all look like each other — dark grey, one hot accent, card grids, glow.
 NEXTSKILL's audience doesn't live in "esports". They live in **de_dust2, cs_assault, and a
@@ -160,4 +258,51 @@ Generated from the same tokens as the site — one identity, not two.
 
 ## Decision
 
-_Pending._
+**Direction A (Server Browser / Utilitarian) as the system**, with **Tenebrism reserved for
+finals** and **Rebus pictograms** for iconography.
+
+Chosen from a comparison of ten styles (from a list of fifty) filtered against the real
+constraints: Cyrillic coverage, German at +30%, ~80% data-dense pages, and not reading as a
+FACEIT clone.
+
+| Layer | Style | Where |
+| --- | --- | --- |
+| System | **Utilitarian (38)** | Rankings, brackets, profiles, admin — everything read and compared |
+| Moments | **Tenebrism (30)** | Finals, champion pages. Same palette, light removed — no second design system |
+| Icons | **Rebus (47)** | Pictograms. Chosen functionally: **an icon needs no translation** across four locales |
+
+### Refinements from review
+
+| Feedback | Resolution |
+| --- | --- |
+| Headings felt basic | **Layered display treatment** — first word outlined (`-webkit-text-stroke`), second filled with a metallic gold gradient, large with tight negative tracking |
+| Font visibility | Text raised to `#F4EFE6`; added a mid tone `#C3BAAB` so there are **three** readable levels, not two |
+| Movement arrows | Green/red **plus shape** (▲▼) — colour alone fails ~8% of players |
+| Sections cramped | 64px rhythm with soft dividers |
+| Ranking too thin | Avatars, team tag, city, **confidence bar** visualising ±RD, last-5 form, record, win %, game |
+| Veto too plain | Numbered steps (order carries real information), generated minimap glyphs, banning team named |
+| Matches too retro | Rounded surfaces, gradient accent edge, proportional type with tabular numerals, status pills |
+| Final not distinctive | **Two angled fields meeting on a lit seam**, VS in a hex plate. A literal lightning bolt was tried and rejected as clip-art |
+
+### Avatars
+
+Generated gradient monogram tiles, not uploads — so a brand-new team looks finished on day
+one instead of showing a grey placeholder.
+
+### Built reference
+
+Working mockup: ranking, match list, veto, final, and the four-language stress test.
+Rebuild rather than reuse — it is HTML prototype, not production Razor.
+
+### Still untested
+
+Deliberately not prototyped yet, pending the rest of the grilling:
+
+- **Double-elimination bracket** — the hardest layout in the product, and the one most likely
+  to break on a phone
+- **Admin panel** — dense forms and tables, a different rhythm from public pages
+- **Empty states** — new user, no team, no rating. Designs look good with data and fall apart
+  without it
+
+These three are worth prototyping because they can surprise us. Login, register, footer,
+profile and list pages are solved patterns and will be built directly in Razor.

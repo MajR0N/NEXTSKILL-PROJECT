@@ -254,7 +254,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | # | Decision | Status |
 | --- | --- | --- |
 | [018](docs/decisions/018-frontend-architecture.md) | Frontend architecture & i18n | **decided** — Razor Pages + TS islands; **4 locales** (pl primary, en/ru/de) with locale in the URL; no Node runtime |
-| 019 | Visual identity — colours, fonts | open |
+| [019](docs/decisions/019-visual-identity.md) | Visual identity | **decided in principle** — Utilitarian system + Tenebrism for finals + Rebus icons; CT/T side colours carry information |
 | 020 | Behaviour — animation & interaction budget | open |
 | 021 | UX enhancements | open |
 | [022](docs/decisions/022-tournament-formats.md) | Tournament formats | **decided** — all five at launch, built as **two engines** (elimination + round-robin) composed into five formats |
