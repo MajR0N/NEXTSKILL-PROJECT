@@ -90,12 +90,24 @@ Built before any UI, because they are pure functions and they hide the silent bu
   > round 1's were routed twice**. The bracket would have rendered perfectly and silently
   > dropped a whole round of teams out of the tournament. Exactly the failure
   > [023](decisions/023-bracket.md) predicted.
-- ☐ **Rating engine** ([025](decisions/025-rating-system.md))
-  - ☐ Bye → no rating change
-  - ☐ `disputed` → no rating change until confirmed
-  - ☐ Beating a much weaker opponent → near-zero gain
-  - ☐ Inactive team → rating unchanged, RD grows
-  - ☐ **Deterministic** — replaying the same sequence gives identical ratings
+- ☑ **Rating engine — Glicko-2 for teams** ([025](decisions/025-rating-system.md)) — **9/9 checks passing**
+  - ☑ **Glickman's published worked example reproduces exactly** (1464.06 / 151.52) — the check that validates the maths independently of our expectations
+  - ☑ Inactive team → rating **unchanged**, RD grows (ratings never decay)
+  - ☑ RD capped at 350, so an absent team never becomes less certain than an unrated one
+  - ☑ Anti-farming → beating a much weaker team gains almost nothing
+  - ☑ An upset loss costs far more than the win would have gained
+  - ☑ RD controls swing size — an uncertain rating moves more
+  - ☑ Provisional until RD settles → no "played two matches, ranked #1"
+  - ☑ **Deterministic** — identical replay gives an identical rating, which is what makes recomputation after a reversed result trustworthy
+  - ☑ Policy: byes, `suspect`/`disputed`, open challenge windows and forfeits are **not rated**, and the reason is surfaced rather than a bare boolean
+
+  > **One check was wrong, not the code.** It demanded an upset loss cost "more than 20
+  > points" and failed at −9.51. But RD 40 means a *settled* rating, and small movements are
+  > exactly what low RD is meant to produce. Glickman's example passing is what proves the
+  > maths; the check was rewritten to assert the **asymmetry** (a loss costs far more than
+  > the win gains) rather than a magnitude pulled from thin air.
+
+- ☐ **Player rating — OpenSkill** ([025](decisions/025-rating-system.md)) — not started
 
 ## Phase 3 — Wire contract & simulator
 
