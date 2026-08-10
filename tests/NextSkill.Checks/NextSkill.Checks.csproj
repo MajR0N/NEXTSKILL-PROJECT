@@ -3,6 +3,13 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\NextSkill.Contracts\NextSkill.Contracts.csproj" />
     <ProjectReference Include="..\..\src\NextSkill.Domain\NextSkill.Domain.csproj" />
+    <ProjectReference Include="..\..\src\NextSkill.Api\NextSkill.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.10" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -11,5 +18,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <!-- NextSkill.Api is a Web SDK project. A plain console app cannot resolve
+       its ASP.NET dependencies without this, which is why the tenancy checks
+       failed to load EF at runtime rather than at compile time. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
 
 </Project>

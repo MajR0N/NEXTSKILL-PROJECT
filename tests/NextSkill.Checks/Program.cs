@@ -435,6 +435,24 @@ Check("works from roster + outcome ALONE — which is why CS 1.6 gets ratings to
     That(w.All(p => p.Mu > 25) && l.All(p => p.Mu < 25), "ratings must move for both sides");
 });
 
+// Tenancy needs a real PostgreSQL — a mock would prove nothing about whether
+// EF's global query filters actually reach the SQL (decision 034).
+var connectionString = Environment.GetEnvironmentVariable("NEXTSKILL_DB")
+    ?? "Host=127.0.0.1;Port=5432;Database=nextskill;Username=nextskill;Password=dev";
+
+Console.WriteLine();
+Console.WriteLine("TENANCY · against real PostgreSQL  (decisions 034, 036)");
+try
+{
+    NextSkill.Checks.TenancyChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  tenancy checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
 Console.WriteLine();
 Console.WriteLine($"{passed} passed, {failed} failed");
 Console.WriteLine();

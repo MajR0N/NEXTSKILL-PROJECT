@@ -41,16 +41,19 @@ questions asked before code is written.
 - ☑ **Layout shell** — headbar, footer, OG tags, skip link
 - ☑ **Localisation** — 4 locales, locale in the route, `hreflang` alternates. **Verified running**: `/pl` `/en` `/ru` `/de` all 200 with correct `lang` and `og:locale`
 
-## Phase 1 — Data foundation ◐ **IN PROGRESS**
+## Phase 1 — Data foundation ✅ **COMPLETE**
 
 **Lenses:** `dotnet-core-expert` (EF Core, DI, config) · `postgres-pro` · `sql-pro` · `secure-code-guardian` (tenancy is a breach surface, not a feature)
 
-> **Honest status.** The migration is written and its generated SQL has been **read and
-> verified** — but it has **never been applied to a database**, the tenancy filters have
-> **never actually executed**, and authorization has **not been started**. Blocked on
-> creating the local dev role/database.
+> **Verified against a real PostgreSQL 18**, not asserted:
 >
-> Written ≠ working. This stays `in progress` until a query has run.
+> - migration applied; all 7 tables present
+> - **the partial unique index was tested by trying to break it** — a second `Live` match on
+>   the same server is rejected by the database, while a `Completed` one on that server is
+>   correctly allowed. The race condition from [008](decisions/008-database.md) is closed
+>   regardless of application code
+> - `jsonb` + GIN, `inet`, `timestamptz` all confirmed by querying `information_schema`
+> - tenancy proven by four checks running real queries through the filters
 
 - ☑ **First migration written; SQL verified to contain:** These are locked by earlier decisions and are painful to add later:
   - `matches.game` — game discriminator ([001](decisions/001-game-scope.md))
@@ -60,9 +63,14 @@ questions asked before code is written.
   - `matches.payload jsonb` + GIN index ([008](decisions/008-database.md))
   - **partial unique index** — one live match per server ([007](decisions/007-server-hosting-model.md))
   - `inet` for IPs, `timestamptz` everywhere, never naive ([008](decisions/008-database.md))
-- ☐ **Apply the migration** to the local dev database ← **blocked**
-- ◐ **Tenancy** — filters declared and resolver throws on a null tenant, but **unverified**; the check in [036](decisions/036-authorization.md) has not run
-- ☐ **Authorization** — resource-based handlers, no ad-hoc role checks ([036](decisions/036-authorization.md)) — **not started**
+- ☑ **Migration applied** to the local dev database
+- ☑ **Partial index proven** — second `Live` match on a server rejected; `Completed` allowed
+- ☑ **Tenancy verified** ([036](decisions/036-authorization.md)) — 4 checks against real PostgreSQL:
+  - ☑ B cannot see A's tournament in a list
+  - ☑ B fetching A's tournament **by ID** gets nothing → **404, not 403** (a 403 confirms it exists, which is itself a leak)
+  - ☑ **No tenant in scope throws** rather than returning everything. Returning an empty set would have felt safer and been worse: a forgotten middleware would fail *silently* instead of loudly
+  - ☑ Accounts stay global — cross-organiser ratings are the point of a platform
+- ➡ **Authorization** — resource-based handlers moved to **Phase 4**. They protect endpoints, and there are no endpoints yet; building them now would be guessing at their shape ([036](decisions/036-authorization.md))
 
 ## Phase 2 — Pure engines ✅ **COMPLETE — 25/25 checks passing**
 
