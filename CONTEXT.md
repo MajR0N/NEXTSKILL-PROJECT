@@ -256,6 +256,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | # | Decision | Status |
 | --- | --- | --- |
 | [018](docs/decisions/018-frontend-architecture.md) | Frontend architecture & i18n | **decided** — Razor Pages + TS islands; **4 locales** (pl primary, en/ru/de) with locale in the URL; no Node runtime |
+| [043](docs/decisions/043-page-contents.md) | **Page contents** | **decided** — home leads with activity + announcements; in-app inbox + email; trigram search; state-driven tournament page; **NEXTSKILL as first-party organiser** |
 | [041](docs/decisions/041-layout-system.md) | **Layout system** | **decided** — five page archetypes, three content widths, 4px spacing scale, two breakpoints, 18 components |
 | [019](docs/decisions/019-visual-identity.md) | Visual identity | **decided in principle** — Utilitarian system + Tenebrism for finals + Rebus icons; CT/T side colours carry information |
 | [020](docs/decisions/020-motion-and-ux.md) | Motion & UX behaviour | **decided** — motion marks state change only; progressive enhancement is a hard rule; empty states are a designed surface |
