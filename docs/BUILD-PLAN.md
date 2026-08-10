@@ -125,7 +125,7 @@ Built before any UI, because they are pure functions and they hide the silent bu
   - ☑ **Deterministic**
   - ☑ **Rates from roster + outcome ALONE** — no kills, damage or utility required, which is exactly why CS 1.6 players get real ratings despite the game exposing far less stat data than CS2
 
-## Phase 3 — Wire contract & simulator ◐ **IN PROGRESS**
+## Phase 3 — Wire contract & simulator ✅ **COMPLETE — 63/63 checks passing**
 
 **Lenses:** `api-designer` · `dotnet-core-expert` (minimal APIs, model binding, `HttpClient` resilience) · `secure-code-guardian` (HMAC, replay window) · `test-master`
 
@@ -146,13 +146,20 @@ Built before any UI, because they are pure functions and they hide the silent bu
   - ☑ **A trusted organiser skips team confirmation but NOT the integrity gate** — trust is about intent, integrity is about whether we received the result correctly
   - ☑ Referee override advances anything, and is audited — without it a genuine dispute could deadlock a tournament
 - ☐ **OpenAPI 3.1 spec** generated from these types
-- ☐ **Simulator** ([038](decisions/038-build-order.md)) — a real HTTP client, not a stub. Must misbehave on demand:
-  - ☐ dropped `seq` → match `suspect`, bracket does **not** advance
-  - ☐ duplicate `seq` → idempotent no-op
-  - ☐ `map_end` disagreeing with events → `disputed`, bracket blocked
-  - ☐ missing/invalid HMAC → rejected
-  - ☐ replayed old request → rejected on the timestamp window
-  - ☐ retry after 503 → succeeds later, **no duplicate result** ([033](decisions/033-maintenance-mode.md))
+- ☑ **Plugin endpoints** ([009](decisions/009-api-contract.md)) — config pull, event ingest, heartbeat. HMAC filter establishes the tenant **from the verified server**, so a plugin request authenticates and scopes itself in one step
+- ☑ **Simulator** ([038](decisions/038-build-order.md)) — a real HTTP client that **misbehaves on demand**, driving the real pipeline in-process. **11/11 end-to-end checks:**
+  - ☑ Signed heartbeat accepted; plugin version recorded ([007](decisions/007-server-hosting-model.md))
+  - ☑ Bad signature → 401 · no signature → 401
+  - ☑ **Replayed request** (genuine signature, two-hour-old timestamp) → 401
+  - ☑ Unsupported contract version → 400, rejected loudly rather than best-effort parsed
+  - ☑ Config carries decided maps and **no veto rules** ([028](decisions/028-veto-and-lobby.md))
+  - ☑ **Duplicate event → 200 `duplicate_ignored`** — it *must* be 200, or the plugin retries forever
+  - ☑ Gap in `seq` → match `suspect`, but the event is still accepted (refusing it would lose the rest of the match too)
+  - ☑ `map_end` agreeing with events → `confirmed`
+  - ☑ **`map_end` disagreeing → `disputed`, bracket blocked** — the silent failure, made loud, end to end
+  - ☑ Malformed body → 400, never silently defaulted
+- ☐ **OpenAPI 3.1 spec** generated from these types
+- ➡ **503-retry check** moves to Phase 6 with maintenance mode ([033](decisions/033-maintenance-mode.md))
 
 ## Phase 4 — Web platform, slice by slice
 

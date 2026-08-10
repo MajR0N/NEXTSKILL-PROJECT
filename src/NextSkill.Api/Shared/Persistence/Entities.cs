@@ -115,6 +115,18 @@ public class GameServer : ITenantOwned
     /// <summary>Proven by challenge-response at registration (decision 007).</summary>
     public bool Verified { get; set; }
 
+    /// <summary>
+    /// Shared secret for HMAC request signing (decisions 009, 012).
+    ///
+    /// ponytail: stored in plaintext for local development only. Ceiling: a
+    /// database dump currently exposes every server's signing secret. Upgrade
+    /// path: encrypt at rest with a key held OUTSIDE the database, before this
+    /// ever touches production — 012 requires it, and the column is here now so
+    /// the migration cost is paid once.
+    /// Shown to the organiser exactly once, at registration, and never again.
+    /// </summary>
+    public string? HmacSecret { get; set; }
+
     public DateTimeOffset? LastHeartbeatAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }

@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Localization.Routing;
 using Microsoft.EntityFrameworkCore;
+using NextSkill.Api.Features.Matches;
 using NextSkill.Api.Localisation;
 using NextSkill.Api.Shared.Persistence;
 using NextSkill.Api.Shared.Tenancy;
@@ -12,6 +13,9 @@ var builder = WebApplication.CreateBuilder(args);
 // bracket and updating ratings must happen in ONE transaction (035).
 builder.Services.AddDbContext<NextSkillDb>(o =>
     o.UseNpgsql(builder.Configuration.GetConnectionString("NextSkill")));
+
+// Injected so signature expiry can be tested without waiting five minutes.
+builder.Services.AddSingleton(TimeProvider.System);
 
 // Tenancy is scoped per request and fails closed (decisions 036, 037).
 builder.Services.AddScoped<TenantContext>();
@@ -58,6 +62,9 @@ app.UseAuthorization();
 
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();
+
+// Plugin-facing API: HMAC-signed, plugin-initiated in every direction (009).
+app.MapPluginApi();
 
 // A bare "/" carries no locale. Redirect to the best match rather than
 // rendering an unlocalised page, so every real page has exactly one canonical

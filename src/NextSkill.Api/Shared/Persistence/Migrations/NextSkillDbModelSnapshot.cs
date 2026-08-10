@@ -95,6 +95,10 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("game");
 
+                    b.Property<string>("HmacSecret")
+                        .HasColumnType("text")
+                        .HasColumnName("hmac_secret");
+
                     b.Property<string>("Host")
                         .IsRequired()
                         .HasMaxLength(253)

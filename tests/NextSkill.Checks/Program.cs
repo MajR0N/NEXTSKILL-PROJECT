@@ -462,6 +462,19 @@ catch (Exception ex)
 }
 
 Console.WriteLine();
+Console.WriteLine("END-TO-END · simulator vs the real pipeline  (decisions 034, 038)");
+try
+{
+    NextSkill.Checks.EndToEndChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  end-to-end checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
 Console.WriteLine($"{passed} passed, {failed} failed");
 Console.WriteLine();
 return failed == 0 ? 0 : 1;
