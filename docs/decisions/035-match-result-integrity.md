@@ -76,9 +76,18 @@ This also makes the system safe against the known SignalR/Redis property recorde
 
 ### Layer 3 — reconciliation (the layer that actually fixes it)
 
-**On map end and series end, the panel does not sum up what it saw.** It fetches the
-authoritative final state from the plugin — a pull endpoint, or a complete final-state
-block on the map-end payload — and compares it against the accumulated event history.
+> **⚠ Amended 2026-08-10 by [009](009-api-contract.md).** This layer originally said the
+> panel *pulls* authoritative state from the plugin. **That cannot work** — game servers sit
+> on organisers' infrastructure ([007](007-server-hosting-model.md)), typically behind NAT,
+> so we cannot rely on connecting *to* them at all.
+>
+> **Corrected:** the plugin **pushes** the complete authoritative final state as part of the
+> `map_end` event, and **retries until the panel returns `200`**. Reconciliation is
+> unchanged; only the direction of the connection is. Delivery is the plugin's
+> responsibility, so a panel outage delays reconciliation but never loses a result.
+
+**On map end and series end, the panel does not sum up what it saw.** It compares the
+authoritative final-state block sent by the plugin against the accumulated event history.
 
 ```
 accumulated (from events)   vs   authoritative (pulled at map end)
@@ -128,9 +137,10 @@ If bracket advancement can be made to happen in any of those three cases, the ch
 
 ## Consequences
 
-- The plugin must expose an authoritative final-state pull, or include full final state on
-  map-end. **This is a hard requirement on the plugin design in [002](002-cs2-plugin.md)** —
-  and it applies equally to the CS 1.6 plugin.
+- The plugin must include **full authoritative final state on `map_end`**, and retry until
+  acknowledged. **This is a hard requirement on the plugin design in
+  [002](002-cs2-plugin.md)** — and it applies equally to the CS 1.6 plugin. Outbound only;
+  never assume we can reach the game server ([009](009-api-contract.md)).
 - Matches carry an explicit `integrity` state (`confirmed` / `suspect` / `disputed`)
   alongside their result. This must exist in the very first schema migration.
 - Bracket advancement is gated on integrity state, not merely on a result existing.

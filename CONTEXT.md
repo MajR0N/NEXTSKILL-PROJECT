@@ -224,7 +224,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [004](docs/decisions/004-stack.md) | Language & stack | **decided** — ASP.NET Core API + TypeScript frontend (NSwag-generated types) |
 | [035](docs/decisions/035-match-result-integrity.md) | Match result integrity | **decided** — strict deserialisation, event sequencing, end-of-map reconciliation, integrity-gated bracket advancement |
 | 005 | CS 1.6 plugin design (Pawn/AMXX) | open |
-| 006 | Architecture shape | **decided (default)** — modular monolith, one deployable, one database. Not argued in depth; say so if you want it revisited. |
+| [006](docs/decisions/006-architecture.md) | Architecture & folder structure | **decided** — vertical slice (feature folders) inside one deployable. Microservices rejected: they'd break 035's atomicity and make debugging harder |
 | [007](docs/decisions/007-server-hosting-model.md) | Server hosting model | **decided** — organisers bring their own servers; NEXTSKILL hosts none |
 
 ### Backend
@@ -232,7 +232,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | # | Decision | Status |
 | --- | --- | --- |
 | [008](docs/decisions/008-database.md) | Database | **decided** — one PostgreSQL; no Redis yet; demo files on disk, metadata rows only |
-| 009 | API design — our own match config + event contract | **next up** — blocks the simulator ([038](docs/decisions/038-build-order.md)) |
+| [009](docs/decisions/009-api-contract.md) | API contract | **decided** — REST, HMAC-signed, versioned, **plugin-initiated in every direction**; plugin retries until acknowledged |
 | [010](docs/decisions/010-identity-binding.md) | Player identity & in-game binding | **decided** — identity is the web account; 1.6 sessions bound by single-use link code, never by SteamID |
 | [011](docs/decisions/011-accounts-and-login.md) | Accounts, login & two-factor binding | **decided** — native account primary, Steam/Discord optional links; in-game binding requires `setinfo` token **and** per-match code |
 | 012 | Security measures — webhook HMAC, RCON secrets, CSRF, headers | open |
@@ -305,7 +305,7 @@ verified before code depends on it — per project instruction, test before ackn
 | V2b | Values are readable **early enough at connect** to gate team joining | [011](docs/decisions/011-accounts-and-login.md) | Log the value in a connect hook on a real server |
 | V3 | `setinfo` behaves consistently on **non-Steam clients** (Reunion/dproto), not just legit Steam | [011](docs/decisions/011-accounts-and-login.md) | Test with both client types |
 | V4 | Info-key length limits allow a high-entropy token | [011](docs/decisions/011-accounts-and-login.md) | Set progressively longer values, find the ceiling |
-| V5 | RCON is **not** required for the normal CS2 match lifecycle | [007](docs/decisions/007-server-hosting-model.md) — if true, we avoid storing RCON passwords entirely | Run a full CS2 match driven only by config-pull + event-push |
+| V5 | RCON is **not** required for the normal CS2 match lifecycle | [007](docs/decisions/007-server-hosting-model.md) — if true, we avoid storing RCON passwords entirely | **Expected to resolve favourably** — [009](docs/decisions/009-api-contract.md) made the contract outbound-only, so the panel never dials the game server. Confirm with a full CS2 match |
 | V6 | CS2 can expose authoritative final match state for reconciliation | [035](docs/decisions/035-match-result-integrity.md) | Inspect what a map-end payload can contain |
 | V7 | Steam OpenID 2.0 remains available with no announced sunset | [011](docs/decisions/011-accounts-and-login.md) | Re-check Steamworks docs periodically |
 
