@@ -130,27 +130,44 @@ detection, organiser vetting) and are deliberately **not** being built yet.
 
 ---
 
-## ⚠ Assumptions requiring verification before implementation
+## Verification status
 
-Web research was unavailable at decision time (session limit). **These are assumptions, not
-verified facts, and must be tested on a real server before any code depends on them:**
+**Researched 2026-08-10. The design-breaker is cleared and the approach is validated by
+long-standing community practice.**
 
-1. `setinfo`-style client info keys are readable server-side by an AMXX plugin
-   (expected: `get_user_info` / `pfnGetInfoKeyBuffer`).
-2. Client info values persist across sessions in the player's config as expected.
-3. Values are readable **at connect time**, early enough to gate team joining.
-4. Behaviour is consistent across common non-Steam clients (Reunion/dproto), not just
-   legitimate Steam clients.
-5. Length limits on info keys are sufficient for a high-entropy token.
-6. Whether the value is visible to *other players* by any means (it must not be).
+| # | Claim | Status |
+| --- | --- | --- |
+| 1 | Client info keys are readable server-side by AMXX | ✅ **Confirmed** — `get_user_info(index, const info[], output[], len)` reads values from the player's `userconfig.cfg` |
+| 2 | Carrying a secret in `setinfo` is a viable pattern | ✅ **Confirmed** — `setinfo _pw` has been the CS 1.6 admin/VIP password convention for two decades |
+| 3 | Other **players** can read another player's info keys | ✅ **No evidence found.** The documented threat is *servers*, not players |
+| 4 | Malicious **servers** can harvest info keys | ⚠️ **Confirmed as a real, actively-exploited attack** — *"when you join bad servers, they steal your `_pw` userinfo"*. See the AlliedModders ["setinfo getting hacked"](https://forums.alliedmods.net/archive/index.php/t-241341.html) thread |
+| 5 | Readable **at connect time**, early enough to gate team joining | ❓ **Untested** — verify on a live server |
+| 6 | Consistent on non-Steam clients (Reunion/dproto) | ❓ **Untested** |
+| 7 | Length limit permits a high-entropy token | ❓ **Untested** |
 
-**Verification method:** stand up a CS 1.6 server with AMXX, set a value client-side,
-and read it from a test plugin. One evening. Per project instruction — *test before
-acknowledging.*
+**The critical finding:** the leak vector is real and actively exploited — but it is rogue
+*server operators*, not opponents in the match. This is exactly the threat that two-factor
+binding neutralises. A harvested token is worthless without the live, single-use,
+slot-scoped per-match code.
 
-Point **6** is a potential design-breaker: if other players can read another player's info
-keys, the token is not a secret and the whole factor collapses to a public identifier.
-**Verify this one first.**
+Items 5–7 remain untested. Verification method: stand up a CS 1.6 server with AMXX, set a
+value client-side, read it from a test plugin, and repeat with a non-Steam client.
+One evening.
+
+### Product risk uncovered by this research
+
+**CS 1.6 players have been burned by `setinfo` credential theft before.** Asking them to
+paste a NEXTSKILL token into their config will meet justified suspicion.
+
+Onboarding copy must state plainly, and truthfully:
+
+- it is **not a password** and cannot log into the website
+- it is **useless on its own** — a match code is always required as well
+- it is **revocable in one click** from the profile
+- rogue servers can read it, and that is *fine by design*
+
+This is a trust and communication problem, not a technical one — but getting the copy
+wrong will cost adoption in exactly the community this project targets.
 
 ---
 

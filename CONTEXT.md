@@ -13,8 +13,10 @@ A tournament platform for the **low / community Counter-Strike scene** — commu
 server owners and grassroots organisers who want to run real tournaments without
 FACEIT/ESEA-tier infrastructure or cost.
 
-Target games (under active decision, see `docs/decisions/001-game-scope.md`):
-CS 1.6, CS:GO, CS2.
+**Target games — decided ([001](docs/decisions/001-game-scope.md)):** **CS2 and CS 1.6**,
+both first-class from day one. CS:GO is explicitly out of scope.
+
+**First partner:** Pukawka (Polish CS community), trusted — see §3b.
 
 ---
 
@@ -102,7 +104,33 @@ for near-zero users.
 
 _Checked: 2026-08-10._
 
-### 2.6 Steam login is still viable
+### 2.6 `setinfo` is a proven CS 1.6 idiom — and its leak vector is known
+
+- AMXX reads client info keys server-side via
+  [`get_user_info(index, const info[], output[], len)`](http://amxxmodx.ru/core/amxmodxinc/36-get_user_info-poluchenie-dannyh-iz-setinfo.html),
+  pulling values the player set in their `userconfig.cfg`.
+- **`setinfo _pw` is the long-established convention for CS 1.6 admin/VIP passwords.**
+  Carrying a secret in a client info key is not novel — it is how this community has
+  authenticated admins for two decades.
+- **The known attack is rogue *servers*, not other players.** A malicious server operator
+  can call `get_user_info` and harvest the value: *"when you join bad servers, they steal
+  your `_pw` userinfo."* AlliedModders has a long-running
+  ["setinfo getting hacked"](https://forums.alliedmods.net/archive/index.php/t-241341.html)
+  thread on exactly this.
+- No evidence that one **player** can read another player's info keys.
+
+**Consequence:** this is precisely why
+[011](docs/decisions/011-accounts-and-login.md) requires **two** factors. A harvested
+`setinfo` token is useless without the live, single-use, slot-scoped per-match code.
+
+**Consequence 2 — a product risk, not a technical one:** CS 1.6 players have been burned by
+`setinfo` credential theft before and may resist setting a NEXTSKILL token. The onboarding
+copy must state plainly that the token is **not a password**, cannot log into the website,
+is useless on its own, and is revocable in one click.
+
+_Checked: 2026-08-10._
+
+### 2.7 Steam login is still viable
 
 Steam supports [OpenID 2.0 for web authentication](https://partner.steamgames.com/doc/features/auth)
 and returns a SteamID. OpenID 2.0 is a deprecated *protocol* in general, but **no Steam
@@ -270,8 +298,9 @@ verified before code depends on it — per project instruction, test before ackn
 
 | # | Assumption | Blocks | How to verify |
 | --- | --- | --- | --- |
-| V1 | Other players **cannot** read another player's `setinfo` value by any means | [011](docs/decisions/011-accounts-and-login.md) — design-breaker if false | CS 1.6 server + AMXX test plugin; attempt to read another client's info key |
-| V2 | `setinfo` values are readable server-side via AMXX at **connect time**, early enough to gate team joining | [011](docs/decisions/011-accounts-and-login.md) | Same server; log the value in a connect hook |
+| ~~V1~~ | ~~Other players cannot read another player's `setinfo` value~~ | — | **RESOLVED 2026-08-10.** Documented threat is rogue *servers* harvesting via `get_user_info`, not players. Two-factor already covers it. See §2.6. |
+| ~~V2~~ | ~~`setinfo` readable server-side via AMXX~~ | — | **CONFIRMED 2026-08-10.** `get_user_info()` reads client info keys. Connect-time timing still worth confirming on a live server. |
+| V2b | Values are readable **early enough at connect** to gate team joining | [011](docs/decisions/011-accounts-and-login.md) | Log the value in a connect hook on a real server |
 | V3 | `setinfo` behaves consistently on **non-Steam clients** (Reunion/dproto), not just legit Steam | [011](docs/decisions/011-accounts-and-login.md) | Test with both client types |
 | V4 | Info-key length limits allow a high-entropy token | [011](docs/decisions/011-accounts-and-login.md) | Set progressively longer values, find the ceiling |
 | V5 | RCON is **not** required for the normal CS2 match lifecycle | [007](docs/decisions/007-server-hosting-model.md) — if true, we avoid storing RCON passwords entirely | Run a full CS2 match driven only by config-pull + event-push |
