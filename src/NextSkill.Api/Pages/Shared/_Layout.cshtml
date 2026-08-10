@@ -6,9 +6,23 @@
     with JavaScript disabled. A page that renders empty without JS breaks link
     unfurling, which is the growth mechanism (018).
 *@
+@using System.Globalization
+@using NextSkill.Api.Localisation
 @{
-    var locale = (string?)ViewData["Locale"] ?? "pl";
+    // The URL is the source of truth for language (018). RequestLocalization
+    // has already resolved it by the time the layout renders.
+    var locale = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+    if (!Locales.IsSupported(locale)) { locale = Locales.Default; }
     var title = ViewData["Title"] as string;
+    var path = Context.Request.Path.Value ?? "/";
+    // Same page, other language — used for both the switcher and hreflang.
+    string InLocale(string l)
+    {
+        var rest = path.StartsWith($"/{locale}", StringComparison.Ordinal)
+            ? path[(locale.Length + 1)..]
+            : path;
+        return $"/{l}{rest}";
+    }
 }
 <!DOCTYPE html>
 <html lang="@locale">
@@ -23,7 +37,14 @@
     <meta property="og:title" content="@(title ?? "NEXTSKILL")" />
     <meta property="og:description" content="@(ViewData["Description"] ?? "Platforma turniejowa dla sceny CS 1.6 i CS2.")" />
     <meta property="og:type" content="website" />
-    <meta property="og:locale" content="@(locale switch { "en" => "en_GB", "ru" => "ru_RU", "de" => "de_DE", _ => "pl_PL" })" />
+    <meta property="og:locale" content="@Locales.OpenGraph(locale)" />
+
+    @* hreflang tells search engines which language each URL serves, so the
+       right one is offered to the right reader (018). *@
+    @foreach (var l in Locales.Supported)
+    {
+        <link rel="alternate" hreflang="@l" href="@InLocale(l)" />
+    }
 
     @* .NET 10 fingerprints static assets automatically via MapStaticAssets,
        so asp-append-version is redundant here. *@
@@ -44,9 +65,9 @@
             @* Locale switcher stays visible — a Russian speaker landing on a
                Polish page must be able to fix that immediately (018). *@
             <div class="locale">
-                @foreach (var l in new[] { "pl", "en", "ru", "de" })
+                @foreach (var l in Locales.Supported)
                 {
-                    <a href="?locale=@l" aria-current="@(l == locale ? "true" : "false")">@l.ToUpperInvariant()</a>
+                    <a href="@InLocale(l)" hreflang="@l" aria-current="@(l == locale ? "true" : "false")">@l.ToUpperInvariant()</a>
                 }
             </div>
         </nav>
