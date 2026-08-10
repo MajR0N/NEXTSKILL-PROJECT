@@ -229,7 +229,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [003](docs/decisions/003-build-basis.md) | Build basis | **decided** — platform written from scratch, no forking |
 | [004](docs/decisions/004-stack.md) | Language & stack | **decided** — ASP.NET Core API + TypeScript frontend (NSwag-generated types) |
 | [035](docs/decisions/035-match-result-integrity.md) | Match result integrity | **decided** — strict deserialisation, event sequencing, end-of-map reconciliation, integrity-gated bracket advancement |
-| 005 | CS 1.6 plugin design (Pawn/AMXX) | open |
+| [005](docs/decisions/005-cs16-plugin.md) | CS 1.6 plugin | **decided** — no veto, no side selection, knife optional. Hard part is round restore: score/side/round only, economy lost |
 | [006](docs/decisions/006-architecture.md) | Architecture & folder structure | **decided** — vertical slice (feature folders) inside one deployable. Microservices rejected: they'd break 035's atomicity and make debugging harder |
 | [007](docs/decisions/007-server-hosting-model.md) | Server hosting model | **decided** — organisers bring their own servers; NEXTSKILL hosts none |
 
@@ -261,7 +261,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [023](docs/decisions/023-bracket.md) | Bracket data model & rendering | **decided** — whole bracket generated up front with **explicit routing links**; mobile gets round-by-round + follow-team, not a shrunken tree |
 | [024](docs/decisions/024-demos.md) | Demo storage & retention | **decided** — 90 days, then deleted; finals and disputes kept indefinitely; local disk, authorised endpoint only |
 | [025](docs/decisions/025-rating-system.md) | Rating, ranking & tiers | **decided** — one system, three layers. Team = **Glicko-2**, player = **OpenSkill**. Ranking/tiers are derived views, never stored |
-| 028 | Map veto & lobby UI | open |
+| [028](docs/decisions/028-veto-and-lobby.md) | Map veto & lobby | **decided** — **veto runs on the web**, not in-game. Removes a state machine from both plugins and takes side selection with it |
 | 029 | Profile creation & management | open |
 | 030 | Login page | open |
 | 031 | Footer design | open |
