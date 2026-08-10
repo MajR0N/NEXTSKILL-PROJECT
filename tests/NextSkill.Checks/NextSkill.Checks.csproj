@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\NextSkill.Contracts\NextSkill.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\NextSkill.Domain\NextSkill.Domain.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

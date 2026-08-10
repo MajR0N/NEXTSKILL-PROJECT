@@ -31,20 +31,28 @@ questions asked before code is written.
 
 ---
 
-## Phase 0 — Foundation
+## Phase 0 — Foundation ✅ **COMPLETE**
 
 **Lenses:** `dotnet-core-expert` · `frontend-design` · `ui-ux-pro-max:design-system` · `csharp-developer`
 
 - ☑ **Scaffold solution** — `NextSkill.Api`, `NextSkill.Contracts`, `NextSkill.Simulator`, `NextSkill.Checks`
-- ☐ **Verify the `net8.0` target actually compiles** — if it doesn't, the plugin contract-sharing plan breaks and 004 needs revisiting
-- ☐ **Design system CSS** — tokens and the 18 components from [019](decisions/019-visual-identity.md) + [041](decisions/041-layout-system.md)
-- ☐ **Localisation** — 4 locales, locale route segment, `IStringLocalizer` ([018](decisions/018-frontend-architecture.md))
+- ☑ **`net8.0` target compiles** — verified; `bin/Debug/net8.0` and `net10.0` both produced. The plugin can reference the wire DTOs, so [004](decisions/004-stack.md) holds
+- ☑ **Design system CSS** — tokens, 4px scale, 3 widths, 5 archetypes, 18 components
+- ☑ **Layout shell** — headbar, footer, OG tags, skip link
+- ☑ **Localisation** — 4 locales, locale in the route, `hreflang` alternates. **Verified running**: `/pl` `/en` `/ru` `/de` all 200 with correct `lang` and `og:locale`
 
-## Phase 1 — Data foundation
+## Phase 1 — Data foundation ◐ **IN PROGRESS**
 
 **Lenses:** `dotnet-core-expert` (EF Core, DI, config) · `postgres-pro` · `sql-pro` · `secure-code-guardian` (tenancy is a breach surface, not a feature)
 
-- ☐ **First migration.** These are locked by earlier decisions and are painful to add later:
+> **Honest status.** The migration is written and its generated SQL has been **read and
+> verified** — but it has **never been applied to a database**, the tenancy filters have
+> **never actually executed**, and authorization has **not been started**. Blocked on
+> creating the local dev role/database.
+>
+> Written ≠ working. This stays `in progress` until a query has run.
+
+- ☑ **First migration written; SQL verified to contain:** These are locked by earlier decisions and are painful to add later:
   - `matches.game` — game discriminator ([001](decisions/001-game-scope.md))
   - `matches.integrity` — `confirmed` / `suspect` / `disputed` ([035](decisions/035-match-result-integrity.md))
   - `organisers.trusted` — per-organiser trust flag (CONTEXT §3b)
@@ -52,10 +60,14 @@ questions asked before code is written.
   - `matches.payload jsonb` + GIN index ([008](decisions/008-database.md))
   - **partial unique index** — one live match per server ([007](decisions/007-server-hosting-model.md))
   - `inet` for IPs, `timestamptz` everywhere, never naive ([008](decisions/008-database.md))
-- ☐ **Tenancy** — EF Core global query filters; resolver **fails closed** ([036](decisions/036-authorization.md))
-- ☐ **Authorization** — resource-based handlers, no ad-hoc role checks ([036](decisions/036-authorization.md))
+- ☐ **Apply the migration** to the local dev database ← **blocked**
+- ◐ **Tenancy** — filters declared and resolver throws on a null tenant, but **unverified**; the check in [036](decisions/036-authorization.md) has not run
+- ☐ **Authorization** — resource-based handlers, no ad-hoc role checks ([036](decisions/036-authorization.md)) — **not started**
 
-## Phase 2 — Pure engines (highest value, cheapest to test)
+## Phase 2 — Pure engines (highest value, cheapest to test) ◐ **IN PROGRESS**
+
+*Deliberately started while Phase 1 is blocked: these engines are pure functions and need no
+database at all.*
 
 **Lenses:** `test-master` · `tdd` · `csharp-developer`
 
@@ -63,13 +75,21 @@ questions asked before code is written.
 
 Built before any UI, because they are pure functions and they hide the silent bugs.
 
-- ☐ **Bracket engine** ([022](decisions/022-tournament-formats.md), [023](decisions/023-bracket.md))
-  - ☐ 8-team single elim → correct champion, 7 matches
-  - ☐ 13-team → byes to top seeds, byes **not rated**
-  - ☐ 8-team double elim → every loser lands in the correct LB match
-  - ☐ **Bracket reset** — LB team wins grand final → a second grand final is created
-  - ☐ UB team wins grand final → tournament ends, no extra match
-  - ☐ Generation → no dangling `winner_to` / `loser_to` links
+- ☑ **Bracket engine** ([022](decisions/022-tournament-formats.md), [023](decisions/023-bracket.md)) — **8/8 checks passing**
+  - ☑ Seed order keeps 1 and 2 in opposite halves
+  - ☑ 8-team single elim → correct champion, 7 matches
+  - ☑ 13-team → byes to top seeds, byes **not rated** (12 played, not 15)
+  - ☑ 8-team double elim → structure correct, no dangling links
+  - ☑ **Bracket reset** — LB team wins grand final → a second grand final is created
+  - ☑ UB team wins grand final → tournament ends, no extra match
+  - ☑ 16-team double elim terminates, 30 matches (2n−2)
+
+  > **The checks earned their keep immediately.** The first run failed with
+  > `upper match 5 drops its loser nowhere`: the formula for which upper round feeds each
+  > lower round was off by one, so **upper round 2's losers were routed nowhere and upper
+  > round 1's were routed twice**. The bracket would have rendered perfectly and silently
+  > dropped a whole round of teams out of the tournament. Exactly the failure
+  > [023](decisions/023-bracket.md) predicted.
 - ☐ **Rating engine** ([025](decisions/025-rating-system.md))
   - ☐ Bye → no rating change
   - ☐ `disputed` → no rating change until confirmed

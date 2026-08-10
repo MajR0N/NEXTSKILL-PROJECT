@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/NextSkill.Api/NextSkill.Api.csproj" />
     <Project Path="src/NextSkill.Contracts/NextSkill.Contracts.csproj" />
+    <Project Path="src/NextSkill.Domain/NextSkill.Domain.csproj" />
     <Project Path="src/NextSkill.Simulator/NextSkill.Simulator.csproj" />
   </Folder>
   <Folder Name="/tests/">
