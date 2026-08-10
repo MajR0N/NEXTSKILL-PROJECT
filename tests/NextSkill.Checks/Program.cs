@@ -440,6 +440,10 @@ Console.WriteLine("WIRE CONTRACT  (decisions 009, 035)");
 NextSkill.Checks.ContractChecks.Run(Check, That);
 
 Console.WriteLine();
+Console.WriteLine("AUTHORIZATION  (decision 036)");
+NextSkill.Checks.AccessChecks.Run(Check, That);
+
+Console.WriteLine();
 Console.WriteLine("SIGNING & INTEGRITY  (decisions 009, 012, 035)");
 NextSkill.Checks.IntegrityChecks.Run(Check, That);
 
