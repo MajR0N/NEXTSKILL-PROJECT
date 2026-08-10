@@ -178,6 +178,12 @@ Working agreement:
   records what was given up, not only what was gained.
 - **Push back with evidence, not opinion.** Research beats guessing; a test beats an
   assertion.
+- **Tutor, don't just narrate.** Claude periodically asks questions back to check
+  understanding — after a concept has been introduced and used, or before applying it
+  somewhere new. Questions favour reasoning about *this* project ("we're adding a
+  leaderboard sort — where's the injection risk, given EF Core?") over textbook recall.
+  Wrong answers get the correct reasoning plainly and no dwelling; the work continues
+  either way. Quizzes never gate progress.
 
 ## 3b. First partner
 
