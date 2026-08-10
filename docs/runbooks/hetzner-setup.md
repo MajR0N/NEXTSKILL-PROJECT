@@ -12,6 +12,25 @@ Decided in [042](../decisions/042-hosting.md).
 
 You need: a payment method (Hetzner asks even for small amounts), and a domain you control.
 
+### ⚠️ Pick the right Hetzner product
+
+Hetzner sells four things with confusingly similar names. **Only one of them can run this app.**
+
+| Product | What it is | Verdict |
+| --- | --- | --- |
+| **Hetzner Webhosting** | Shared hosting — PHP + MySQL, fixed software, no root | ❌ **Cannot run .NET.** Not this one |
+| **Hetzner Cloud** → `console.hetzner.cloud` | A VPS: your own Linux machine, root access | ✅ **This one.** CAX11 lives here |
+| Hetzner Dedicated (Robot) | Bare metal | Overkill, ~€40+/month |
+| Hetzner Storage Box | Bulk storage, no compute | Useful later as an off-host backup target (step 10) |
+
+> *Plain version:* **shared hosting** is a folder on someone else's machine with a fixed menu
+> of software — almost always PHP and MySQL. You cannot install anything. **A VPS** is the
+> whole (virtual) machine: you install .NET, PostgreSQL, Docker, whatever you choose.
+>
+> This is the same distinction that settled [008](../decisions/008-database.md): on a VPS,
+> nothing external forces MySQL on us, which is why PostgreSQL was freely available as a
+> choice.
+
 > ⚠️ **Do this on a machine you'll keep.** The SSH key you generate in step 2 is how you get
 > in. Lose it and you're locked out of your own server.
 
@@ -224,6 +243,11 @@ Then a real database dump, **off the host** ([017](../decisions/017-deployment-a
 # nightly pg_dump → object storage or another machine
 docker exec nextskill-db pg_dump -U nextskill nextskill | gzip > /backup/ns-$(date +%F).sql.gz
 ```
+
+**Where to put them:** R2's free tier is 10 GB and is already earmarked for demos
+([024](../decisions/024-demos.md)), so a growing archive of nightly dumps will outgrow it.
+A **Hetzner Storage Box** (~€3.81/month for 1 TB) is the obvious target — different machine,
+different failure domain, mountable over SFTP. Not needed until there is real data to lose.
 
 > **A backup you have never restored is a hope, not a backup.** Schedule one restore drill
 > into a scratch database and actually run it. The database *is* the product
