@@ -259,7 +259,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [021](docs/decisions/021-site-structure.md) | Site structure, features & navigation | **decided** — four surfaces mirroring the role model; **+LFT board, news/CMS, seasons**; headbar public, sidebar panels |
 | [022](docs/decisions/022-tournament-formats.md) | Tournament formats | **decided** — all five at launch, built as **two engines** (elimination + round-robin) composed into five formats |
 | [023](docs/decisions/023-bracket.md) | Bracket data model & rendering | **decided** — whole bracket generated up front with **explicit routing links**; mobile gets round-by-round + follow-team, not a shrunken tree |
-| 024 | Demo storage, retention, and match detail pages (CS2 only) | open |
+| [024](docs/decisions/024-demos.md) | Demo storage & retention | **decided** — 90 days, then deleted; finals and disputes kept indefinitely; local disk, authorised endpoint only |
 | [025](docs/decisions/025-rating-system.md) | Rating, ranking & tiers | **decided** — one system, three layers. Team = **Glicko-2**, player = **OpenSkill**. Ranking/tiers are derived views, never stored |
 | 028 | Map veto & lobby UI | open |
 | 029 | Profile creation & management | open |
