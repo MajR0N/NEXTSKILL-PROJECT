@@ -163,6 +163,21 @@ These are binding, not aspirational.
 
 ---
 
+## 2a. Strategy
+
+Go-to-market, positioning and the commercial model live in
+[MARKETING-AND-SALES-STRATEGY.md](MARKETING-AND-SALES-STRATEGY.md).
+
+Three points from it that constrain engineering:
+
+1. **Organisers are the customer**, players are the reason the product exists. One converted
+   organiser brings dozens of players; one converted player brings nobody.
+2. **Growth is shared links, not advertising.** This is why server rendering and Open Graph
+   cards are load-bearing rather than cosmetic ([018](docs/decisions/018-frontend-architecture.md)).
+3. **CS 1.6 is the moat** — a one-time cost for us, a deterrent for competitors. Which makes
+   verification item **V3** (does `setinfo` behave the same on non-Steam clients?) the single
+   biggest product risk on the board, not merely a technical unknown.
+
 ## 3a. How we work on this project
 
 **NEXTSKILL is a learning project as much as a product.** The decision to build from
