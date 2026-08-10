@@ -1,10 +1,40 @@
-﻿@page
+@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Start";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="wrap section">
+    <p class="eyebrow">Faza budowy · <b>0 — fundament</b></p>
+    <h1>Design system działa</h1>
+    <p class="lede">
+        Ta strona istnieje wyłącznie po to, żeby potwierdzić, że shell i tokeny renderują się
+        w prawdziwej aplikacji. Treść strony głównej nie została jeszcze ustalona —
+        wymaga grillowania (patrz <code>docs/BUILD-PLAN.md</code>, faza 4).
+    </p>
+
+    <div class="row" style="margin-top:var(--s5)">
+        <span class="pill pill--ok"><span class="pill__dot"></span>Wynik potwierdzony</span>
+        <span class="pill pill--live"><span class="pill__dot"></span>Na żywo</span>
+        <span class="pill pill--warn">Wymaga decyzji</span>
+        <span class="pill">Demo <b>84 MB</b></span>
+    </div>
+
+    <div class="row" style="margin-top:var(--s4)">
+        <button class="btn btn--primary">Akcja główna</button>
+        <button class="btn">Akcja drugorzędna</button>
+        <button class="btn btn--ghost">Ghost</button>
+        <button class="btn btn--danger">Usuń drużynę</button>
+    </div>
+
+    <p class="label" style="margin-top:var(--s7)">Stan pusty</p>
+    <div class="empty">
+        <div class="empty__icon">◍</div>
+        <h4>Nie masz jeszcze drużyny</h4>
+        <p>Załóż własną albo wystaw się na liście szukających. Rating pojawi się po pierwszym meczu.</p>
+        <div class="row" style="justify-content:center">
+            <button class="btn btn--primary">Załóż drużynę</button>
+            <button class="btn">Szukam drużyny</button>
+        </div>
+    </div>
 </div>

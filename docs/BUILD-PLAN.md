@@ -33,7 +33,7 @@ questions asked before code is written.
 
 ## Phase 0 — Foundation
 
-**Lenses:** `frontend-design` · `ui-ux-pro-max:design-system` · `csharp-developer`
+**Lenses:** `dotnet-core-expert` · `frontend-design` · `ui-ux-pro-max:design-system` · `csharp-developer`
 
 - ☑ **Scaffold solution** — `NextSkill.Api`, `NextSkill.Contracts`, `NextSkill.Simulator`, `NextSkill.Checks`
 - ☐ **Verify the `net8.0` target actually compiles** — if it doesn't, the plugin contract-sharing plan breaks and 004 needs revisiting
@@ -42,7 +42,7 @@ questions asked before code is written.
 
 ## Phase 1 — Data foundation
 
-**Lenses:** `postgres-pro` · `sql-pro` · `secure-code-guardian` (tenancy is a breach surface, not a feature)
+**Lenses:** `dotnet-core-expert` (EF Core, DI, config) · `postgres-pro` · `sql-pro` · `secure-code-guardian` (tenancy is a breach surface, not a feature)
 
 - ☐ **First migration.** These are locked by earlier decisions and are painful to add later:
   - `matches.game` — game discriminator ([001](decisions/001-game-scope.md))
@@ -58,6 +58,8 @@ questions asked before code is written.
 ## Phase 2 — Pure engines (highest value, cheapest to test)
 
 **Lenses:** `test-master` · `tdd` · `csharp-developer`
+
+*(`dotnet-core-expert` not needed here — the engines are pure C# with no framework surface.)*
 
 Built before any UI, because they are pure functions and they hide the silent bugs.
 
@@ -77,7 +79,7 @@ Built before any UI, because they are pure functions and they hide the silent bu
 
 ## Phase 3 — Wire contract & simulator
 
-**Lenses:** `api-designer` · `secure-code-guardian` (HMAC, replay window) · `test-master`
+**Lenses:** `api-designer` · `dotnet-core-expert` (minimal APIs, model binding, `HttpClient` resilience) · `secure-code-guardian` (HMAC, replay window) · `test-master`
 
 - ☐ **OpenAPI 3.1 spec** for the plugin contract ([009](decisions/009-api-contract.md))
 - ☐ **Contracts DTOs** — `required` members, unknown fields rejected ([035](decisions/035-match-result-integrity.md))
@@ -118,7 +120,7 @@ Built before any UI, because they are pure functions and they hide the silent bu
 > **Phases 0–3 do not depend on these** — foundation, engines and the wire contract are all
 > settled. Build those first; grill Phase 4 pages before their slices.
 
-**Lenses:** `grilling` (**first — the pages above are undecided**) · `fullstack-guardian` · `frontend-design` · `secure-code-guardian` · `code-reviewer`
+**Lenses:** `grilling` (**first — the pages above are undecided**) · `dotnet-core-expert` (Razor Pages, filters, localisation) · `fullstack-guardian` · `frontend-design` · `secure-code-guardian` · `code-reviewer`
 
 Vertical slices ([006](decisions/006-architecture.md)). Each slice is a folder containing
 endpoint, request, handler and validator together.
@@ -145,7 +147,7 @@ endpoint, request, handler and validator together.
 
 ## Phase 5 — Plugins
 
-**Lenses:** `csharp-developer` (CS2 / CounterStrikeSharp) · `test-master` · `debugging-wizard`
+**Lenses:** `csharp-developer` · `dotnet-core-expert` (the plugin is a .NET 8 assembly) · `test-master` · `debugging-wizard`
 **No lens fits Pawn/AMXX** — CS 1.6 plugin work is unassisted by the available skills, which is itself a reason to sequence it last
 
 Concretely, one at a time. **No shared abstraction until both exist** ([001](decisions/001-game-scope.md)).
@@ -158,7 +160,7 @@ Concretely, one at a time. **No shared abstraction until both exist** ([001](dec
 
 ## Phase 6 — Ship
 
-**Lenses:** `devops-engineer` · `monitoring-expert` · `security-reviewer` (full pass before launch) · `sre-engineer` (backups, restore drill)
+**Lenses:** `devops-engineer` · `dotnet-core-expert` (publish, AOT/trimming, health checks) · `monitoring-expert` · `security-reviewer` (full pass before launch) · `sre-engineer` (backups, restore drill)
 
 - ☐ Docker Compose + reverse proxy + CDN in front ([017](decisions/017-deployment-and-cicd.md))
 - ☐ **Backups with a tested restore** — an untested backup is a hope

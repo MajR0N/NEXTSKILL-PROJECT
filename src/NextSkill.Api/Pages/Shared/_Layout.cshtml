@@ -1,51 +1,84 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+@*
+    Layout shell — decisions 018 (server-rendered), 021 (headbar public),
+    031 (footer carries obligations, not marketing).
+
+    Progressive enhancement is a hard rule (020): every content page must work
+    with JavaScript disabled. A page that renders empty without JS breaks link
+    unfurling, which is the growth mechanism (018).
+*@
+@{
+    var locale = (string?)ViewData["Locale"] ?? "pl";
+    var title = ViewData["Title"] as string;
+}
+<!DOCTYPE html>
+<html lang="@locale">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - NextSkill.Api</title>
-    <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/NextSkill.Api.styles.css" asp-append-version="true" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@(title is null ? "NEXTSKILL" : $"{title} — NEXTSKILL")</title>
+
+    @* Open Graph is a design surface, not an afterthought: growth runs through
+       links pasted into Discord and forums, and those crawlers do not run JS. *@
+    <meta property="og:site_name" content="NEXTSKILL" />
+    <meta property="og:title" content="@(title ?? "NEXTSKILL")" />
+    <meta property="og:description" content="@(ViewData["Description"] ?? "Platforma turniejowa dla sceny CS 1.6 i CS2.")" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="@(locale switch { "en" => "en_GB", "ru" => "ru_RU", "de" => "de_DE", _ => "pl_PL" })" />
+
+    @* .NET 10 fingerprints static assets automatically via MapStaticAssets,
+       so asp-append-version is redundant here. *@
+    <link rel="stylesheet" href="~/css/nextskill.css" />
+    <link rel="icon" href="~/favicon.ico" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">NextSkill.Api</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                </div>
+    <a class="visually-hidden" href="#main">Przejdź do treści</a>
+
+    <header class="wrap">
+        <nav class="headbar">
+            <a class="brand" asp-page="/Index">next<b>skill</b></a>
+            <a asp-page="/Index">Ranking</a>
+            <a asp-page="/Index">Turnieje</a>
+            <a asp-page="/Index">Mecze</a>
+            <a asp-page="/Index">Szukam drużyny</a>
+            <span class="headbar__spacer"></span>
+            @* Locale switcher stays visible — a Russian speaker landing on a
+               Polish page must be able to fix that immediately (018). *@
+            <div class="locale">
+                @foreach (var l in new[] { "pl", "en", "ru", "de" })
+                {
+                    <a href="?locale=@l" aria-current="@(l == locale ? "true" : "false")">@l.ToUpperInvariant()</a>
+                }
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - NextSkill.Api - <a asp-area="" asp-page="/Privacy">Privacy</a>
+    <main id="main">
+        @RenderBody()
+    </main>
+
+    <footer class="wrap footer">
+        <div class="footer__cols">
+            <div>
+                <h4>NEXTSKILL</h4>
+                <p class="dim" style="font-size:13px;margin:0">Platforma turniejowa dla sceny CS&nbsp;1.6 i CS2.</p>
+            </div>
+            <div>
+                <h4>Turnieje</h4>
+                <a href="#">Ranking</a><a href="#">Turnieje</a><a href="#">Szukam drużyny</a><a href="#">Archiwum sezonów</a>
+            </div>
+            <div>
+                <h4>Społeczność</h4>
+                <a href="#">Discord</a><a href="#">Forum</a><a href="#">Regulamin</a><a href="#">FAQ</a>
+            </div>
+        </div>
+        <div class="footer__bottom">
+            <span>Prywatność · Warunki · Kontakt</span>
+            <span>PL EN RU DE</span>
+            @* Version makes "which version were you on?" answerable in support
+               and confirms a deploy landed (017). *@
+            <span>v@(ViewData["Version"] ?? "0.1.0-dev")</span>
         </div>
     </footer>
-
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
