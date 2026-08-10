@@ -247,7 +247,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 
 | # | Decision | Status |
 | --- | --- | --- |
-| 018 | Fundamentals — structure, layout, navigation | open |
+| [018](docs/decisions/018-frontend-architecture.md) | Frontend architecture & i18n | **decided** — Razor Pages + TS islands; **4 locales** (pl primary, en/ru/de) with locale in the URL; no Node runtime |
 | 019 | Visual identity — colours, fonts | open |
 | 020 | Behaviour — animation & interaction budget | open |
 | 021 | UX enhancements | open |
