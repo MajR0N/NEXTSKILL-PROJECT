@@ -1,8 +1,11 @@
 # 004 — Web platform language & stack
 
-**Status:** proposed — awaiting decision
+**Status:** **decided**
 **Date:** 2026-08-10
 **Lens applied:** architecture-designer
+**Decision:** **ASP.NET Core** backend + **TypeScript** frontend, types generated via NSwag.
+Conditional on the silent-failure mode being engineered away — see
+[035](035-match-result-integrity.md).
 
 ---
 
@@ -156,6 +159,60 @@ differentiator; both work.
 
 ---
 
+## Head-to-head: ASP.NET Core vs Node/TypeScript
+
+PHP and FastAPI eliminated. This is the real decision, and it is genuinely close.
+
+### Demo parsing is a wash
+
+Both ecosystems have a strong CS2 parser, so this cannot decide it:
+
+| | Library | Approach | Performance |
+| --- | --- | --- | --- |
+| C# | [DemoFile.Net](https://github.com/saul/demofile-net) (NuGet `DemoFile`, v0.37.x) | Event-driven + streaming | Full competitive game in **1.3s**; ~**500ms** with `ReadAllParallelAsync` |
+| JS | [demoparser](https://github.com/LaihoE/demoparser) | Query-the-demo-like-a-database | Rust core, bindings for JS and Python |
+
+### The argument against my own recommendation
+
+I claimed compile-time contract safety with the plugin as the decisive C# advantage.
+The honest counter is about **which contract is exercised more**:
+
+| Contract | Endpoints | Change frequency | Failure mode |
+| --- | --- | --- | --- |
+| Plugin ↔ Panel | ~10 | Rarely, once stable | **Silent** — wrong score recorded during a live final |
+| Panel ↔ Frontend | Dozens, growing forever | Constantly | **Loud** — page breaks immediately in dev |
+
+TypeScript gives you type safety across the **larger, faster-changing** surface.
+C# gives it across the **smaller, more dangerous** one.
+
+**And both weaknesses are fixable by the same tool.** OpenAPI codegen runs in either
+direction — a TS panel can generate a typed C# client for the plugin; a C# panel can
+generate TS types for the frontend (NSwag is mature at this). So neither language has a
+structural monopoly on type safety; each just gets one seam for free and pays for the other.
+
+That reduces the decision to three things that codegen cannot fix:
+
+1. **Language count and depth.** C# is mandatory for the CS2 plugin regardless. Choosing
+   ASP.NET Core means going deep in a language already required. Choosing Node means
+   maintaining real competence in both, permanently.
+2. **CPU-bound rating recalculation.** C# has true multithreading; Node needs worker
+   threads. Real, but small at community-scene data volumes — and honestly not decisive
+   until the match history is large.
+3. **Ecosystem and examples.** Node is meaningfully larger, with far more prior art for
+   "web app with live updates and brackets."
+
+### Verdict
+
+| If you value... | Choose |
+| --- | --- |
+| One language across game server *and* backend; deepest learning; most headroom | **ASP.NET Core** |
+| One language across backend *and* frontend; largest ecosystem; fastest day-to-day iteration | **Node / TypeScript** |
+
+Both are defensible. There is no wrong answer here, only a preference about **which seam
+you want to be free** — the game-server seam or the frontend seam.
+
+---
+
 ## Recommendation
 
 **ASP.NET Core**, for three reasons in priority order:
@@ -193,4 +250,30 @@ define this product.
 
 ## Decision
 
-_Pending._
+**ASP.NET Core for the API and platform. TypeScript for the frontend.**
+
+```
+NEXTSKILL.Contracts   (wire DTOs only — no logic, no DB entities)
+   ├── NEXTSKILL.Plugin   C# / CounterStrikeSharp   (CS2)
+   └── NEXTSKILL.Api      ASP.NET Core
+          └── NSwag ──► generated TS types ──► frontend (TypeScript)
+
+NEXTSKILL.Plugin16       Pawn / AMXX               (CS 1.6)
+```
+
+Languages: **Pawn + C# + TypeScript = 3.** No language added beyond what the game plugins
+already force.
+
+Both seams are typed: the plugin seam by a shared compiled library, the frontend seam by
+NSwag code generation.
+
+### Condition attached to this decision
+
+The head-to-head identified that the plugin↔panel seam fails **silently** — a wrong score
+recorded during a live final, with nothing visibly broken. A shared DTO library catches
+*shape* drift but **not semantic error**: a correctly-shaped payload carrying a wrong score
+compiles fine.
+
+Type safety is therefore necessary but not sufficient. This decision is accepted on the
+condition that result integrity is engineered explicitly, per
+**[035 — Match result integrity](035-match-result-integrity.md)**.

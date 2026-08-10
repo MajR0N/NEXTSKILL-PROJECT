@@ -160,7 +160,8 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [001](docs/decisions/001-game-scope.md) | Game scope | **decided** — CS2 + CS 1.6 both day one; CS:GO out |
 | [002](docs/decisions/002-cs2-plugin.md) | CS2 server plugin | **decided** — original plugin on CounterStrikeSharp, prior art as reference only |
 | [003](docs/decisions/003-build-basis.md) | Build basis | **decided** — platform written from scratch, no forking |
-| 004 | Language & stack for the web platform | **grilling** |
+| [004](docs/decisions/004-stack.md) | Language & stack | **decided** — ASP.NET Core API + TypeScript frontend (NSwag-generated types) |
+| [035](docs/decisions/035-match-result-integrity.md) | Match result integrity | **decided** — strict deserialisation, event sequencing, end-of-map reconciliation, integrity-gated bracket advancement |
 | 005 | CS 1.6 plugin design (Pawn/AMXX) | open |
 | 006 | Architecture shape — monolith vs. services | open |
 | 007 | Who hosts the game servers (us, organisers, or both) | open |
@@ -206,6 +207,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | 032 | CI/CD — dev → production, GitHub branch/commit verification in admin panel | open |
 | 033 | Maintenance mode | open |
 | 034 | Test strategy — how a full match is exercised without ten humans | open |
+| [035](docs/decisions/035-match-result-integrity.md) | Match result integrity | **decided** |
 
 ---
 
