@@ -36,6 +36,55 @@ Hetzner sells four things with confusingly similar names. **Only one of them can
 
 ---
 
+## 0b. The domain — register this first
+
+Step 8 needs it, and [037](../decisions/037-platform-hosting.md) makes it effectively
+permanent.
+
+### Why "permanent" is stronger here than usual
+
+The domain appears in Steam OpenID return URLs, Discord OAuth redirect URIs, TLS
+certificates, every link ever pasted into Discord or a forum
+([018](../decisions/018-frontend-architecture.md)) — **and in the plugin callback URL
+configured on every organiser's game server** ([007](../decisions/007-server-hosting-model.md)).
+
+Changing it later means **every organiser has to reconfigure their server.** Choose once.
+
+### TLD
+
+| | Verdict |
+| --- | --- |
+| **`.com`** | ✅ **Chosen.** Universal across pl/en/ru/de, most trusted, cheapest |
+| `.pl` | Signals Polish-only — contradicts four-locale support and "reach as many communities as possible" |
+| `.gg` | Esports-flavoured, but ~$70/year |
+| `.eu` | Cheap, weaker recognition |
+
+Consider registering `.pl` **defensively** — not to use, but so nobody else runs
+`nextskill.pl` in the home market.
+
+### Registrar: Porkbun
+
+| Registrar | Register | Renew | Note |
+| --- | --- | --- | --- |
+| **Porkbun** | ~$11 | **~$11** | Same price forever, free WHOIS privacy |
+| Cloudflare | **cannot register new domains** | ~$10.46 | Transfer target later; saves ~$0.62/yr — not worth the hassle |
+| Namecheap | cheap year 1 | **$18.48** | Discounts year one and recovers it at renewal |
+
+### Settings to enable immediately
+
+| Setting | Why |
+| --- | --- |
+| **Auto-renew ON** | An expired domain is the single worst self-inflicted outage. Someone else can register it |
+| **WHOIS privacy** | Free at Porkbun. Otherwise your name, address and phone number are publicly queryable |
+| **Registrar lock ON** | Blocks unauthorised transfer attempts |
+| **2FA on the registrar account** | That account controls the domain, which controls the TLS certs and the OAuth redirects. It is the highest-value account in the project — higher than the server |
+
+> *Plain version:* whoever controls the domain can point it anywhere and obtain valid
+> certificates for it. That makes the registrar login more security-critical than the VPS:
+> losing the server costs you a rebuild; losing the domain costs you the platform.
+
+---
+
 ## 1. Create the account and a project
 
 1. Sign up at **console.hetzner.cloud**

@@ -160,6 +160,23 @@ and the official images have ARM64 variants.
 40 GB of disk is ample because **demos live in R2**, not on the host — the disk carries the
 OS, the app and PostgreSQL only.
 
+### Domain: `.com`, registered at Porkbun
+
+| | Choice | Why |
+| --- | --- | --- |
+| TLD | **`.com`** | Universal across pl/en/ru/de. `.pl` would signal Polish-only, contradicting four-locale support and the stated goal of reaching many communities |
+| Registrar | **Porkbun** (~$11/yr, flat) | **Cloudflare Registrar cannot register new domains** — transfers only. Its ~$0.62/yr saving does not justify a transfer. Namecheap discounts year one and recovers it at $18.48 renewal |
+| Defensive | `.pl` if cheap | So nobody else runs `nextskill.pl` in the home market |
+
+**Non-negotiable at registration:** auto-renew ON, WHOIS privacy ON, registrar lock ON, and
+**2FA on the registrar account**.
+
+The registrar account is the **highest-value credential in the project — above the server.**
+Whoever controls the domain can repoint it and obtain valid certificates for it. Losing the
+server costs a rebuild; losing the domain costs the platform.
+
+Procedure: [runbook §0b](../runbooks/hetzner-setup.md).
+
 ### Follow-ups this creates
 
 - **SSE heartbeats are now mandatory** — Cloudflare's proxy closes idle connections, and
