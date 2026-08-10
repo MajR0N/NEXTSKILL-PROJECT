@@ -3,7 +3,9 @@
 The shared, general-purpose document. Anything true across the whole project lives here.
 Anything specific to one decision lives in `docs/` as its own file.
 
-**Status:** design phase. Nothing is built. Decisions are being made via structured grilling.
+**Status:** **design phase complete.** All decisions grilled and recorded. Nothing is built yet.
+Next: prototype the three screens flagged as able to surprise us, then begin implementation
+per [038](docs/decisions/038-build-order.md).
 
 ---
 
@@ -255,16 +257,14 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | --- | --- | --- |
 | [018](docs/decisions/018-frontend-architecture.md) | Frontend architecture & i18n | **decided** — Razor Pages + TS islands; **4 locales** (pl primary, en/ru/de) with locale in the URL; no Node runtime |
 | [019](docs/decisions/019-visual-identity.md) | Visual identity | **decided in principle** — Utilitarian system + Tenebrism for finals + Rebus icons; CT/T side colours carry information |
-| 020 | Behaviour — animation & interaction budget | open |
+| [020](docs/decisions/020-motion-and-ux.md) | Motion & UX behaviour | **decided** — motion marks state change only; progressive enhancement is a hard rule; empty states are a designed surface |
 | [021](docs/decisions/021-site-structure.md) | Site structure, features & navigation | **decided** — four surfaces mirroring the role model; **+LFT board, news/CMS, seasons**; headbar public, sidebar panels |
 | [022](docs/decisions/022-tournament-formats.md) | Tournament formats | **decided** — all five at launch, built as **two engines** (elimination + round-robin) composed into five formats |
 | [023](docs/decisions/023-bracket.md) | Bracket data model & rendering | **decided** — whole bracket generated up front with **explicit routing links**; mobile gets round-by-round + follow-team, not a shrunken tree |
 | [024](docs/decisions/024-demos.md) | Demo storage & retention | **decided** — 90 days, then deleted; finals and disputes kept indefinitely; local disk, authorised endpoint only |
 | [025](docs/decisions/025-rating-system.md) | Rating, ranking & tiers | **decided** — one system, three layers. Team = **Glicko-2**, player = **OpenSkill**. Ranking/tiers are derived views, never stored |
 | [028](docs/decisions/028-veto-and-lobby.md) | Map veto & lobby | **decided** — **veto runs on the web**, not in-game. Removes a state machine from both plugins and takes side selection with it |
-| 029 | Profile creation & management | open |
-| 030 | Login page | open |
-| 031 | Footer design | open |
+| [029](docs/decisions/029-profile-login-footer.md) | Profile, login & footer | **decided** — rotate-never-retrieve tokens, errors that reveal nothing, footer carries obligations not marketing |
 
 ### Misc
 
