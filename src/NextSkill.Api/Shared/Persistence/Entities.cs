@@ -1,6 +1,8 @@
 using System.Net;
 using System.Text.Json;
 using NextSkill.Api.Shared.Tenancy;
+using NextSkill.Domain.Access;
+using NextSkill.Domain.Matches;
 
 namespace NextSkill.Api.Shared.Persistence;
 
@@ -11,19 +13,10 @@ namespace NextSkill.Api.Shared.Persistence;
 /// <summary>Both games are first-class (decision 001). CS:GO is out of scope.</summary>
 public enum Game { Cs2, Cs16 }
 
-/// <summary>
-/// Whether a result can be trusted enough to move a bracket (decision 035).
-/// <b>Bracket advancement is gated on this</b>, not merely on a result existing.
-/// </summary>
-public enum MatchIntegrity
-{
-    /// <summary>Server report reconciles with accumulated events; nobody disputed.</summary>
-    Confirmed,
-    /// <summary>Events were dropped or arrived out of order. Blocked pending review.</summary>
-    Suspect,
-    /// <summary>Authoritative final state disagrees with events, or a captain disputed.</summary>
-    Disputed,
-}
+// MatchIntegrity is DEFINED ONCE, in NextSkill.Domain.Matches, and reused here
+// (decision 035). Defining it twice would mean a state could be added to one and
+// not the other, and the mapping would fall into its default case — which in an
+// integrity gate means ADVANCING when it should block.
 
 public enum MatchStatus { Scheduled, VetoInProgress, AwaitingPlayers, Live, Completed, Forfeited, Cancelled }
 

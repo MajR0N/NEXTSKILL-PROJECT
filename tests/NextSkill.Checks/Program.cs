@@ -444,6 +444,10 @@ Console.WriteLine("AUTHORIZATION  (decision 036)");
 NextSkill.Checks.AccessChecks.Run(Check, That);
 
 Console.WriteLine();
+Console.WriteLine("COMPLETENESS · every enum value has a decided answer");
+NextSkill.Checks.CompletenessChecks.Run(Check, That);
+
+Console.WriteLine();
 Console.WriteLine("SIGNING & INTEGRITY  (decisions 009, 012, 035)");
 NextSkill.Checks.IntegrityChecks.Run(Check, That);
 

@@ -1,19 +1,16 @@
 using System.Text.Json;
 using NextSkill.Api.Shared.Tenancy;
+using NextSkill.Domain.Access;
 
 namespace NextSkill.Api.Shared.Persistence;
 
-// ── roles (decision 036) ────────────────────────────────────────────────
-// Three independent scopes. A person can hold roles in all three at once.
-
-/// <summary>Platform-wide staff. Null for ordinary users, which is nearly everyone.</summary>
-public enum PlatformRole { Owner, Staff, Support }
-
-/// <summary>Role within one organiser. Tenant-scoped.</summary>
-public enum OrganiserRole { Owner, Admin, Referee }
-
-/// <summary>Role within one team.</summary>
-public enum TeamRole { Captain, Member }
+// Roles are DEFINED ONCE, in NextSkill.Domain.Access, and reused here.
+//
+// They were briefly defined in both places. A completeness check written to
+// detect enum drift caught the duplication immediately — and the right fix was
+// not to check for drift but to make it impossible. Two enums describing one
+// concept will always diverge eventually, and in an authorization model that
+// divergence means someone gets a permission nobody granted.
 
 public enum NotificationType
 {

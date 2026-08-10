@@ -3,8 +3,6 @@ using NextSkill.Api.Shared.Auth;
 using NextSkill.Api.Shared.Persistence;
 using NextSkill.Contracts;
 using NextSkill.Domain.Matches;
-using DomainIntegrity = NextSkill.Domain.Matches.MatchIntegrity;
-using DbIntegrity = NextSkill.Api.Shared.Persistence.MatchIntegrity;
 
 namespace NextSkill.Api.Features.Matches;
 
@@ -87,7 +85,7 @@ public static class PluginEndpoints
             {
                 // Events were missed. Record it and keep going — refusing the
                 // event would lose the rest of the match as well.
-                match.Integrity = DbIntegrity.Suspect;
+                match.Integrity = MatchIntegrity.Suspect;
             }
 
             match.LastEventSeq = evt.Seq;
@@ -98,19 +96,13 @@ public static class PluginEndpoints
 
                 // Layer 3 — reconciliation. We do not trust our accumulated view,
                 // and do not trust the authoritative block alone: we compare them.
-                var integrity = MatchIntegrityRules.Reconcile(
+                // One enum, so no mapping and no default case to get wrong.
+                match.Integrity = MatchIntegrityRules.Reconcile(
                     accumulatedA: match.ScoreA ?? payload.FinalScoreA,
                     accumulatedB: match.ScoreB ?? payload.FinalScoreB,
                     authoritativeA: payload.FinalScoreA,
                     authoritativeB: payload.FinalScoreB,
-                    sawGap: match.Integrity == DbIntegrity.Suspect);
-
-                match.Integrity = integrity switch
-                {
-                    DomainIntegrity.Confirmed => DbIntegrity.Confirmed,
-                    DomainIntegrity.Suspect => DbIntegrity.Suspect,
-                    _ => DbIntegrity.Disputed,
-                };
+                    sawGap: match.Integrity == MatchIntegrity.Suspect);
 
                 match.ScoreA = payload.FinalScoreA;
                 match.ScoreB = payload.FinalScoreB;
