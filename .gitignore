@@ -1,6 +1,13 @@
+# build
 bin/
 obj/
-node_modules/
-.env
 *.user
+# node
+node_modules/
+# secrets & local config
+.env
+appsettings.Development.local.json
+src/NextSkill.Api/appsettings.*.local.json
+# data
 demos/
+*.dem
