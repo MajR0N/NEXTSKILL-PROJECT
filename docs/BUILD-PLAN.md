@@ -125,12 +125,19 @@ Built before any UI, because they are pure functions and they hide the silent bu
   - ☑ **Deterministic**
   - ☑ **Rates from roster + outcome ALONE** — no kills, damage or utility required, which is exactly why CS 1.6 players get real ratings despite the game exposing far less stat data than CS2
 
-## Phase 3 — Wire contract & simulator
+## Phase 3 — Wire contract & simulator ◐ **IN PROGRESS**
 
 **Lenses:** `api-designer` · `dotnet-core-expert` (minimal APIs, model binding, `HttpClient` resilience) · `secure-code-guardian` (HMAC, replay window) · `test-master`
 
-- ☐ **OpenAPI 3.1 spec** for the plugin contract ([009](decisions/009-api-contract.md))
-- ☐ **Contracts DTOs** — `required` members, unknown fields rejected ([035](decisions/035-match-result-integrity.md))
+- ☑ **Contracts DTOs** ([009](decisions/009-api-contract.md), [035](decisions/035-match-result-integrity.md)) — **8/8 checks passing**, and **verified compiling for `net8.0`**, the plugin's runtime
+  - ☑ Shared `NextSkillJson` options — panel and plugin serialise identically by construction
+  - ☑ snake_case wire format; enums as readable strings
+  - ☑ **Unknown field → rejected**, never silently ignored
+  - ☑ **Missing score → rejected, NOT defaulted to zero** — the single most likely form of the silent-failure bug
+  - ☑ Strictness reaches *inside* the payload, not just the envelope
+  - ☑ Unknown contract version is detectable before parsing further
+  - ☑ `MatchConfig` carries **decided** maps and sides and **no veto rules** — a check that fails if [028](decisions/028-veto-and-lobby.md) is ever quietly reversed
+- ☐ **OpenAPI 3.1 spec** generated from these types
 - ☐ **Simulator** ([038](decisions/038-build-order.md)) — a real HTTP client, not a stub. Must misbehave on demand:
   - ☐ dropped `seq` → match `suspect`, bracket does **not** advance
   - ☐ duplicate `seq` → idempotent no-op

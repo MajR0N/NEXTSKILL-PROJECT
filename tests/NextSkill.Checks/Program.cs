@@ -435,6 +435,10 @@ Check("works from roster + outcome ALONE — which is why CS 1.6 gets ratings to
     That(w.All(p => p.Mu > 25) && l.All(p => p.Mu < 25), "ratings must move for both sides");
 });
 
+Console.WriteLine();
+Console.WriteLine("WIRE CONTRACT  (decisions 009, 035)");
+NextSkill.Checks.ContractChecks.Run(Check, That);
+
 // Tenancy needs a real PostgreSQL — a mock would prove nothing about whether
 // EF's global query filters actually reach the SQL (decision 034).
 var connectionString = Environment.GetEnvironmentVariable("NEXTSKILL_DB")
