@@ -1,9 +1,14 @@
 # 010 — Player identity & in-game binding
 
-**Status:** decided
+**Status:** decided — **extended by [011](011-accounts-and-login.md)**
 **Date:** 2026-08-10
 **Decision:** **Identity lives in the NEXTSKILL web account.** In-game sessions are bound to
 an account by a **single-use, short-lived link code**, never by trusting a reported SteamID.
+
+> **⚠ Read [011](011-accounts-and-login.md) alongside this.** The link code is no longer
+> sufficient on its own. Binding now requires **two factors** — a persistent `setinfo`
+> token *and* the per-match code — because a code alone can be handed to a ringer.
+> Everything below still holds; it is now one half of the mechanism.
 
 ---
 

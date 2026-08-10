@@ -206,7 +206,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | 008 | Database(s): users, matches, server data, stats | open |
 | 009 | API design — our own match config + event contract | open |
 | [010](docs/decisions/010-identity-binding.md) | Player identity & in-game binding | **decided** — identity is the web account; 1.6 sessions bound by single-use link code, never by SteamID |
-| 011 | Login providers & session management | **grilling** |
+| [011](docs/decisions/011-accounts-and-login.md) | Accounts, login & two-factor binding | **decided** — native account primary, Steam/Discord optional links; in-game binding requires `setinfo` token **and** per-match code |
 | 012 | Security measures — webhook HMAC, RCON secrets, CSRF, headers | open |
 | 013 | CS server connection & player redirect (`steam://connect`) | open |
 | 014 | Discord integration — OAuth, bot, notifications | open |
@@ -260,3 +260,24 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | **We don't control plugin versions on BYO servers** | Old plugins send stale contracts; we cannot force upgrades | Plugin reports version; panel refuses match allocation on incompatible versions; contract carries a version field; deprecation windows |
 | Repo inside OneDrive | Git corruption, `index.lock` contention | **None yet — move the working copy out of OneDrive** |
 | 34 decisions before any code ships | Never ships | Grilling to force a launch-scope cut |
+
+---
+
+## 7. Verification backlog
+
+Claims that decisions currently rest on but which have **not** been tested. Each must be
+verified before code depends on it — per project instruction, test before acknowledging.
+
+| # | Assumption | Blocks | How to verify |
+| --- | --- | --- | --- |
+| V1 | Other players **cannot** read another player's `setinfo` value by any means | [011](docs/decisions/011-accounts-and-login.md) — design-breaker if false | CS 1.6 server + AMXX test plugin; attempt to read another client's info key |
+| V2 | `setinfo` values are readable server-side via AMXX at **connect time**, early enough to gate team joining | [011](docs/decisions/011-accounts-and-login.md) | Same server; log the value in a connect hook |
+| V3 | `setinfo` behaves consistently on **non-Steam clients** (Reunion/dproto), not just legit Steam | [011](docs/decisions/011-accounts-and-login.md) | Test with both client types |
+| V4 | Info-key length limits allow a high-entropy token | [011](docs/decisions/011-accounts-and-login.md) | Set progressively longer values, find the ceiling |
+| V5 | RCON is **not** required for the normal CS2 match lifecycle | [007](docs/decisions/007-server-hosting-model.md) — if true, we avoid storing RCON passwords entirely | Run a full CS2 match driven only by config-pull + event-push |
+| V6 | CS2 can expose authoritative final match state for reconciliation | [035](docs/decisions/035-match-result-integrity.md) | Inspect what a map-end payload can contain |
+| V7 | Steam OpenID 2.0 remains available with no announced sunset | [011](docs/decisions/011-accounts-and-login.md) | Re-check Steamworks docs periodically |
+
+**V1 is the highest priority.** If other players can read a `setinfo` token, it is not a
+secret, the second factor collapses to a public identifier, and
+[011](docs/decisions/011-accounts-and-login.md) needs redesigning.
