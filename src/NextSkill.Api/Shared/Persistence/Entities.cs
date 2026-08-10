@@ -72,6 +72,13 @@ public class Account
     /// </summary>
     public string? SetinfoTokenHash { get; set; }
 
+    /// <summary>
+    /// Platform staff role, or null for ordinary users — which is nearly
+    /// everyone (decision 036). Organiser and team roles live in their own
+    /// tables, because a person can hold all three independently.
+    /// </summary>
+    public PlatformRole? PlatformRole { get; set; }
+
     /// <summary>Steam/Discord links are optional (decision 011).</summary>
     public string? SteamId { get; set; }
     public string? DiscordId { get; set; }
@@ -141,6 +148,9 @@ public class Tournament : ITenantOwned
     public Game Game { get; set; }
     public TournamentFormat Format { get; set; }
     public TournamentStatus Status { get; set; }
+
+    /// <summary>Groups tournaments into a season (decision 021).</summary>
+    public Guid? SeasonId { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? StartsAt { get; set; }

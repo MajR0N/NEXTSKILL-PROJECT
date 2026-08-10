@@ -60,6 +60,10 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("password_hash");
 
+                    b.Property<string>("PlatformRole")
+                        .HasColumnType("text")
+                        .HasColumnName("platform_role");
+
                     b.Property<string>("SetinfoTokenHash")
                         .HasColumnType("text")
                         .HasColumnName("setinfo_token_hash");
@@ -131,6 +135,53 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("servers");
+                });
+
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.LftListing", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
+                    b.Property<string>("Availability")
+                        .HasColumnType("text")
+                        .HasColumnName("availability");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("Game")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("game");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text")
+                        .HasColumnName("note");
+
+                    b.Property<string>("Role")
+                        .HasColumnType("text")
+                        .HasColumnName("role");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId", "Game")
+                        .IsUnique()
+                        .HasDatabaseName("ix_one_lft_listing_per_account_game");
+
+                    b.HasIndex("Game", "ExpiresAt");
+
+                    b.ToTable("lft_listings");
                 });
 
             modelBuilder.Entity("NextSkill.Api.Shared.Persistence.Match", b =>
@@ -223,6 +274,91 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                     b.ToTable("matches");
                 });
 
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.NewsPost", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("body");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Locale")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)")
+                        .HasColumnName("locale");
+
+                    b.Property<bool>("Pinned")
+                        .HasColumnType("boolean")
+                        .HasColumnName("pinned");
+
+                    b.Property<DateTimeOffset?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("slug");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug", "Locale")
+                        .IsUnique();
+
+                    b.ToTable("news");
+                });
+
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<JsonDocument>("Data")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("data");
+
+                    b.Property<DateTimeOffset?>("ReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId", "ReadAt", "CreatedAt");
+
+                    b.ToTable("notifications");
+                });
+
             modelBuilder.Entity("NextSkill.Api.Shared.Persistence.Organiser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -256,6 +392,38 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("organisers");
+                });
+
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.OrganiserStaff", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("OrganiserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organiser_id");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("role");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganiserId", "AccountId")
+                        .IsUnique();
+
+                    b.ToTable("organiser_staff");
                 });
 
             modelBuilder.Entity("NextSkill.Api.Shared.Persistence.Rating", b =>
@@ -311,6 +479,42 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                     b.ToTable("ratings");
                 });
 
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.Season", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Closed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("closed");
+
+                    b.Property<DateTimeOffset?>("EndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ends_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("number");
+
+                    b.Property<DateTimeOffset>("StartsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("starts_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Number")
+                        .IsUnique();
+
+                    b.ToTable("seasons");
+                });
+
             modelBuilder.Entity("NextSkill.Api.Shared.Persistence.Team", b =>
                 {
                     b.Property<Guid>("Id")
@@ -346,6 +550,50 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                     b.ToTable("teams");
                 });
 
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.TeamMembership", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("JoinedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("joined_at");
+
+                    b.Property<DateTimeOffset?>("LeftAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("left_at");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("role");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("team_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("TeamId", "AccountId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_one_active_membership_per_team")
+                        .HasFilter("left_at IS NULL");
+
+                    b.ToTable("team_memberships");
+                });
+
             modelBuilder.Entity("NextSkill.Api.Shared.Persistence.Tournament", b =>
                 {
                     b.Property<Guid>("Id")
@@ -375,6 +623,10 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                     b.Property<Guid>("OrganiserId")
                         .HasColumnType("uuid")
                         .HasColumnName("organiser_id");
+
+                    b.Property<Guid?>("SeasonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("season_id");
 
                     b.Property<DateTimeOffset?>("StartsAt")
                         .HasColumnType("timestamp with time zone")

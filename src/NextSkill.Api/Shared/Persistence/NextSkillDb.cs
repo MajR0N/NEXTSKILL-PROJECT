@@ -19,6 +19,12 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
     public DbSet<Tournament> Tournaments => Set<Tournament>();
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<Rating> Ratings => Set<Rating>();
+    public DbSet<TeamMembership> TeamMemberships => Set<TeamMembership>();
+    public DbSet<OrganiserStaff> OrganiserStaff => Set<OrganiserStaff>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<LftListing> LftListings => Set<LftListing>();
+    public DbSet<Season> Seasons => Set<Season>();
+    public DbSet<NewsPost> News => Set<NewsPost>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -32,6 +38,11 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
         b.Entity<Match>().Property(x => x.Status).HasConversion<string>();
         b.Entity<Match>().Property(x => x.Integrity).HasConversion<string>();
         b.Entity<Rating>().Property(x => x.Game).HasConversion<string>();
+        b.Entity<Account>().Property(x => x.PlatformRole).HasConversion<string>();
+        b.Entity<TeamMembership>().Property(x => x.Role).HasConversion<string>();
+        b.Entity<OrganiserStaff>().Property(x => x.Role).HasConversion<string>();
+        b.Entity<Notification>().Property(x => x.Type).HasConversion<string>();
+        b.Entity<LftListing>().Property(x => x.Game).HasConversion<string>();
 
         // ── tenancy: scoping is the DEFAULT, not something to remember ─────
         //
@@ -45,6 +56,7 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
         b.Entity<GameServer>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
         b.Entity<Tournament>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
         b.Entity<Match>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
+        b.Entity<OrganiserStaff>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
         //
         // Accounts, Teams and Ratings are deliberately UNFILTERED: they are
         // global by design, because cross-organiser ratings and profiles are the
@@ -106,6 +118,49 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
                 .HasDatabaseName("ix_one_live_match_per_server");
 
             e.HasIndex(x => new { x.TournamentId, x.Status });
+        });
+
+        b.Entity<TeamMembership>(e =>
+        {
+            // One ACTIVE membership per person per team. Partial index, so a
+            // player who left and rejoined does not collide with their own
+            // history — the same technique as one-live-match-per-server (007).
+            e.HasIndex(x => new { x.TeamId, x.AccountId })
+                .IsUnique()
+                .HasFilter("left_at IS NULL")
+                .HasDatabaseName("ix_one_active_membership_per_team");
+            e.HasIndex(x => x.AccountId);
+        });
+
+        b.Entity<OrganiserStaff>(e =>
+            e.HasIndex(x => new { x.OrganiserId, x.AccountId }).IsUnique());
+
+        b.Entity<Notification>(e =>
+        {
+            e.Property(x => x.Data).HasColumnType("jsonb");
+            // The bell count query: unread, newest first, for one account.
+            e.HasIndex(x => new { x.AccountId, x.ReadAt, x.CreatedAt });
+        });
+
+        b.Entity<LftListing>(e =>
+        {
+            // One live listing per account per game.
+            e.HasIndex(x => new { x.AccountId, x.Game })
+                .IsUnique()
+                .HasDatabaseName("ix_one_lft_listing_per_account_game");
+            // The board query: unexpired, by game.
+            e.HasIndex(x => new { x.Game, x.ExpiresAt });
+        });
+
+        b.Entity<Season>(e => e.HasIndex(x => x.Number).IsUnique());
+
+        b.Entity<NewsPost>(e =>
+        {
+            // One row per post per locale (018).
+            e.HasIndex(x => new { x.Slug, x.Locale }).IsUnique();
+            e.Property(x => x.Slug).HasMaxLength(120);
+            e.Property(x => x.Locale).HasMaxLength(5);
+            e.Property(x => x.Title).HasMaxLength(200);
         });
 
         b.Entity<Rating>(e =>
