@@ -235,6 +235,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [009](docs/decisions/009-api-contract.md) | API contract | **decided** — REST, HMAC-signed, versioned, **plugin-initiated in every direction**; plugin retries until acknowledged |
 | [010](docs/decisions/010-identity-binding.md) | Player identity & in-game binding | **decided** — identity is the web account; 1.6 sessions bound by single-use link code, never by SteamID |
 | [011](docs/decisions/011-accounts-and-login.md) | Accounts, login & two-factor binding | **decided** — native account primary, Steam/Discord optional links; in-game binding requires `setinfo` token **and** per-match code |
+| [040](docs/decisions/040-threat-model.md) | **Threat model** | **decided** — threat-by-threat; top risks are **SSRF (designed into server registration)**, IDOR/tenant leakage, and demo decompression bombs |
 | [012](docs/decisions/012-security.md) | Security measures | **decided** — HMAC + replay window, demo-upload hardening, secrets never logged, rate limits, GDPR retention/anonymisation |
 | 013 | CS server connection & player redirect (`steam://connect`) | open |
 | 014 | Discord integration — OAuth, bot, notifications | open |
