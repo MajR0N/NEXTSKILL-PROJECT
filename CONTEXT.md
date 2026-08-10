@@ -163,8 +163,8 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [004](docs/decisions/004-stack.md) | Language & stack | **decided** — ASP.NET Core API + TypeScript frontend (NSwag-generated types) |
 | [035](docs/decisions/035-match-result-integrity.md) | Match result integrity | **decided** — strict deserialisation, event sequencing, end-of-map reconciliation, integrity-gated bracket advancement |
 | 005 | CS 1.6 plugin design (Pawn/AMXX) | open |
-| 006 | Architecture shape — monolith vs. services | open |
-| 007 | Who hosts the game servers (us, organisers, or both) | open |
+| 006 | Architecture shape | **decided (default)** — modular monolith, one deployable, one database. Not argued in depth; say so if you want it revisited. |
+| [007](docs/decisions/007-server-hosting-model.md) | Server hosting model | **decided** — organisers bring their own servers; NEXTSKILL hosts none |
 
 ### Backend
 
@@ -221,5 +221,8 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | **Premature abstraction over two game lifecycles** | Wrong seam, expensive to undo | Rule of two — build CS2 concretely, then CS 1.6 concretely, then extract ([001](docs/decisions/001-game-scope.md)) |
 | CS 1.6 has no demo pipeline | Feature parity impossible across games | Accepted. UI must treat demos as nullable; product must not promise them for 1.6. |
 | No simulation mode (we don't inherit MatchZy-Enhanced's) | Can't test a full match cheaply | Owed by decision 034 |
+| **We store third-party RCON passwords** | A breach hands attackers control of hundreds of community servers. Far worse than a normal credential leak. | Encrypted at rest with an out-of-DB key; never returned by any API; never logged; redacted from staff view. **Best mitigation: find out whether RCON is needed at all** ([007](docs/decisions/007-server-hosting-model.md)) |
+| **Malicious organiser fabricates a result** | Match-fixing. Inherent to BYO servers; not solvable at the protocol level | Corroboration: both-team confirmation, demo evidence (CS2 only), dispute flow, challenge window before ratings settle |
+| **We don't control plugin versions on BYO servers** | Old plugins send stale contracts; we cannot force upgrades | Plugin reports version; panel refuses match allocation on incompatible versions; contract carries a version field; deprecation windows |
 | Repo inside OneDrive | Git corruption, `index.lock` contention | **None yet — move the working copy out of OneDrive** |
 | 34 decisions before any code ships | Never ships | Grilling to force a launch-scope cut |

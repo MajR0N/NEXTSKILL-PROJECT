@@ -27,6 +27,23 @@ Type safety is necessary. It is not sufficient. Integrity has to be engineered.
 Events are *notifications*. The authoritative result is *reconciled* before it is allowed
 to move a bracket.
 
+## Scope limit — what this document does NOT solve
+
+[007](007-server-hosting-model.md) established that game servers are **BYO: third-party
+infrastructure running a plugin the organiser controls.**
+
+Everything below defends against **accident** — dropped packets, contract drift, plugin
+bugs, silent-zero scores. **None of it defends against a malicious organiser**, because
+reconciliation compares the panel's view against the server's view, and under BYO the
+organiser owns the server. They control both halves of the comparison.
+
+Match-fixing is a **corroboration** problem, not a protocol problem, and is addressed in
+[007](007-server-hosting-model.md#what-actually-mitigates-match-fixing): both-team result
+confirmation, demo evidence (CS2), dispute flow, and a challenge window before ratings
+settle.
+
+**The server is a witness, not a judge.** Read this document with that limit in mind.
+
 ---
 
 ## The design — four layers, cheapest first
