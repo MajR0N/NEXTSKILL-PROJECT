@@ -62,6 +62,22 @@ Changing it later means **every organiser has to reconfigure their server.** Cho
 Consider registering `.pl` **defensively** — not to use, but so nobody else runs
 `nextskill.pl` in the home market.
 
+### ⚠️ Status (checked 2026-08-10): `nextskill.com` and `.eu` are aftermarket, ~€200 each
+
+Both are already registered and listed for resale. That changes the decision:
+
+| | |
+| --- | --- |
+| **Cost shape** | €200 is a **one-off**, not recurring. Hosting is ~€60/year, so it is roughly three years of infrastructure — paid once, kept forever |
+| **Why "buy cheap now, upgrade later" is NOT available** | The domain is permanent (above). Switching later forces **every organiser to reconfigure their game server**. So the choice is: commit to the right name, or pick a cheap one you would genuinely keep forever — not a placeholder |
+| **Timing** | **Nothing before Phase 6 needs a real domain.** Development runs on `localhost`. Buying at deployment time costs nothing extra and buys weeks to decide |
+| **Negotiation** | Aftermarket asking prices are usually negotiable; offers of 40–60% are routinely accepted. A domain parked at €200 is unlikely to sell in the meantime |
+| **If paying: `.com`, not `.eu`** | Same price, but `.com` is universal across four locales while `.eu` is regional. Paying premium for the lesser asset makes no sense |
+
+**Cheaper alternatives worth checking first:** `nextskill.gg` (esports-native, but ~$70 **per
+year** — exceeds €200 within three years), `nextskill.pro`, `nextskill.app`,
+`playnextskill.com`.
+
 ### Registrar: Porkbun
 
 | Registrar | Register | Renew | Note |

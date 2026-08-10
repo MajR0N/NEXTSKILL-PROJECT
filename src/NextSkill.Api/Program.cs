@@ -1,9 +1,21 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Localization.Routing;
+using Microsoft.EntityFrameworkCore;
 using NextSkill.Api.Localisation;
+using NextSkill.Api.Shared.Persistence;
+using NextSkill.Api.Shared.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// One PostgreSQL database (decision 008): recording a result, advancing a
+// bracket and updating ratings must happen in ONE transaction (035).
+builder.Services.AddDbContext<NextSkillDb>(o =>
+    o.UseNpgsql(builder.Configuration.GetConnectionString("NextSkill")));
+
+// Tenancy is scoped per request and fails closed (decisions 036, 037).
+builder.Services.AddScoped<TenantContext>();
+builder.Services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<TenantContext>());
 
 // Localisation: four locales, locale in the URL path (decision 018).
 builder.Services.AddLocalization(o => o.ResourcesPath = "Resources");
