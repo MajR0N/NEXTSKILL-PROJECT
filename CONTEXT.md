@@ -253,9 +253,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [022](docs/decisions/022-tournament-formats.md) | Tournament formats | **decided** — all five at launch, built as **two engines** (elimination + round-robin) composed into five formats |
 | 023 | Bracket rendering & data model | open |
 | 024 | Demo storage, retention, and match detail pages (CS2 only) | open |
-| 025 | ELO system | open |
-| 026 | Rating calculation | open |
-| 027 | Ranking & leaderboards | open |
+| [025](docs/decisions/025-rating-system.md) | Rating, ranking & tiers | **decided** — one system, three layers. Team = **Glicko-2**, player = **OpenSkill**. Ranking/tiers are derived views, never stored |
 | 028 | Map veto & lobby UI | open |
 | 029 | Profile creation & management | open |
 | 030 | Login page | open |
