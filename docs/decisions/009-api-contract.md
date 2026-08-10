@@ -50,7 +50,7 @@ item **V5** is now expected to resolve favourably.
 
 | Rule | Choice |
 | --- | --- |
-| Style | REST over HTTPS. No GraphQL — one client type, ~6 endpoints |
+| Style | **REST over HTTPS.** gRPC and GraphQL evaluated and rejected — see [039](039-public-api.md#why-rest--and-not-graphql-or-grpc). Decisive point: **CS 1.6's AMXX plugin can only make plain HTTP requests**, so gRPC would make CS 1.6 impossible |
 | Naming | `snake_case` in JSON, everywhere, no exceptions |
 | Versioning | URL path: `/api/v1/...` **and** an `X-NextSkill-Contract` header ([035](035-match-result-integrity.md)) |
 | Errors | RFC 7807 `application/problem+json` with stable `type` URIs |

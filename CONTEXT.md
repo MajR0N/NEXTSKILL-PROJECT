@@ -235,7 +235,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [009](docs/decisions/009-api-contract.md) | API contract | **decided** — REST, HMAC-signed, versioned, **plugin-initiated in every direction**; plugin retries until acknowledged |
 | [010](docs/decisions/010-identity-binding.md) | Player identity & in-game binding | **decided** — identity is the web account; 1.6 sessions bound by single-use link code, never by SteamID |
 | [011](docs/decisions/011-accounts-and-login.md) | Accounts, login & two-factor binding | **decided** — native account primary, Steam/Discord optional links; in-game binding requires `setinfo` token **and** per-match code |
-| 012 | Security measures — webhook HMAC, RCON secrets, CSRF, headers | open |
+| [012](docs/decisions/012-security.md) | Security measures | **decided** — HMAC + replay window, demo-upload hardening, secrets never logged, rate limits, GDPR retention/anonymisation |
 | 013 | CS server connection & player redirect (`steam://connect`) | open |
 | 014 | Discord integration — OAuth, bot, notifications | open |
 | 015 | Admin panel / CMS — scope, roles, what's editable | open |
@@ -267,9 +267,10 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | 033 | Maintenance mode | open |
 | 034 | Test strategy — how a full match is exercised without ten humans | open |
 | [035](docs/decisions/035-match-result-integrity.md) | Match result integrity | **decided** |
-| 036 | Authorization — roles, organiser scoping | open — **raised in importance by [037](docs/decisions/037-platform-hosting.md)**; multi-tenant means a missing scope check is a data breach |
+| [036](docs/decisions/036-authorization.md) | Authorization & multi-tenancy | **decided** — EF Core global query filters make tenant scoping the default; resource-based authz, never ad-hoc role checks |
 | [037](docs/decisions/037-platform-hosting.md) | Platform hosting & tenancy | **decided** — single hosted instance on our own domain; organisers are tenants, not installers |
 | [038](docs/decisions/038-build-order.md) | Build order | **decided** — web platform first; plugins replaced by a real HTTP **simulator**, not a stub |
+| [039](docs/decisions/039-public-api.md) | Public API + API style | **decided** — REST (gRPC impossible for CS 1.6, GraphQL solves a problem we don't have); **SSE** for live updates, not WebSockets |
 
 ---
 
