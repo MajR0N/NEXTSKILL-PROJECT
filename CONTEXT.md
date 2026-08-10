@@ -250,7 +250,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | 019 | Visual identity — colours, fonts | open |
 | 020 | Behaviour — animation & interaction budget | open |
 | 021 | UX enhancements | open |
-| 022 | Tournament formats — single/double elim, round robin, groups, league | open |
+| [022](docs/decisions/022-tournament-formats.md) | Tournament formats | **decided** — all five at launch, built as **two engines** (elimination + round-robin) composed into five formats |
 | 023 | Bracket rendering & data model | open |
 | 024 | Demo storage, retention, and match detail pages (CS2 only) | open |
 | 025 | ELO system | open |
