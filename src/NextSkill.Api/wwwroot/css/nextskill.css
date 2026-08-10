@@ -154,6 +154,16 @@ h2, .h2 { font-size: 22px; letter-spacing: -.02em; font-weight: 600; margin: 0; 
 .field__error { font-size: 12.5px; color: var(--loss); }
 .input[aria-invalid="true"] { border-color: color-mix(in srgb, var(--loss) 60%, transparent); }
 
+/* filter chips — state lives in the URL, so a filtered view is shareable (041) */
+.chip {
+  display: inline-flex; align-items: center;
+  font-size: 12.5px; padding: 7px 14px; border-radius: var(--r-full);
+  border: 1px solid var(--line-soft); background: var(--surface);
+  color: var(--text-mid); text-decoration: none; cursor: pointer;
+}
+.chip:hover { color: var(--text); }
+.chip--on { background: var(--t); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+
 /* ── 3. table ─────────────────────────────────────────────────────────── */
 .table-scroll { overflow-x: auto; margin-inline: -6px; }
 .table { width: 100%; border-collapse: separate; border-spacing: 0 6px; min-width: 680px; }
@@ -304,6 +314,14 @@ h2, .h2 { font-size: 22px; letter-spacing: -.02em; font-weight: 600; margin: 0; 
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28);
 }
 .avatar--sm { width: 26px; height: 26px; font-size: 10.5px; border-radius: var(--r-sm); }
+
+/* Generated palettes, picked from the team tag so a team looks the same on
+   every page. No uploads means a brand-new team never shows a placeholder. */
+.avatar--1 { background: linear-gradient(145deg, var(--t),    color-mix(in srgb, var(--t) 50%, #000)); }
+.avatar--2 { background: linear-gradient(145deg, var(--ct),   color-mix(in srgb, var(--ct) 50%, #000)); }
+.avatar--3 { background: linear-gradient(145deg, var(--win),  color-mix(in srgb, var(--win) 50%, #000)); }
+.avatar--4 { background: linear-gradient(145deg, #C97BE0,     #6B2F82); }
+.avatar--5 { background: linear-gradient(145deg, var(--text-mid), color-mix(in srgb, var(--text-mid) 45%, #000)); }
 .avatar--lg { width: 56px; height: 56px; font-size: 20px; border-radius: var(--r-lg); }
 
 /* ── 12. headbar + sidebar (021) ──────────────────────────────────────── */

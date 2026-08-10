@@ -1,0 +1,120 @@
+@page
+@model NextSkill.Api.Pages.Ranking.IndexModel
+@using NextSkill.Api.Shared.Persistence
+@{
+    ViewData["Title"] = "Ranking drużyn";
+    ViewData["Description"] = "Ranking drużyn CS 1.6 i CS2 — rating z zakresem pewności.";
+}
+
+<div class="wrap section">
+
+    <p class="eyebrow">Sezon 1 · <b>@(Model.Game == Game.Cs2 ? "CS2" : "CS 1.6")</b></p>
+    <h1>Ranking drużyn</h1>
+    <p class="lede">
+        Liczba po prawej to rating, a <b>±</b> pokazuje, jak pewny jest wynik.
+        Drużyny z małą liczbą meczów pozostają wstępne, dopóki zakres się nie zawęzi.
+    </p>
+
+    @* Filters are stateful in the URL, so a filtered ranking is shareable (041). *@
+    <div class="row" style="margin:var(--s5) 0 var(--s4)">
+        <a class="chip @(Model.Game == Game.Cs2 ? "chip--on" : "")" asp-route-game="@Game.Cs2">CS2</a>
+        <a class="chip @(Model.Game == Game.Cs16 ? "chip--on" : "")" asp-route-game="@Game.Cs16">CS 1.6</a>
+    </div>
+
+    @if (Model.Ranked.Count == 0 && Model.Provisional.Count == 0)
+    {
+        @* Never a blank panel: say what this is and offer the next action (020). *@
+        <div class="empty">
+            <div class="empty__icon">◍</div>
+            <h4>Ranking jeszcze pusty</h4>
+            <p>
+                Żadna drużyna nie rozegrała jeszcze meczu w tej grze.
+                Rating pojawia się po pierwszym rozstrzygniętym meczu.
+            </p>
+            <a class="btn btn--primary" href="#">Przeglądaj turnieje</a>
+        </div>
+    }
+    else
+    {
+        <div class="table-scroll">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Drużyna</th>
+                        <th scope="col" class="r">Rating</th>
+                        <th scope="col" class="r">Mecze</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Ranked)
+                    {
+                        <tr>
+                            <td class="num" style="width:56px;color:var(--text-mid);font-weight:600">@row.Rank</td>
+                            <td>
+                                <div class="team">
+                                    <span class="avatar avatar--@row.Palette">@row.Initials</span>
+                                    <span>
+                                        <span class="team__name">@row.Name</span>
+                                        <span class="team__meta">
+                                            <span class="team__tag">@row.Tag</span>
+                                            @if (!string.IsNullOrWhiteSpace(row.City)) { <span>@row.City</span> }
+                                        </span>
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="r num">
+                                <span class="rating">@row.Rating.ToString("F0")</span>
+                                <span class="rating__rd">±@row.Deviation.ToString("F0")</span>
+                                @* The bar makes uncertainty visible instead of hidden (025). *@
+                                <div class="confidence" title="Pewność ratingu">
+                                    <i style="width:@(row.ConfidencePercent)%"></i>
+                                </div>
+                            </td>
+                            <td class="r num">@row.MatchesPlayed</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.Provisional.Count > 0)
+        {
+            <p class="label" style="margin-top:var(--s7)">Wstępne</p>
+            <p class="lede" style="margin-top:0">
+                Za mało meczów, żeby uczciwie ustalić pozycję. Te drużyny mają rating,
+                ale nie mają jeszcze miejsca w rankingu.
+            </p>
+
+            <div class="table-scroll" style="margin-top:var(--s4)">
+                <table class="table">
+                    <tbody>
+                        @foreach (var row in Model.Provisional)
+                        {
+                            <tr>
+                                <td class="num" style="width:56px;color:var(--text-dim)">—</td>
+                                <td>
+                                    <div class="team">
+                                        <span class="avatar avatar--@row.Palette">@row.Initials</span>
+                                        <span>
+                                            <span class="team__name">@row.Name</span>
+                                            <span class="team__meta"><span class="team__tag">@row.Tag</span></span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="r num">
+                                    <span class="rating" style="color:var(--text-dim)">@row.Rating.ToString("F0")</span>
+                                    <span class="rating__rd">±@row.Deviation.ToString("F0")</span>
+                                    <div class="confidence confidence--wide">
+                                        <i style="width:@(row.ConfidencePercent)%"></i>
+                                    </div>
+                                </td>
+                                <td class="r num">@row.MatchesPlayed</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>

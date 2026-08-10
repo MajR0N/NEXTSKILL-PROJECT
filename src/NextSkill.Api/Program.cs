@@ -43,6 +43,10 @@ builder.Services.AddRazorPages(o =>
     o.Conventions.Add(new LocaleRouteConvention());
 });
 
+// Canonical lowercase URLs. Links live forever in Discord and forums (018),
+// so /pl/ranking and /pl/Ranking must not both circulate as "the" URL.
+builder.Services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
+
 builder.Services.Configure<RequestLocalizationOptions>(o =>
 {
     o.DefaultRequestCulture = new RequestCulture(Locales.Default);

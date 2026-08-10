@@ -126,6 +126,22 @@ So the tenancy rule is not "everything is scoped." It is:
 Global entities get no query filter — which means **their access rules must be explicit**,
 since the safety net doesn't apply. Public data is public; personal data is not.
 
+### Refinement (2026-08-10): matches are filtered by default, read publicly by exception
+
+Building the ranking page exposed a tension in the table above. **Match history is listed as
+global**, but matches are also the thing an organiser panel most needs protected — a leak
+there exposes another organiser's fixtures, scores and server assignments.
+
+**Implemented resolution: `Match` keeps its query filter.** Public cross-organiser reads go
+through explicitly named methods that call `IgnoreQueryFilters()` with a comment, which is
+exactly the escape hatch this document already permits.
+
+Rationale: **stricter-by-default with visible exceptions beats looser-by-default with
+invisible ones.** If matches were unfiltered, every future organiser-panel query would need
+to remember to scope — and the whole point of the filter is that remembering is not required.
+This way the risky direction (leaking) is closed by default, and the safe direction (public
+reads) is opened deliberately, one call site at a time.
+
 ## Consequences
 
 - The tenant resolver runs in middleware, before any handler, and **fails closed**.
