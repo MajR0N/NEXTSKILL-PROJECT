@@ -135,6 +135,31 @@ announcement and routinely fails to provision. **Paying about the price of one c
 month buys the platform being up on finals night**, which is the only uptime that matters
 for a tournament product.
 
+### VPS: Hetzner CAX11 (ARM), Falkenstein
+
+| Option | Specs | Price | Verdict |
+| --- | --- | --- | --- |
+| **Hetzner CAX11 (ARM)** | 2 vCPU Ampere, 4 GB, 40 GB NVMe | **~$3.79/mo** | **Chosen.** Reported as the best compute value in the cloud market |
+| Hetzner CX22 (x86) | 2 vCPU, 4 GB, 40 GB NVMe | ~$4.59/mo | Fallback if ARM bites. Outperforms Contabo's 4-core plan on every benchmark |
+| Contabo VPS S | 4 cores, more RAM | $6.99/mo | More specs on paper, worse in practice — high disk latency, inconsistent CPU |
+| OVH Warsaw | varies | ~€5+ | Only advantage is being physically in Poland |
+
+**Latency is not a deciding factor, counter-intuitively.** OVH has a Warsaw datacentre;
+Hetzner's nearest is Falkenstein (~20–30 ms to Poland vs ~5–10 ms). But Cloudflare caches
+the read-heavy pages at the edge, matches run on the **organiser's** servers
+([007](007-server-hosting-model.md)), and 20 ms is imperceptible on a page load. Paying more
+for that difference buys nothing anyone can notice.
+
+**ARM is both cheaper and faster here.** .NET builds ARM64 natively, PostgreSQL runs on ARM,
+and the official images have ARM64 variants.
+
+> ⚠️ **Hard requirement if ARM is chosen:** every image in the compose file must have an
+> `arm64` tag. Verify before committing to it — discovering a missing tag after setup is
+> avoidable annoyance.
+
+40 GB of disk is ample because **demos live in R2**, not on the host — the disk carries the
+OS, the app and PostgreSQL only.
+
 ### Follow-ups this creates
 
 - **SSE heartbeats are now mandatory** — Cloudflare's proxy closes idle connections, and
