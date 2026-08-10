@@ -243,8 +243,8 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [011](docs/decisions/011-accounts-and-login.md) | Accounts, login & two-factor binding | **decided** — native account primary, Steam/Discord optional links; in-game binding requires `setinfo` token **and** per-match code |
 | [040](docs/decisions/040-threat-model.md) | **Threat model** | **decided** — threat-by-threat; top risks are **SSRF (designed into server registration)**, IDOR/tenant leakage, and demo decompression bombs |
 | [012](docs/decisions/012-security.md) | Security measures | **decided** — HMAC + replay window, demo-upload hardening, secrets never logged, rate limits, GDPR retention/anonymisation |
-| 013 | CS server connection & player redirect (`steam://connect`) | open |
-| 014 | Discord integration — OAuth, bot, notifications | open |
+| [013](docs/decisions/013-server-connect.md) | Connecting players to the server | **decided** — **always show both** `steam://` button and copyable console command; `steam://` silently fails for non-Steam 1.6 players |
+| [014](docs/decisions/014-discord.md) | Discord integration | **decided** — outgoing **webhooks only**, no bot. Webhook URL is a credential *and* an SSRF sink |
 | 015 | Admin panel / CMS — scope, roles, what's editable | open |
 | [016](docs/decisions/017-deployment-and-cicd.md#code-optimisation-016) | Code optimisation | **decided** — no optimisation without measurement; only design-time choices (indexes, N+1 avoidance, cursor pagination) done up front |
 | [017](docs/decisions/017-deployment-and-cicd.md) | Deployment & Docker | **decided** — Docker Compose, single EU host, CDN in front, no Kubernetes, no Redis. **Tested restores, not just backups** |
