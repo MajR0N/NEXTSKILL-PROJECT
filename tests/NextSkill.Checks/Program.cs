@@ -333,6 +333,109 @@ Check("policy: byes, disputed results and open challenge windows are NOT rated",
 });
 
 Console.WriteLine();
+Console.WriteLine("PLAYER RATINGS · OpenSkill  (decision 025)");
+
+PlayerRating[] Roster(int n, double mu = OpenSkill.DefaultMu, double sigma = OpenSkill.DefaultSigma) =>
+    [.. Enumerable.Range(0, n).Select(_ => new PlayerRating(mu, sigma))];
+
+Check("winners gain, losers lose, and everyone gets more certain", () =>
+{
+    var a = Roster(5);
+    var b = Roster(5);
+    var (w, l) = OpenSkill.Rate(a, b);
+
+    That(w[0].Mu > a[0].Mu, $"winner mu should rise: {a[0].Mu:F3} -> {w[0].Mu:F3}");
+    That(l[0].Mu < b[0].Mu, $"loser mu should fall: {b[0].Mu:F3} -> {l[0].Mu:F3}");
+    That(w[0].Sigma < a[0].Sigma, "a played match should reduce uncertainty for winners");
+    That(l[0].Sigma < b[0].Sigma, "a played match should reduce uncertainty for losers");
+});
+
+Check("beating a much stronger team is worth far more than beating an equal one", () =>
+{
+    var underdog = Roster(5);
+    var favourites = Roster(5, mu: 35);
+    var equals = Roster(5);
+
+    var upsetGain = OpenSkill.Rate(underdog, favourites).Winners[0].Mu - underdog[0].Mu;
+    var evenGain = OpenSkill.Rate(underdog, equals).Winners[0].Mu - underdog[0].Mu;
+
+    That(upsetGain > evenGain * 1.5,
+        $"an upset ({upsetGain:F3}) must be worth clearly more than an even win ({evenGain:F3})");
+});
+
+Check("beating a much weaker team gains almost nothing", () =>
+{
+    var strong = Roster(5, mu: 35);
+    var weak = Roster(5, mu: 15);
+    var equal = Roster(5, mu: 35);
+
+    var farmGain = OpenSkill.Rate(strong, weak).Winners[0].Mu - strong[0].Mu;
+    var fairGain = OpenSkill.Rate(strong, equal).Winners[0].Mu - strong[0].Mu;
+
+    That(farmGain > 0, "a win should still be positive");
+    That(fairGain > farmGain * 2,
+        $"farming ({farmGain:F3}) must be worth far less than a fair win ({fairGain:F3})");
+});
+
+Check("the least certain player on a team moves the most", () =>
+{
+    // The result says most about the player we knew least about.
+    var settled = new PlayerRating(25, 2);
+    var newcomer = new PlayerRating(25, 8);
+    var team = new[] { settled, newcomer };
+    var (w, _) = OpenSkill.Rate(team, Roster(2));
+
+    var settledMove = w[0].Mu - settled.Mu;
+    var newcomerMove = w[1].Mu - newcomer.Mu;
+    That(newcomerMove > settledMove * 2,
+        $"newcomer ({newcomerMove:F3}) should move more than the settled player ({settledMove:F3})");
+});
+
+Check("displayed ordinal is conservative: a newcomer ranks below a proven equal", () =>
+{
+    var newcomer = PlayerRating.Unrated;
+    var proven = new PlayerRating(OpenSkill.DefaultMu, 2);
+
+    That(newcomer.Ordinal < proven.Ordinal,
+        "same mu, but the uncertain player must display lower");
+    That(newcomer.IsProvisional, "a brand-new player must be provisional");
+    That(!proven.IsProvisional, "a settled player must not be provisional");
+});
+
+Check("win probability is symmetric and favours the stronger side", () =>
+{
+    var strong = Roster(5, mu: 30);
+    var weak = Roster(5, mu: 20);
+
+    var p = OpenSkill.WinProbability(strong, weak);
+    var q = OpenSkill.WinProbability(weak, strong);
+
+    That(p > 0.5, $"the stronger team should be favoured, got {p:F3}");
+    Close(1.0, p + q, 0.0001, "probabilities must sum to 1");
+    Close(0.5, OpenSkill.WinProbability(Roster(5), Roster(5)), 0.0001, "equal teams are a coin flip");
+});
+
+Check("DETERMINISTIC: the same match always gives the same ratings", () =>
+{
+    var first = OpenSkill.Rate(Roster(5), Roster(5, mu: 28)).Winners[0];
+    var second = OpenSkill.Rate(Roster(5), Roster(5, mu: 28)).Winners[0];
+    Equal(first, second, "identical inputs must give identical output");
+});
+
+Check("works from roster + outcome ALONE — which is why CS 1.6 gets ratings too", () =>
+{
+    // No kills, no damage, no utility: only who played and who won. This is the
+    // property that lets CS 1.6 have real player ratings despite exposing far
+    // less stat data than CS2 (decisions 001, 025).
+    var cs16Team = Roster(5);
+    var opponents = Roster(5);
+    var (w, l) = OpenSkill.Rate(cs16Team, opponents);
+
+    That(w.Length == 5 && l.Length == 5, "every player must be rated");
+    That(w.All(p => p.Mu > 25) && l.All(p => p.Mu < 25), "ratings must move for both sides");
+});
+
+Console.WriteLine();
 Console.WriteLine($"{passed} passed, {failed} failed");
 Console.WriteLine();
 return failed == 0 ? 0 : 1;

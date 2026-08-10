@@ -64,10 +64,10 @@ questions asked before code is written.
 - ◐ **Tenancy** — filters declared and resolver throws on a null tenant, but **unverified**; the check in [036](decisions/036-authorization.md) has not run
 - ☐ **Authorization** — resource-based handlers, no ad-hoc role checks ([036](decisions/036-authorization.md)) — **not started**
 
-## Phase 2 — Pure engines (highest value, cheapest to test) ◐ **IN PROGRESS**
+## Phase 2 — Pure engines ✅ **COMPLETE — 25/25 checks passing**
 
-*Deliberately started while Phase 1 is blocked: these engines are pure functions and need no
-database at all.*
+*Built while Phase 1 was blocked: these engines are pure functions and need no database at
+all. Run them with `dotnet run --project tests/NextSkill.Checks`.*
 
 **Lenses:** `test-master` · `tdd` · `csharp-developer`
 
@@ -107,7 +107,15 @@ Built before any UI, because they are pure functions and they hide the silent bu
   > maths; the check was rewritten to assert the **asymmetry** (a loss costs far more than
   > the win gains) rather than a magnitude pulled from thin air.
 
-- ☐ **Player rating — OpenSkill** ([025](decisions/025-rating-system.md)) — not started
+- ☑ **Player rating — OpenSkill (Bradley–Terry full)** ([025](decisions/025-rating-system.md)) — **8/8 checks passing**
+  - ☑ Winners gain, losers lose, everyone becomes more certain
+  - ☑ An upset is worth far more than an even win
+  - ☑ Farming a much weaker team gains almost nothing
+  - ☑ **The least certain player on a team moves the most** — the result says most about who we knew least about
+  - ☑ Displayed ordinal is conservative (μ − 3σ), so a newcomer ranks below a proven equal
+  - ☑ Win probability symmetric; equal teams are a coin flip
+  - ☑ **Deterministic**
+  - ☑ **Rates from roster + outcome ALONE** — no kills, damage or utility required, which is exactly why CS 1.6 players get real ratings despite the game exposing far less stat data than CS2
 
 ## Phase 3 — Wire contract & simulator
 
