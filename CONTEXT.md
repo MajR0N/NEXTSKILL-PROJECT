@@ -290,9 +290,10 @@ is what surfaced the identity problem in [010](docs/decisions/010-identity-bindi
 | Git | `C:\Program Files\Git\cmd\git.exe` |
 | OS | Windows 11 Pro |
 
-> ⚠️ The repo lives inside a **OneDrive-synced folder**. OneDrive and `.git` are a known
-> bad combination — sync can corrupt object files and lock `index.lock` mid-operation.
-> Moving the working copy outside OneDrive is strongly advised before real work starts.
+> ✅ **Resolved 2026-08-11.** The path still *reads* `…\OneDrive\…`, but **OneDrive sync is
+> disabled** — it is an ordinary folder now. The known-bad combination of a sync client and
+> `.git` (corrupted objects, `index.lock` held mid-operation) no longer applies. The directory
+> name is cosmetic; renaming it is optional and would only break existing shell history.
 
 ---
 
@@ -388,7 +389,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | **We store third-party RCON passwords** | A breach hands attackers control of hundreds of community servers. Far worse than a normal credential leak. | Encrypted at rest with an out-of-DB key; never returned by any API; never logged; redacted from staff view. **Best mitigation: find out whether RCON is needed at all** ([007](docs/decisions/007-server-hosting-model.md)) |
 | **Malicious organiser fabricates a result** | Match-fixing. Inherent to BYO servers; not solvable at the protocol level | Corroboration: both-team confirmation, demo evidence (CS2 only), dispute flow, challenge window before ratings settle |
 | **We don't control plugin versions on BYO servers** | Old plugins send stale contracts; we cannot force upgrades | Plugin reports version; panel refuses match allocation on incompatible versions; contract carries a version field; deprecation windows |
-| Repo inside OneDrive | Git corruption, `index.lock` contention | **None yet — move the working copy out of OneDrive** |
+| ~~Repo inside OneDrive~~ | ~~Git corruption, `index.lock` contention~~ | **RESOLVED 2026-08-11** — OneDrive sync disabled; the folder name is now cosmetic. The remaining backup story is the private GitHub remote, so **push regularly** |
 | 34 decisions before any code ships | Never ships | Grilling to force a launch-scope cut |
 
 ---
