@@ -5,6 +5,15 @@
 **Supersedes:** the single-factor code flow in [010](010-identity-binding.md) — codes remain,
 but they are now **one of two required factors**, not the whole mechanism.
 
+
+> **Built (2026-08-11):** registration, login, logout, **password reset**, **two-factor**
+> (TOTP + SMS) and recovery codes — see [047](047-two-factor.md). Argon2id, server-side
+> sessions, token-bucket rate limiting, answers that reveal nothing.
+>
+> **Not built:** the `setinfo` token and per-match code binding described below — it needs the
+> plugins ([005](005-cs16-plugin.md)) and has **no runnable check yet**. Also missing: profile
+> page, Steam/Discord linking, account deletion (**GDPR**).
+
 ---
 
 ## Decision

@@ -6,6 +6,16 @@
 **Decision:** **Tenant scoping enforced in one place** (EF Core global query filters), plus
 **resource-based authorization** for actions. Roles are never checked ad-hoc in endpoints.
 
+
+> **Built (2026-08-11):** query filters on every tenant-owned entity, a resolver that **fails
+> closed**, and `AccessPolicy` as a pure function wired into every mutation. Cross-organiser
+> public reads go through `PublicReads.cs` — the single, named escape hatch this document
+> permits.
+>
+> **Note:** ASP.NET authorization *handlers* were deferred here and, on arrival, judged not
+> worth building — the policy is already a tested pure function, and wrapping it would add
+> indirection without adding a rule. Page handlers call `AccessPolicy.Can` directly.
+
 ---
 
 ## Why this is high-stakes

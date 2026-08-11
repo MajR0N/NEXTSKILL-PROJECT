@@ -6,6 +6,15 @@
 **Decision:** **Four layers, weighted heavily toward pure-function tests.** The plugin
 simulator ([038](038-build-order.md)) is the centrepiece, not an afterthought.
 
+
+> **Status (2026-08-11): 169 checks passing**, no test framework, run with
+> `dotnet run --project tests/NextSkill.Checks`. Pure checks for the engines, contract and
+> policy; live-PostgreSQL checks for tenancy; in-process end-to-end runs for the plugin
+> pipeline, accounts, teams, tournaments, brackets and two-factor.
+>
+> **Not covered yet:** anything needing a real game server, demo upload, or an email/SMS
+> provider — and **"no secret appears in any log"**, which is testable today and is not tested.
+
 ---
 
 ## The problem this has to solve

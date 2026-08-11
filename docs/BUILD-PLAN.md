@@ -1,9 +1,13 @@
 # NEXTSKILL — Build plan
 
-The design phase is complete (34 decision docs in `docs/decisions/`). This is the
-implementation sequence, derived from [038 — build order](decisions/038-build-order.md).
+The design phase is complete (**42 decision records** in `docs/decisions/`, two of them
+deliberately reopened). This is the implementation sequence, derived from
+[038 — build order](decisions/038-build-order.md).
 
-**Status legend:** ☐ pending · ◐ in progress · ☑ done
+**Currently: Phase 4, roughly half built. 169 checks passing.** The marks below are audited
+rather than asserted — see the note at the end of Phase 4 about what "◐" means here.
+
+**Status legend:** ☐ pending · ◐ in progress · ☑ done · ⊘ blocked — nothing to test until the slice it belongs to exists · ➡ deliberately moved
 
 Each phase names the **skill lenses** to apply. They are not decoration: the lens sets the
 questions asked before code is written.
@@ -125,7 +129,7 @@ Built before any UI, because they are pure functions and they hide the silent bu
   - ☑ **Deterministic**
   - ☑ **Rates from roster + outcome ALONE** — no kills, damage or utility required, which is exactly why CS 1.6 players get real ratings despite the game exposing far less stat data than CS2
 
-## Phase 3 — Wire contract & simulator ✅ **COMPLETE — 63/63 checks passing**
+## Phase 3 — Wire contract & simulator ✅ **COMPLETE**
 
 **Lenses:** `api-designer` · `dotnet-core-expert` (minimal APIs, model binding, `HttpClient` resilience) · `secure-code-guardian` (HMAC, replay window) · `test-master`
 
@@ -160,7 +164,7 @@ Built before any UI, because they are pure functions and they hide the silent bu
 - ☑ **OpenAPI 3.1 spec** generated from the real endpoint signatures — `AddOpenApi()`/`MapOpenApi()`, in the box since .NET 9 and emitting 3.1.1. Verified at `/openapi/v1.json`. **Development only for now**: the document holds no secrets, but publishing a machine-readable map of the API belongs to [039](decisions/039-public-api.md)'s work, not to generating types
 - ➡ **503-retry check** moves to Phase 7 with maintenance mode ([033](decisions/033-maintenance-mode.md))
 
-## Phase 4 — Web platform, slice by slice
+## Phase 4 — Web platform, slice by slice ◐ **IN PROGRESS**
 
 > ### ⚠ Phase 4 requires further grilling before it starts
 >
@@ -265,17 +269,29 @@ endpoint, request, handler and validator together.
   the URL, `hreflang`, `og:locale` and the switcher all work, and there is not one resource file
   behind them. This is a bigger surface than it looks — it touches every string already written
 
+> ### What ◐ means here
+>
+> **The mechanics work end to end and are covered by checks; the surface around them is not
+> built.** A slice is not done when the thing it enables has nowhere to live — an invite that
+> writes a notification nobody can read, or a rating with no page showing player ratings.
+>
+> These marks were audited on 2026-08-11 and found wrong in *both* directions: ranking was
+> marked done and was not, and two tenancy checks had been passing since Phase 1 while still
+> listed as pending.
+
 ### Security checks that ship with the slices ([040](decisions/040-threat-model.md))
 
 - ☑ Tenant isolation — B cannot see A's tournament; by-ID returns **404 not 403** *(proven against real PostgreSQL since Phase 1, and again for drafts in [046](decisions/046-tournament-lifecycle.md))*
 - ☑ No tenant context → **throws**, returns nothing
-- ☐ SSRF — `127.0.0.1`, `169.254.169.254`, and a hostname resolving to a private IP all rejected
+- ⊘ SSRF — `127.0.0.1`, `169.254.169.254`, and a hostname resolving to a private IP all rejected. **Nothing to test yet**: server registration is unbuilt, and it is [040](decisions/040-threat-model.md)'s top risk, so this ships *with* that slice ([048](decisions/048-organiser-server-configuration.md))
 - ☑ Open redirect — `//evil.com`, absolute URLs, `javascript:` and `/\` all rejected
-- ☐ Sort allowlist — `?sort=id;DROP` rejected, never interpolated
-- ☐ Zip bomb aborted; archive filenames never trusted
-- ☐ No secret appears in any log
+- ⊘ Sort allowlist — `?sort=id;DROP` rejected, never interpolated. **Nothing to test yet**: no page takes a sort parameter
+- ⊘ Zip bomb aborted; archive filenames never trusted. **Nothing to test yet**: demo upload is unbuilt ([024](decisions/024-demos.md))
+- ☐ No secret appears in any log — **genuinely untested**, and testable today: HMAC secrets, reset tokens and TOTP secrets all exist
 - ☑ CSRF — an untokened POST is refused ([011](decisions/011-accounts-and-login.md))
-- ☑ Account enumeration — unknown address and wrong password are indistinguishable by **message and by timing**
+- ☑ Account enumeration — unknown address and wrong password are indistinguishable by **message and by timing**, on both login and password reset
+- ☑ Brute force — **token-bucket** limiter on every auth POST, page views never counted ([047](decisions/047-two-factor.md))
+- ☑ Session revocation — logout, and a password reset, kill the session **server-side** ([047](decisions/047-two-factor.md))
 
 ## Phase 5 — Frontend: make it look like something
 

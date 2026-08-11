@@ -6,6 +6,15 @@ map veto/lobby and live match views.
 **Date:** 2026-08-10
 **Lenses applied:** architecture-designer, frontend-design
 
+
+> **Built (2026-08-11):** the *routing* half — locale in the URL, `hreflang`, `og:locale`, the
+> switcher, one canonical URL per page per language, and server-rendered pages that work with
+> JavaScript disabled.
+>
+> **Not built:** **the translations themselves.** There is not one resource file, so
+> `/de/teams` returns 200 and serves Polish. The **TypeScript islands** do not exist either —
+> no build step, no SSE, no bracket panning. Both are [Phase 5](../BUILD-PLAN.md).
+
 ---
 
 ## What NEXTSKILL's frontend actually is

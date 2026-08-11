@@ -3,6 +3,13 @@
 **Status:** **decided** — structure, features and navigation pattern all settled
 **Date:** 2026-08-10
 
+
+> **Built (2026-08-11):** headbar, footer, ranking, teams, tournaments, bracket, account pages.
+>
+> **Not built:** home page, matches, LFT board, news/CMS, seasons archive, notifications bell,
+> search, organiser panel, staff panel. The tables behind several of these exist; the pages do
+> not.
+
 ---
 
 ## Four surfaces, matching the role model

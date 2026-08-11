@@ -3,9 +3,31 @@
 The shared, general-purpose document. Anything true across the whole project lives here.
 Anything specific to one decision lives in `docs/` as its own file.
 
-**Status:** **design phase complete.** All decisions grilled and recorded. Nothing is built yet.
-Next: prototype the three screens flagged as able to surprise us, then begin implementation
-per [038](docs/decisions/038-build-order.md).
+**Status:** **building.** Phases 0–3 complete; **Phase 4 (web platform) in progress**.
+**169 checks passing** against a real PostgreSQL, including in-process end-to-end runs of the
+plugin pipeline, the tournament and bracket flow, and the whole authentication surface.
+
+### What actually runs today
+
+| Working | Where |
+| --- | --- |
+| Accounts — register, login, logout, **password reset**, **two-factor (TOTP + SMS)**, recovery codes | [011](docs/decisions/011-accounts-and-login.md), [047](docs/decisions/047-two-factor.md) |
+| Teams — create, invite, accept, roster slots (5 + 3 + 2), promote, edit, disband | [045](docs/decisions/045-teams-and-rosters.md) |
+| Tournaments — create, private drafts, registration, seeding on close | [046](docs/decisions/046-tournament-lifecycle.md) |
+| Brackets — generated into the database on start, routing as real foreign keys, byes resolved | [023](docs/decisions/023-bracket.md) |
+| Ranking — server-rendered on live data, provisional teams separated | [025](docs/decisions/025-rating-system.md) |
+| Plugin API — HMAC-signed ingest, sequencing, reconciliation, integrity gates | [009](docs/decisions/009-api-contract.md), [035](docs/decisions/035-match-result-integrity.md) |
+
+### The three things that most need saying
+
+1. **Every page is hardcoded Polish.** Only the *routing* half of
+   [018](docs/decisions/018-frontend-architecture.md) exists — locale in the URL, `hreflang`,
+   the switcher — with no resource files behind it. `/de/teams` returns 200 and serves Polish.
+2. **The product ships monochrome on purpose** until [044](docs/decisions/044-visual-direction.md)
+   closes. Colour is an open question, not an oversight.
+3. **Matches, veto, the panels and the home page are not built.** See
+   [BUILD-PLAN](docs/BUILD-PLAN.md) for the itemised list, which is kept honest rather than
+   flattering.
 
 ---
 

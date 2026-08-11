@@ -7,6 +7,13 @@ Three small page specs, kept together because each is short and they share one p
 **they are solved patterns.** They will be built directly in Razor without prototyping
 ([019](019-visual-identity.md)) — nothing here can surprise us.
 
+
+> **Built (2026-08-11):** login and the footer, including errors that reveal nothing and a
+> footer carrying obligations rather than marketing.
+>
+> **Not built:** **the profile page does not exist**, so the rotate-never-retrieve `setinfo`
+> token has nowhere to live yet.
+
 ---
 
 ## 029 — Profile

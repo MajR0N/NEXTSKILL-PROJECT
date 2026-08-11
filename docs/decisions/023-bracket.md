@@ -3,6 +3,14 @@
 **Status:** decided
 **Date:** 2026-08-10
 
+
+> **Built (2026-08-11):** generation into `matches` on tournament start, **routing as real
+> foreign keys**, byes resolved at generation, advancement in one integrity-gated place, and
+> the wide-canvas bracket page. See the persistence section at the end.
+>
+> **Not built:** advancing on a *reported* result (waits on the matches slice), the reset
+> triggered live, and the mobile round-by-round view.
+
 ---
 
 ## Data model: generate the whole bracket up front

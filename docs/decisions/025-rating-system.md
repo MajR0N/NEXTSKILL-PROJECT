@@ -5,6 +5,14 @@
 **Supersedes:** the separate "ELO system" / "rating calculation" / "ranking" items — they are
 one system with three layers, not three systems.
 
+
+> **Built (2026-08-11):** both engines — Glicko-2 for teams, OpenSkill for players — with
+> Glickman's published example reproduced exactly. The **team** ranking page is live, provisional
+> teams separated, `±RD` shown openly. Seeding uses the same provisional rule.
+>
+> **Not built:** **the player ranking has no page at all**, and neither do tiers, movement
+> arrows or form strips — all three need match history, which the matches slice will produce.
+
 ---
 
 ## The three layers
