@@ -77,9 +77,6 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.HasIndex("Nickname")
-                        .IsUnique();
-
                     b.ToTable("accounts");
                 });
 
@@ -513,6 +510,32 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("seasons");
+                });
+
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.Session", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.ToTable("sessions");
                 });
 
             modelBuilder.Entity("NextSkill.Api.Shared.Persistence.Team", b =>

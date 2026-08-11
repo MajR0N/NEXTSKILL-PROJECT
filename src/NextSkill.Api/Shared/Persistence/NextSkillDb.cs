@@ -14,6 +14,7 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
 {
     public DbSet<Organiser> Organisers => Set<Organiser>();
     public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<Session> Sessions => Set<Session>();
     public DbSet<Team> Teams => Set<Team>();
     public DbSet<GameServer> Servers => Set<GameServer>();
     public DbSet<Tournament> Tournaments => Set<Tournament>();
@@ -73,14 +74,25 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
 
         b.Entity<Account>(e =>
         {
+            // Email is stored already lowercased (011), so a plain unique index
+            // is case-insensitive in effect and needs no expression index.
             e.HasIndex(x => x.Email).IsUnique();
-            e.HasIndex(x => x.Nickname).IsUnique();
+            //
+            // Nickname keeps the case the player typed, so uniqueness needs an
+            // index on lower(nickname) instead — added as raw SQL in the
+            // migration, since EF has no model-level expression indexes.
+            // Without it "Pukawka" and "pukawka" are two accounts, which is an
+            // impersonation vector, not a cosmetic issue.
             e.Property(x => x.Email).HasMaxLength(254);
             e.Property(x => x.Nickname).HasMaxLength(32);
             // Native inet, not a string: validates on write and supports subnet
             // operators for abuse detection (008).
             e.Property(x => x.LastSeenIp).HasColumnType("inet");
         });
+
+        // Sessions are global like the accounts they belong to. The index is the
+        // logout-everywhere query: every session for one account.
+        b.Entity<Session>(e => e.HasIndex(x => x.AccountId));
 
         b.Entity<Team>(e =>
         {

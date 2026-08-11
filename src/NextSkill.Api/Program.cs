@@ -1,9 +1,13 @@
 using System.Globalization;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Localization.Routing;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using NextSkill.Api.Features.Matches;
 using NextSkill.Api.Localisation;
+using NextSkill.Api.Shared.Auth;
 using NextSkill.Api.Shared.Persistence;
 using NextSkill.Api.Shared.Tenancy;
 
@@ -34,6 +38,83 @@ builder.Services.AddSingleton(TimeProvider.System);
 // Tenancy is scoped per request and fails closed (decisions 036, 037).
 builder.Services.AddScoped<TenantContext>();
 builder.Services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<TenantContext>());
+
+// ── authentication: signed cookie + server-side session row (011) ─────────
+//
+// The cookie alone would be unrevocable: valid until it expires, whatever
+// happens server-side. Pairing it with a `sessions` row makes logout real —
+// see Sessions.Validate.
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(o =>
+    {
+        o.Cookie.Name = "ns_session";
+        o.Cookie.HttpOnly = true;                          // JS can never read it
+        o.Cookie.SecurePolicy = CookieSecurePolicy.Always; // HTTPS only
+        o.Cookie.SameSite = SameSiteMode.Lax;              // CSRF defence in depth
+        o.ExpireTimeSpan = Sessions.Lifetime;
+        o.SlidingExpiration = true;
+
+        // LoginPath is a fixed string, but our URLs carry a locale (018) — so
+        // the redirect is built per request instead, keeping the user's language.
+        o.Events.OnRedirectToLogin = ctx =>
+        {
+            ctx.Response.Redirect(Sessions.LoginUrl(ctx.Request));
+            return Task.CompletedTask;
+        };
+        o.Events.OnRedirectToAccessDenied = ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        };
+
+        o.Events.OnValidatePrincipal = Sessions.ValidateAsync;
+    });
+
+// HSTS: a year, subdomains included (012). The default 30 days is short enough
+// that a browser which has not visited recently is back to trusting http.
+//
+// `Preload` is deliberately OFF. Getting on the preload list means browsers
+// refuse http for this domain before ever contacting it — excellent, and
+// effectively irreversible. It belongs at the end of Phase 6, once the domain
+// is settled and every subdomain genuinely serves TLS.
+builder.Services.AddHsts(o =>
+{
+    o.MaxAge = TimeSpan.FromDays(365);
+    o.IncludeSubDomains = true;
+});
+
+// Rate limiting on login and registration (011). Built into ASP.NET Core, so
+// this is configuration rather than a hand-rolled bucket that gets it wrong.
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    o.AddPolicy(Sessions.AuthRateLimitPolicy, ctx =>
+    {
+        // Only ATTEMPTS count. Rate-limiting GET would mean a user who reloads
+        // the login page is locked out of logging in — punishing the wrong
+        // behaviour, and a self-inflicted denial of service.
+        if (!HttpMethods.IsPost(ctx.Request.Method))
+            return RateLimitPartition.GetNoLimiter("read");
+
+        // Per IP, because the attacker chooses the account name — limiting per
+        // account only lets one IP spray a whole user list unimpeded.
+        //
+        // ponytail: partitions on the socket address. Ceiling: behind Cloudflare
+        // (042) that is CLOUDFLARE'S address, so every visitor shares one bucket
+        // and one attacker locks out the entire site. Upgrade path: resolve the
+        // real client IP from CF-Connecting-IP with Cloudflare's ranges as known
+        // proxies — required BEFORE this goes near production.
+        return RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(5),
+            });
+    });
+});
 
 // Localisation: four locales, locale in the URL path (decision 018).
 builder.Services.AddLocalization(o => o.ResourcesPath = "Resources");
@@ -70,12 +151,23 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
+
+    // HSTS tells the browser "never speak http to this host again", which closes
+    // the one-request window where a first plain-http visit can be intercepted.
+    // Development is excluded on purpose: the header applies to the whole of
+    // localhost, so enabling it here would break every other local project over
+    // http — including ones that have nothing to do with NEXTSKILL.
     app.UseHsts();
 }
 
+// Anything that does arrive over http is bounced to https before it reaches a
+// handler. Combined with the Secure session cookie (011), a session token can
+// never travel in the clear.
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseRequestLocalization();
+app.UseRateLimiter();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();

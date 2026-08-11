@@ -3,6 +3,11 @@
    Implements decisions 019 (visual identity) and 041 (layout system).
    Read those before changing anything here.
 
+   CURRENTLY MONOCHROME ON PURPOSE (decision 044). The palette is an open
+   question; shipping a provisional colour scheme would mean unpicking it from
+   every page later. Greys ship now, 044 decides the hues, and the swap is
+   confined to the token block below.
+
    Rules that are load-bearing, not stylistic:
    - --live is RATIONED: live matches and destructive actions only. If red
      appears anywhere else it stops meaning anything.
@@ -27,16 +32,27 @@
   --text-mid:    #B7AFA2;
   --text-dim:    #8A8378;
 
-  /* side colours carry information: team identity, who banned which map */
-  --t:           #F0C463;   /* T-side gold  — primary accent   */
-  --ct:          #7FB0E8;   /* CT-side blue — secondary accent */
-  --on-accent:   #0E0D0C;
-  --glow:        240, 196, 99;
+  /* ── MONOCHROME MODE — deliberate, temporary (decision 044) ───────────
+     The palette is NOT decided. Rather than ship colours we would have to
+     unpick later, every hue token below is a warm GREY, separated by
+     LIGHTNESS only. Token names are unchanged, so 044 restores colour by
+     editing these nine lines and nothing else.
 
-  /* semantic — separate from the accent hue */
-  --win:         #54D69B;
-  --loss:        #F0705E;
-  --live:        #FF6A54;   /* RATIONED */
+     This is also a free audit of 019's rule that colour never carries
+     meaning alone: anything that becomes ambiguous here was leaning on hue,
+     and that is a bug to fix now rather than a palette to hide it with.  */
+
+  /* side "colours" carry information: team identity, who banned which map */
+  --t:           #EFE9DC;   /* was T-side gold  — primary accent   */
+  --ct:          #9C978C;   /* was CT-side blue — secondary accent */
+  --on-accent:   #0E0D0C;
+  --glow:        239, 233, 220;
+
+  /* semantic — form strips carry W/L letters and movement carries ▲▼—,
+     so these stay legible with the hue removed. That is the point. */
+  --win:         #E4DFD2;
+  --loss:        #8F897E;
+  --live:        #FFFFFF;   /* RATIONED — brightest thing on the page */
 
   /* spacing scale (041) — 4px base. No values outside this set. */
   --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
@@ -316,12 +332,17 @@ h2, .h2 { font-size: 22px; letter-spacing: -.02em; font-weight: 600; margin: 0; 
 .avatar--sm { width: 26px; height: 26px; font-size: 10.5px; border-radius: var(--r-sm); }
 
 /* Generated palettes, picked from the team tag so a team looks the same on
-   every page. No uploads means a brand-new team never shows a placeholder. */
-.avatar--1 { background: linear-gradient(145deg, var(--t),    color-mix(in srgb, var(--t) 50%, #000)); }
-.avatar--2 { background: linear-gradient(145deg, var(--ct),   color-mix(in srgb, var(--ct) 50%, #000)); }
-.avatar--3 { background: linear-gradient(145deg, var(--win),  color-mix(in srgb, var(--win) 50%, #000)); }
-.avatar--4 { background: linear-gradient(145deg, #C97BE0,     #6B2F82); }
-.avatar--5 { background: linear-gradient(145deg, var(--text-mid), color-mix(in srgb, var(--text-mid) 45%, #000)); }
+   every page. No uploads means a brand-new team never shows a placeholder.
+
+   Monochrome (044): five distinct LIGHTNESS steps, not five hues. All stay
+   light enough for --on-accent text, so the monogram carries the identity and
+   the shade only reinforces it. Restoring colour means restoring five hues
+   here — the step count and contrast floor stay as they are. */
+.avatar--1 { background: linear-gradient(145deg, #F4EFE4, #B9B3A7); }
+.avatar--2 { background: linear-gradient(145deg, #D8D2C6, #9B958A); }
+.avatar--3 { background: linear-gradient(145deg, #C2BCB0, #857F75); }
+.avatar--4 { background: linear-gradient(145deg, #ABA59A, #6F6A61); }
+.avatar--5 { background: linear-gradient(145deg, #E6E0D4, #A8A296); }
 .avatar--lg { width: 56px; height: 56px; font-size: 20px; border-radius: var(--r-lg); }
 
 /* ── 12. headbar + sidebar (021) ──────────────────────────────────────── */

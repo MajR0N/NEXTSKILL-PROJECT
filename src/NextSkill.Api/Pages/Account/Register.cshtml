@@ -1,0 +1,66 @@
+@page
+@model NextSkill.Api.Pages.Account.RegisterModel
+@{
+    ViewData["Title"] = "Załóż konto";
+    ViewData["Description"] = "Załóż konto NEXTSKILL — turnieje CS 1.6 i CS2.";
+}
+
+@* Narrow archetype (041): one column, one job. No headbar competition, no rail. *@
+<div class="wrap-narrow section">
+
+    <p class="eyebrow">NEXTSKILL</p>
+    <h1>Załóż konto</h1>
+    <p class="lede">
+        Jedno konto do grania i organizowania. Steam i Discord podepniesz później —
+        <b>nie są wymagane</b>, żeby grać.
+    </p>
+
+    <form method="post" class="card" style="margin-top:var(--s6)">
+        @* Razor Pages emits and validates the antiforgery token automatically on
+           every POST form — the CSRF defence 012 requires, for free. *@
+
+        @if (ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+        {
+            <div class="alert alert--error" role="alert" style="margin-bottom:var(--s4)">
+                @foreach (var error in ViewData.ModelState[string.Empty]!.Errors)
+                {
+                    <div>@error.ErrorMessage</div>
+                }
+            </div>
+        }
+
+        <div class="field">
+            <label asp-for="Input.Nickname">Nick</label>
+            <input class="input" asp-for="Input.Nickname" autocomplete="username"
+                   maxlength="32" required autofocus />
+            <span class="field__hint">Tak zobaczą Cię inni gracze. W grze nick zostanie wymuszony na ten.</span>
+            <span class="field__error" asp-validation-for="Input.Nickname"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.Email">E-mail</label>
+            <input class="input" asp-for="Input.Email" type="email" autocomplete="email"
+                   inputmode="email" maxlength="254" required />
+            <span class="field__hint">Do logowania i odzyskiwania hasła. Nie jest publiczny.</span>
+            <span class="field__error" asp-validation-for="Input.Email"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.Password">Hasło</label>
+            <input class="input" asp-for="Input.Password" type="password"
+                   autocomplete="new-password" minlength="10" required />
+            @* Length, not symbol soup. "Password1!" passes every composition rule
+               ever written and is guessed in seconds. *@
+            <span class="field__hint">Minimum 10 znaków. Dłuższe zdanie jest lepsze niż krótkie hasło ze znakami specjalnymi.</span>
+            <span class="field__error" asp-validation-for="Input.Password"></span>
+        </div>
+
+        <button class="btn btn--primary" type="submit" style="width:100%;justify-content:center">
+            Załóż konto
+        </button>
+    </form>
+
+    <p class="lede" style="text-align:center">
+        Masz już konto? <a asp-page="/Account/Login" asp-route-culture="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName">Zaloguj się</a>.
+    </p>
+</div>

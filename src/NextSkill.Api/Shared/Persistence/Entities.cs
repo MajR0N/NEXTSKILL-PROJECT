@@ -85,6 +85,27 @@ public class Account
     public DateTimeOffset CreatedAt { get; set; }
 }
 
+/// <summary>
+/// A logged-in session (decision 011).
+///
+/// The cookie is signed by ASP.NET Data Protection, so the id it carries cannot
+/// be forged — but a signed cookie alone is <b>unrevocable</b>: it stays valid
+/// until it expires no matter what happens server-side. This row is what makes
+/// logout real. Deleting it ends the session immediately, everywhere.
+///
+/// There is no <c>RevokedAt</c> column on purpose: revocation is the row not
+/// existing, which cannot be misread.
+/// </summary>
+public class Session
+{
+    public Guid Id { get; set; }
+    public Guid AccountId { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>Also what lets expired rows be pruned without reading cookies.</summary>
+    public DateTimeOffset ExpiresAt { get; set; }
+}
+
 /// <summary>A team. Global, like accounts — rosters cross organisers.</summary>
 public class Team
 {

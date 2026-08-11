@@ -56,12 +56,33 @@
 
     <header class="wrap">
         <nav class="headbar">
-            <a class="brand" asp-page="/Index">next<b>skill</b></a>
-            <a asp-page="/Ranking/Index">Ranking</a>
-            <a asp-page="/Index">Turnieje</a>
-            <a asp-page="/Index">Mecze</a>
-            <a asp-page="/Index">Szukam drużyny</a>
+            @* asp-route-culture is NOT optional. Ambient route values are only
+               reused for links to the SAME page, so a cross-page link without it
+               silently drops the locale — a German reader clicking "Ranking"
+               would land back in Polish (018). *@
+            <a class="brand" asp-page="/Index" asp-route-culture="@locale">next<b>skill</b></a>
+            <a asp-page="/Ranking/Index" asp-route-culture="@locale">Ranking</a>
+            <a asp-page="/Index" asp-route-culture="@locale">Turnieje</a>
+            <a asp-page="/Index" asp-route-culture="@locale">Mecze</a>
+            <a asp-page="/Index" asp-route-culture="@locale">Szukam drużyny</a>
             <span class="headbar__spacer"></span>
+
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <span class="dim" style="font-size:13.5px">@User.Identity.Name</span>
+                @* Logout is a POST, so it cannot be triggered by an <img src> on
+                   someone else's page — and Razor Pages signs the form for us. *@
+                <form method="post" asp-page="/Account/Logout" asp-route-culture="@locale" style="display:inline">
+                    <button class="btn btn--ghost" type="submit" style="padding:6px 12px;font-size:13px">Wyloguj</button>
+                </form>
+            }
+            else
+            {
+                <a asp-page="/Account/Login" asp-route-culture="@locale">Zaloguj</a>
+                <a class="btn btn--primary" asp-page="/Account/Register" asp-route-culture="@locale"
+                   style="padding:7px 14px;font-size:13px">Załóż konto</a>
+            }
+
             @* Locale switcher stays visible — a Russian speaker landing on a
                Polish page must be able to fix that immediately (018). *@
             <div class="locale">

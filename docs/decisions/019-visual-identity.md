@@ -1,8 +1,19 @@
 # 019 — Visual identity
 
-**Status:** **decided in principle** — validated against built mockups, refined over several rounds of feedback
-**Date:** 2026-08-10
+**Status:** **split.** The *behavioural* rules below are decided and hold. Everything about
+**appearance** — palette, type, style — is **reopened** and moved to
+[044](044-visual-direction.md), which is where the real grilling happens. The site currently
+ships **monochrome** for that reason.
+**Date:** 2026-08-10 · reopened 2026-08-11
 **Lens applied:** frontend-design
+
+> **What survived and what did not.** This document was written while the conversation was
+> about *whether colour carries meaning*, and it answered that well: colour never alone,
+> uncertainty shown openly, spacing as information, form strips carrying letters as well as
+> hue. Those rules stand and the monochrome build is passing them. But the specific hues —
+> CT blue, T gold — were chosen in one pass and never argued against, and the whole layout
+> system was then built on tokens nobody interrogated. Read the palette here as *the first
+> guess*, not the decision.
 
 ---
 

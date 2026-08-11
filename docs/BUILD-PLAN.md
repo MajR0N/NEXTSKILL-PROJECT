@@ -159,7 +159,7 @@ Built before any UI, because they are pure functions and they hide the silent bu
   - ☑ **`map_end` disagreeing → `disputed`, bracket blocked** — the silent failure, made loud, end to end
   - ☑ Malformed body → 400, never silently defaulted
 - ☐ **OpenAPI 3.1 spec** generated from these types
-- ➡ **503-retry check** moves to Phase 6 with maintenance mode ([033](decisions/033-maintenance-mode.md))
+- ➡ **503-retry check** moves to Phase 7 with maintenance mode ([033](decisions/033-maintenance-mode.md))
 
 ## Phase 4 — Web platform, slice by slice
 
@@ -169,33 +169,42 @@ Built before any UI, because they are pure functions and they hide the silent bu
 > [041](decisions/041-layout-system.md) settled **how a page is composed**. Neither settled
 > **what is actually on most pages.**
 >
-> Grilled so far: ranking, match detail, bracket, lobby/veto, profile, login, footer,
-> admin panel.
+> Grilled: ranking, match detail, bracket, lobby/veto, profile, login, footer, admin panel —
+> plus home, tournament detail, notifications, search and onboarding, which
+> [043](decisions/043-page-contents.md) closed.
 >
 > **Not yet grilled — each needs a pass before its slice is built:**
 >
 > | Page | Open questions |
 > | --- | --- |
-> | **Home `/`** | What does a logged-out visitor see first? Live matches, pinned news, top teams, a signup pitch? This is the page that converts a pasted Discord link into a user — and it has had no discussion at all |
-> | **Tournament detail `/t/{id}`** | Overview, teams, bracket, rules, schedule — as tabs or one page? What does it show before registration opens vs. mid-event vs. after? |
 > | **Team page `/teams/{id}`** | Roster with roles, match history, rating trend, trophies, open slots? Who can edit what? |
 > | **LFT board `/lft`** | Filters, listing shape, expiry rules, how a team contacts a player, abuse controls |
 > | **News `/news`** | Index and post layout, pinning, localisation fallback presentation |
 > | **Seasons `/seasons/{n}`** | What does a frozen archive look like — standings only, or full browsable history? |
-> | **Registration flow** | Solo player vs. team captain vs. organiser — three different first-runs |
-> | **Notifications** | Is there an in-app inbox at all, or only Discord/email? Not yet decided anywhere |
-> | **Search** | Is there any? Teams, players, tournaments — or none at v1? |
 > | **Error pages** | 404, 500, banned, maintenance ([033](decisions/033-maintenance-mode.md)) |
+
+> ### ⚠ The palette is reopened — build monochrome until [044](decisions/044-visual-direction.md) closes
 >
-> **Phases 0–3 do not depend on these** — foundation, engines and the wire contract are all
-> settled. Build those first; grill Phase 4 pages before their slices.
+> [019](decisions/019-visual-identity.md) chose CT blue and T gold in a single pass, while
+> the discussion was really about *whether colour carries meaning*. Its behavioural rules
+> hold; its hues were never argued against, and the whole layout system was then built on
+> tokens nobody interrogated.
+>
+> **Every Phase 4 slice ships in warm greys.** Colour spreads — a page built on a
+> provisional palette is a page to revisit — so the cost of deciding late is one token block
+> instead of every screen. It also audits 019's own rule for free: anything ambiguous
+> without hue was leaning on hue.
+
+**Phases 0–3 do not depend on any of this** — foundation, engines and the wire contract are
+settled.
 
 **Lenses:** `grilling` (**first — the pages above are undecided**) · `dotnet-core-expert` (Razor Pages, filters, localisation) · `fullstack-guardian` · `frontend-design` · `secure-code-guardian` · `code-reviewer`
 
 Vertical slices ([006](decisions/006-architecture.md)). Each slice is a folder containing
 endpoint, request, handler and validator together.
 
-- ☐ **Ranking** — index archetype, the workhorse page
+- ☑ **Ranking** — index archetype, the workhorse page. Server-rendered on live data;
+  provisional teams listed separately, `±RD` and confidence bar shown openly
 - ☐ **Accounts** — register, login, `setinfo` token rotate ([011](decisions/011-accounts-and-login.md))
 - ☐ **Teams** — create, invite, roster
 - ☐ **Tournaments** — create from template, register, seed ([015](decisions/015-admin-panel.md))
@@ -215,7 +224,67 @@ endpoint, request, handler and validator together.
 - ☐ Zip bomb aborted; archive filenames never trusted
 - ☐ No secret appears in any log
 
-## Phase 5 — Plugins
+## Phase 5 — Frontend: make it look like something
+
+> ### ⚠ Blocked on grilling — [044](decisions/044-visual-direction.md) must close first
+>
+> This phase cannot start from "make it prettier". It starts from a decided palette, a
+> decided type stack and a named style, none of which exist yet — see
+> [044](decisions/044-visual-direction.md) for the twenty questions on the table.
+
+**Why this is its own phase and not a slice.** Phase 4 builds pages one at a time, and every
+one of them ships in monochrome with whatever markup the feature needed. That is the right
+way to get *behaviour* right, and the wrong way to get a *look* right: consistency is not
+something you can add a page at a time, because the thing being made consistent only exists
+once all the pages do. The same is true of everything else here — you cannot audit keyboard
+navigation, contrast, mobile layout or page weight across a product that is half-built.
+
+There is also work in [018](decisions/018-frontend-architecture.md) that no Phase 4 slice
+owns: **the TypeScript islands.** Every page so far is pure server-rendered HTML. The lobby
+needs live updates, the bracket needs panning on a phone, and the whole site has to keep
+working with JavaScript disabled — that is a build step, a budget and a progressive-enhancement
+rule, not a detail of any one feature.
+
+**Lenses:** `grilling` (**first — [044](decisions/044-visual-direction.md) is open**) ·
+`frontend-design` · `ui-ux-pro-max:design-system` · `ui-ux-pro-max:ui-styling` ·
+`typescript-pro` (the islands) · `javascript-pro` · `dotnet-core-expert` (asset pipeline,
+`MapStaticAssets`, tag helpers) · `playwright-expert` (visual and keyboard checks) ·
+`monitoring-expert` (page-weight budget)
+
+### 5a — Close the visual direction
+
+- ☐ Grill and close [044](decisions/044-visual-direction.md): palette, type, named style, light theme yes/no
+- ☐ Replace the monochrome token block in `nextskill.css` — **one edit, by construction**
+- ☐ Re-audit the components that leaned on hue once it returns, veto attribution first
+- ☐ Contrast **measured**, not assumed, including `--text-dim` on `--surface`
+- ☐ Logo/wordmark, and the favicon that is currently a placeholder
+
+### 5b — The three screens that can still surprise us
+
+Named in [041](decisions/041-layout-system.md) as the ones a design system does not settle.
+
+- ☐ **Double-elimination bracket** — wide canvas, horizontal scroll, the losers' bracket legible at 16+ teams
+- ☐ **Organiser panel** — dense mode, sidebar, tables that stay readable at 40 rows
+- ☐ **Empty states everywhere** — day one has no matches, and looking *early* beats looking *abandoned* ([020](decisions/020-motion-and-ux.md))
+
+### 5c — TypeScript islands ([018](decisions/018-frontend-architecture.md))
+
+- ☐ Build step decided and wired — **no framework**, per [018](decisions/018-frontend-architecture.md)
+- ☐ **Every page still works with JS disabled** — checked, not asserted. Link unfurling is the growth mechanism and crawlers do not run JS
+- ☐ Lobby live updates over SSE ([028](decisions/028-veto-and-lobby.md))
+- ☐ Bracket pan/zoom on touch
+- ☐ Notification bell polling ([043](decisions/043-page-contents.md))
+
+### 5d — The cross-cutting audits
+
+- ☐ **Mobile pass at 360px** with real Polish strings — longer than English, and the headbar is the first thing to break
+- ☐ **Keyboard-only pass**: every action reachable, focus never lost, focus never invisible
+- ☐ **Screen-reader pass** on the ranking table and the bracket
+- ☐ **Page-weight budget** agreed and enforced — a webfont is the single biggest cost, and the audience is on Polish mobile
+- ☐ **Open Graph card designed** — quite possibly the most-viewed surface in the product, and so far it is a text tag ([018](decisions/018-frontend-architecture.md))
+- ☐ 404 / 500 / banned / maintenance pages ([033](decisions/033-maintenance-mode.md))
+
+## Phase 6 — Plugins
 
 **Lenses:** `csharp-developer` · `dotnet-core-expert` (the plugin is a .NET 8 assembly) · `test-master` · `debugging-wizard`
 **No lens fits Pawn/AMXX** — CS 1.6 plugin work is unassisted by the available skills, which is itself a reason to sequence it last
@@ -228,7 +297,7 @@ Concretely, one at a time. **No shared abstraction until both exist** ([001](dec
 - ☐ **CS 1.6 plugin** ([005](decisions/005-cs16-plugin.md)) — Pawn/AMXX
 - ☐ **Round backup/restore verified by actually killing a server mid-match** ([034](decisions/034-test-strategy.md))
 
-## Phase 6 — Ship
+## Phase 7 — Ship
 
 **Lenses:** `devops-engineer` · `dotnet-core-expert` (publish, AOT/trimming, health checks) · `monitoring-expert` · `security-reviewer` (full pass before launch) · `sre-engineer` (backups, restore drill)
 
@@ -255,7 +324,18 @@ Carried from CONTEXT §7. **Must be resolved before the code that depends on the
 
 ## Design note
 
-Per the agreed approach, **design is refined section by section as each slice is built** —
-not finalised up front. [019](decisions/019-visual-identity.md) and
-[041](decisions/041-layout-system.md) set the system; individual screens improve as they're
-implemented.
+**Two passes, on purpose.**
+
+*Section by section, during Phase 4:* each slice gets the layout and the states it needs, in
+monochrome. This is where a screen earns its structure — what is on it, what happens when it
+is empty, what a keyboard does.
+
+*All at once, in [Phase 5](#phase-5--frontend-make-it-look-like-something):* palette, type,
+style, motion and the cross-cutting audits. These are **consistency** problems, and
+consistency cannot be added a page at a time — it needs all the pages to exist before it can
+be judged.
+
+[041](decisions/041-layout-system.md) set the layout system and it has held up.
+[019](decisions/019-visual-identity.md) set the palette in a single pass and it has not been
+argued with, which is why it is reopened as
+[044](decisions/044-visual-direction.md) and why the product ships grey until then.

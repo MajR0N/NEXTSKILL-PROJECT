@@ -451,6 +451,10 @@ Console.WriteLine();
 Console.WriteLine("SIGNING & INTEGRITY  (decisions 009, 012, 035)");
 NextSkill.Checks.IntegrityChecks.Run(Check, That);
 
+Console.WriteLine();
+Console.WriteLine("PASSWORDS & REDIRECTS  (decisions 011, 040)");
+NextSkill.Checks.AccountChecks.RunPure(Check, That);
+
 // Tenancy needs a real PostgreSQL — a mock would prove nothing about whether
 // EF's global query filters actually reach the SQL (decision 034).
 var connectionString = Environment.GetEnvironmentVariable("NEXTSKILL_DB")
@@ -466,6 +470,19 @@ catch (Exception ex)
 {
     failed++;
     Console.WriteLine("  FAIL  tenancy checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
+Console.WriteLine("ACCOUNTS · real cookies, real database  (decisions 011, 040)");
+try
+{
+    NextSkill.Checks.AccountChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  account checks could not run");
     Console.WriteLine($"        {ex.Message}");
 }
 

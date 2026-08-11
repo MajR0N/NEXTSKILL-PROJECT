@@ -1,0 +1,50 @@
+@page
+@model NextSkill.Api.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "Zaloguj się";
+    ViewData["Description"] = "Zaloguj się do NEXTSKILL.";
+}
+
+<div class="wrap-narrow section">
+
+    <p class="eyebrow">NEXTSKILL</p>
+    <h1>Zaloguj się</h1>
+
+    <form method="post" class="card" style="margin-top:var(--s6)">
+        <input type="hidden" asp-for="ReturnUrl" />
+
+        @if (ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+        {
+            @* One message for "no such account" and "wrong password" alike —
+               anything more specific confirms which addresses are registered (040). *@
+            <div class="alert alert--error" role="alert" style="margin-bottom:var(--s4)">
+                @foreach (var error in ViewData.ModelState[string.Empty]!.Errors)
+                {
+                    <div>@error.ErrorMessage</div>
+                }
+            </div>
+        }
+
+        <div class="field">
+            <label asp-for="Input.Email">E-mail</label>
+            <input class="input" asp-for="Input.Email" type="email" autocomplete="email"
+                   inputmode="email" required autofocus />
+            <span class="field__error" asp-validation-for="Input.Email"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.Password">Hasło</label>
+            <input class="input" asp-for="Input.Password" type="password"
+                   autocomplete="current-password" required />
+            <span class="field__error" asp-validation-for="Input.Password"></span>
+        </div>
+
+        <button class="btn btn--primary" type="submit" style="width:100%;justify-content:center">
+            Zaloguj się
+        </button>
+    </form>
+
+    <p class="lede" style="text-align:center">
+        Nie masz konta? <a asp-page="/Account/Register" asp-route-culture="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName">Załóż konto</a>.
+    </p>
+</div>

@@ -1,20 +1,32 @@
 {
   "$schema": "https://json.schemastore.org/launchsettings.json",
+
+  // HTTPS IS THE DEFAULT. `dotnet run` picks the first profile, so it is first
+  // deliberately — and the session cookie is marked Secure (011), which means
+  // login does not work at all over plain http. Developing on http would mean
+  // developing against a configuration we never ship.
+  //
+  // One-time setup on a new machine:  dotnet dev-certs https --trust
   "profiles": {
-    "http": {
-      "commandName": "Project",
-      "dotnetRunMessages": true,
-      "launchBrowser": true,
-      "applicationUrl": "http://localhost:5083",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
-    },
     "https": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
+      "launchUrl": "pl",
       "applicationUrl": "https://localhost:7039;http://localhost:5083",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+
+    // Kept only for diagnosing TLS problems. Login WILL fail here: the browser
+    // will refuse to send a Secure cookie back over http, and that is correct
+    // behaviour, not a bug to work around.
+    "http-insecure-diagnostics-only": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5083",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
