@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using NextSkill.Api.Shared.Tenancy;
 using NextSkill.Domain.Access;
+using NextSkill.Domain.Auth;
 using NextSkill.Domain.Brackets;
 using NextSkill.Domain.Matches;
 using NextSkill.Domain.Tournaments;
@@ -19,6 +20,9 @@ public enum Game { Cs2, Cs16 }
 // (decision 035). Defining it twice would mean a state could be added to one and
 // not the other, and the mapping would fall into its default case — which in an
 // integrity gate means ADVANCING when it should block.
+
+/// <summary>What an out-of-band code is for (decision 047).</summary>
+public enum OneTimeCodePurpose { PhoneVerification, SmsSignIn }
 
 public enum MatchStatus { Scheduled, VetoInProgress, AwaitingPlayers, Live, Completed, Forfeited, Cancelled }
 
@@ -76,6 +80,36 @@ public class Account
     /// </summary>
     public PlatformRole? PlatformRole { get; set; }
 
+    // ── second factor (decision 047) ─────────────────────────────────────
+
+    /// <summary>
+    /// Which second factor this account uses, or null for none.
+    ///
+    /// Two-factor is <b>opt-in for players and expected for staff</b>: an
+    /// account that can cancel a tournament is worth more than an account that
+    /// plays in one.
+    /// </summary>
+    public TwoFactorMethod? TwoFactorMethod { get; set; }
+
+    /// <summary>
+    /// Base32 TOTP secret.
+    ///
+    /// ponytail: plaintext, exactly like <see cref="GameServer.HmacSecret"/>.
+    /// Ceiling: a database dump lets an attacker generate valid codes for every
+    /// account — it defeats the second factor entirely, though it does not by
+    /// itself get past the password. Upgrade path: encrypt at rest with a key
+    /// held OUTSIDE the database, before this goes near production (012).
+    /// </summary>
+    public string? TwoFactorSecret { get; set; }
+
+    /// <summary>Set when the first correct code proves the app is really set up.</summary>
+    public DateTimeOffset? TwoFactorEnabledAt { get; set; }
+
+    /// <summary>E.164, for the SMS factor. Personal data under GDPR (011).</summary>
+    public string? PhoneNumber { get; set; }
+
+    public DateTimeOffset? PhoneVerifiedAt { get; set; }
+
     /// <summary>Steam/Discord links are optional (decision 011).</summary>
     public string? SteamId { get; set; }
     public string? DiscordId { get; set; }
@@ -107,6 +141,62 @@ public class Session
     public DateTimeOffset CreatedAt { get; set; }
 
     /// <summary>Also what lets expired rows be pruned without reading cookies.</summary>
+    public DateTimeOffset ExpiresAt { get; set; }
+}
+
+/// <summary>
+/// An outstanding password-reset link (decision 011).
+///
+/// The token itself is <b>never stored</b> — only its SHA-256 hash. A database
+/// leak must not hand an attacker a working reset link for every account that
+/// happens to have one open.
+/// </summary>
+public class PasswordResetToken
+{
+    public Guid Id { get; set; }
+    public Guid AccountId { get; set; }
+
+    /// <summary>SHA-256 of the emailed token, base64. Unique, and the lookup key.</summary>
+    public required string TokenHash { get; set; }
+
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset ExpiresAt { get; set; }
+
+    // There is no `UsedAt`. Single use is enforced by DELETING the row, for the
+    // same reason a session has no `revoked` flag: a flag is a state every query
+    // has to remember to check, and forgetting once means a reset link that
+    // works twice.
+}
+
+/// <summary>
+/// A single-use recovery code (decision 047).
+///
+/// <b>Without these, enabling two-factor is a way to lose your account.</b> A
+/// lost or wiped phone would otherwise be permanent — the exact lockout the
+/// password-reset flow exists to prevent, reintroduced one layer up.
+///
+/// Hashed, single use, and deleted on use for the same reason a reset token is:
+/// a flag is a check somebody eventually forgets.
+/// </summary>
+public class RecoveryCode
+{
+    public Guid Id { get; set; }
+    public Guid AccountId { get; set; }
+    public required string CodeHash { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>
+/// A short-lived numeric code delivered out of band — SMS today, and the same
+/// table if anything else is added (decision 047).
+/// </summary>
+public class OneTimeCode
+{
+    public Guid Id { get; set; }
+    public Guid AccountId { get; set; }
+    public OneTimeCodePurpose Purpose { get; set; }
+    public required string CodeHash { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }
 }
 

@@ -10,6 +10,13 @@
     <p class="eyebrow">NEXTSKILL</p>
     <h1>Zaloguj się</h1>
 
+    @if (Model.Reset)
+    {
+        <div class="alert alert--ok" role="status" style="margin-top:var(--s5)">
+            Hasło zmienione. Zaloguj się nowym hasłem.
+        </div>
+    }
+
     <form method="post" class="card" style="margin-top:var(--s6)">
         <input type="hidden" asp-for="ReturnUrl" />
 
@@ -42,6 +49,10 @@
         <button class="btn btn--primary" type="submit" style="width:100%;justify-content:center">
             Zaloguj się
         </button>
+
+        <p class="lede" style="text-align:center;font-size:13px">
+            <a asp-page="/Account/Forgot" asp-route-culture="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName">Nie pamiętasz hasła?</a>
+        </p>
     </form>
 
     <p class="lede" style="text-align:center">

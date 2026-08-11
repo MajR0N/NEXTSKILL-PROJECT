@@ -1,0 +1,51 @@
+@page
+@model NextSkill.Api.Pages.Account.ResetModel
+@using NextSkill.Api.Localisation
+@using NextSkill.Api.Shared.Auth
+@{
+    ViewData["Title"] = "Ustaw nowe hasło";
+    var locale = Locales.Current;
+    var minutes = (int)ResetTokens.Lifetime.TotalMinutes;
+}
+
+<div class="wrap-narrow section">
+
+    <p class="eyebrow">NEXTSKILL</p>
+    <h1>Ustaw nowe hasło</h1>
+
+    @if (Model.LinkDead)
+    {
+        @* Expired, already used, or never valid — one message for all three.
+           And never a dead end: the way out is one click (020). *@
+        <div class="card" style="margin-top:var(--s6)">
+            <p class="lede" style="margin-top:0">
+                <b>Ten link już nie działa.</b>
+                Linki resetujące są ważne @minutes minut i można ich użyć tylko raz.
+            </p>
+            <p class="lede">To normalne, jeśli poczta szła chwilę dłużej. Poproś o nowy — zajmie sekundę.</p>
+            <a class="btn btn--primary" asp-page="/Account/Forgot" asp-route-culture="@locale">Wyślij nowy link</a>
+        </div>
+    }
+    else
+    {
+        <p class="lede">
+            Po zmianie hasła wylogujemy wszystkie urządzenia — także te, o których nie wiesz.
+        </p>
+
+        <form method="post" class="card" style="margin-top:var(--s6)">
+            <input type="hidden" asp-for="Input.Token" />
+
+            <div class="field">
+                <label asp-for="Input.Password">Nowe hasło</label>
+                <input class="input" asp-for="Input.Password" type="password"
+                       autocomplete="new-password" minlength="10" required autofocus />
+                <span class="field__hint">Minimum 10 znaków. Dłuższe zdanie jest lepsze niż krótkie hasło ze znakami specjalnymi.</span>
+                <span class="field__error" asp-validation-for="Input.Password"></span>
+            </div>
+
+            <button class="btn btn--primary" type="submit" style="width:100%;justify-content:center">
+                Ustaw hasło
+            </button>
+        </form>
+    }
+</div>

@@ -21,7 +21,7 @@ namespace NextSkill.Api.Pages.Account;
 /// a wrong password takes 60ms of Argon2 and an unknown address returns in 2ms.
 /// </summary>
 [EnableRateLimiting(Sessions.AuthRateLimitPolicy)]
-public class LoginModel(NextSkillDb db) : PageModel
+public class LoginModel(NextSkillDb db, TwoFactorLogin pending) : PageModel
 {
     public sealed class Form
     {
@@ -36,6 +36,9 @@ public class LoginModel(NextSkillDb db) : PageModel
 
     [BindProperty] public Form Input { get; set; } = new();
     [BindProperty(SupportsGet = true)] public string? ReturnUrl { get; set; }
+
+    /// <summary>Set by the reset flow, which redirects here rather than signing anybody in.</summary>
+    [BindProperty(SupportsGet = true)] public bool Reset { get; set; }
 
     public void OnGet() { }
 
@@ -58,6 +61,17 @@ public class LoginModel(NextSkillDb db) : PageModel
             // — that phrasing confirms the address exists (040).
             ModelState.AddModelError(string.Empty, "Nieprawidłowy e-mail lub hasło.");
             return Page();
+        }
+
+        // A password is one factor. If the account has a second, the login is
+        // NOT finished — no session is created, and the pending state travels in
+        // its own short-lived cookie that grants nothing (047).
+        if (account.TwoFactorMethod is not null)
+        {
+            pending.Begin(HttpContext, account.Id);
+
+            var returnTo = Sessions.SafeReturnUrl(ReturnUrl, Locales.Current);
+            return Redirect($"/{Locales.Current}/account/challenge?returnUrl={Uri.EscapeDataString(returnTo)}");
         }
 
         await Sessions.SignInAsync(HttpContext, db, account);

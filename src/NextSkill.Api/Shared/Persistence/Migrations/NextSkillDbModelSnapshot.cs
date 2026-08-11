@@ -60,6 +60,14 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("password_hash");
 
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("text")
+                        .HasColumnName("phone_number");
+
+                    b.Property<DateTimeOffset?>("PhoneVerifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("phone_verified_at");
+
                     b.Property<string>("PlatformRole")
                         .HasColumnType("text")
                         .HasColumnName("platform_role");
@@ -71,6 +79,18 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                     b.Property<string>("SteamId")
                         .HasColumnType("text")
                         .HasColumnName("steam_id");
+
+                    b.Property<DateTimeOffset?>("TwoFactorEnabledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("two_factor_enabled_at");
+
+                    b.Property<string>("TwoFactorMethod")
+                        .HasColumnType("text")
+                        .HasColumnName("two_factor_method");
+
+                    b.Property<string>("TwoFactorSecret")
+                        .HasColumnType("text")
+                        .HasColumnName("two_factor_secret");
 
                     b.HasKey("Id");
 
@@ -405,6 +425,43 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                     b.ToTable("notifications");
                 });
 
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.OneTimeCode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("code_hash");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("purpose");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId", "Purpose");
+
+                    b.ToTable("one_time_codes");
+                });
+
             modelBuilder.Entity("NextSkill.Api.Shared.Persistence.Organiser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -472,6 +529,41 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                     b.ToTable("organiser_staff");
                 });
 
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.PasswordResetToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("token_hash");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.ToTable("password_reset_tokens");
+                });
+
             modelBuilder.Entity("NextSkill.Api.Shared.Persistence.Rating", b =>
                 {
                     b.Property<Guid>("Id")
@@ -523,6 +615,34 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasFilter("team_id IS NOT NULL");
 
                     b.ToTable("ratings");
+                });
+
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.RecoveryCode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("code_hash");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.ToTable("recovery_codes");
                 });
 
             modelBuilder.Entity("NextSkill.Api.Shared.Persistence.Season", b =>

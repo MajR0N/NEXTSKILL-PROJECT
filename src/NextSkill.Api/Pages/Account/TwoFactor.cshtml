@@ -1,0 +1,128 @@
+@page
+@model NextSkill.Api.Pages.Account.TwoFactorModel
+@using NextSkill.Domain.Auth
+@{
+    ViewData["Title"] = "Weryfikacja dwuetapowa";
+}
+
+<div class="wrap-narrow section">
+
+    <p class="eyebrow">Konto</p>
+    <h1>Weryfikacja dwuetapowa</h1>
+
+    @if (ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+    {
+        <div class="alert alert--error" role="alert" style="margin-top:var(--s5)">
+            @foreach (var error in ViewData.ModelState[string.Empty]!.Errors)
+            {
+                <div>@error.ErrorMessage</div>
+            }
+        </div>
+    }
+
+    @* ── the codes, shown exactly once ──────────────────────────────────── *@
+    @if (Model.FreshRecoveryCodes.Count > 0)
+    {
+        <div class="card" style="margin-top:var(--s6);border-color:color-mix(in srgb, var(--t) 45%, transparent)">
+            <p class="label">Zapisz kody zapasowe — zobaczysz je tylko teraz</p>
+            <p class="lede" style="margin-top:0">
+                Każdy działa <b>raz</b>. Bez nich zgubiony telefon oznacza utracone konto.
+            </p>
+            <div class="stack" style="gap:var(--s1);font-family:var(--font-mono);font-size:15px;margin:var(--s4) 0">
+                @foreach (var code in Model.FreshRecoveryCodes)
+                {
+                    <div>@code</div>
+                }
+            </div>
+        </div>
+    }
+
+    @if (Model.Enabled is { } method)
+    {
+        <div class="card" style="margin-top:var(--s6)">
+            <p class="lede" style="margin-top:0">
+                <b>Włączona</b> — @(method == TwoFactorMethod.Totp ? "aplikacja uwierzytelniająca" : "kod SMS").
+                Pozostałe kody zapasowe: <b>@Model.RecoveryCodesLeft</b>.
+            </p>
+            @if (method == TwoFactorMethod.Sms)
+            {
+                @* Say it plainly rather than letting someone assume otherwise. *@
+                <p class="lede" style="font-size:13px">
+                    SMS jest wygodny, ale słabszy: przejęcie numeru u operatora omija tę ochronę.
+                    Aplikacja działa offline i nie da się jej przejąć w ten sposób.
+                </p>
+            }
+            <form method="post" asp-page-handler="Disable">
+                <button class="btn btn--danger" type="submit">Wyłącz</button>
+            </form>
+        </div>
+    }
+    else
+    {
+        <p class="lede">
+            Drugi składnik oznacza, że samo hasło nie wystarczy, żeby wejść na Twoje konto.
+            Zalecane dla wszystkich, wymagane w praktyce dla organizatorów.
+        </p>
+
+        <div class="card" style="margin-top:var(--s6)">
+            <p class="label">Aplikacja uwierzytelniająca — zalecane</p>
+            <p class="lede" style="margin-top:0">
+                Authy, Google Authenticator, 1Password, Aegis — dowolna. Działa offline i za darmo.
+            </p>
+
+            @if (Model.ProvisioningUri is null)
+            {
+                <form method="post" asp-page-handler="StartTotp">
+                    <button class="btn btn--primary" type="submit">Ustaw aplikację</button>
+                </form>
+            }
+            else
+            {
+                <form method="post" asp-page-handler="ConfirmTotp">
+                    <input type="hidden" asp-for="PendingSecret" />
+
+                    @* ponytail: klucz tekstowy zamiast kodu QR — obraz QR wymaga
+                       biblioteki, a każda aplikacja przyjmuje wpis ręczny. *@
+                    <div class="field">
+                        <label>Klucz do wpisania w aplikacji</label>
+                        <div class="input" style="font-family:var(--font-mono);word-break:break-all">@Model.PendingSecret</div>
+                        <span class="field__hint">Wpisz ręcznie jako „klucz konfiguracyjny”. Nazwa konta: NEXTSKILL.</span>
+                    </div>
+
+                    <div class="field">
+                        <label asp-for="Code">Kod z aplikacji</label>
+                        <input class="input" asp-for="Code" inputmode="numeric" autocomplete="one-time-code" required autofocus />
+                    </div>
+
+                    @* Nothing is enabled until the phone proves it agrees. *@
+                    <button class="btn btn--primary" type="submit">Włącz</button>
+                </form>
+            }
+        </div>
+
+        <div class="card" style="margin-top:var(--s5)">
+            <p class="label">SMS — jeśli nie chcesz aplikacji</p>
+            <p class="lede" style="margin-top:0;font-size:13px">
+                Słabszy: przejęcie numeru u operatora omija tę ochronę. Lepszy niż nic.
+            </p>
+
+            <form method="post" asp-page-handler="StartSms">
+                <div class="field">
+                    <label asp-for="PhoneNumber">Numer telefonu</label>
+                    <input class="input" asp-for="PhoneNumber" type="tel" autocomplete="tel" placeholder="+48…" />
+                    <span class="field__error" asp-validation-for="PhoneNumber"></span>
+                </div>
+                <button class="btn" type="submit">Wyślij kod</button>
+            </form>
+
+            <form method="post" asp-page-handler="ConfirmSms" style="margin-top:var(--s4)">
+                <input type="hidden" asp-for="PhoneNumber" />
+                <div class="field">
+                    <label asp-for="Code">Kod z SMS-a</label>
+                    <input class="input" asp-for="Code" inputmode="numeric" autocomplete="one-time-code" />
+                </div>
+                <button class="btn" type="submit">Włącz SMS</button>
+            </form>
+        </div>
+    }
+</div>

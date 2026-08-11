@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using NextSkill.Api.Features.Matches;
 using NextSkill.Api.Localisation;
 using NextSkill.Api.Shared.Auth;
+using NextSkill.Api.Shared.Email;
+using NextSkill.Api.Shared.Sms;
 using NextSkill.Api.Shared.Persistence;
 using NextSkill.Api.Shared.Tenancy;
 
@@ -71,6 +73,33 @@ builder.Services
         o.Events.OnValidatePrincipal = Sessions.ValidateAsync;
     });
 
+// ── outbound messaging (decisions 011, 047) ───────────────────────────────
+//
+// FAIL CLOSED. In development, messages are written to files so the reset link
+// and the SMS code are followable. In production there is no adapter yet, so
+// the app REFUSES TO START rather than accepting a password-reset request and
+// silently dropping the email — which would look identical to working.
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddSingleton<IEmailSender>(sp => new FileEmailSender(
+        builder.Configuration["Email:Directory"] ?? FileEmailSender.DefaultDirectory,
+        sp.GetRequiredService<ILogger<FileEmailSender>>()));
+
+    builder.Services.AddSingleton<ISmsSender>(sp => new FileSmsSender(
+        builder.Configuration["Sms:Directory"] ?? FileSmsSender.DefaultDirectory,
+        sp.GetRequiredService<ILogger<FileSmsSender>>()));
+}
+else
+{
+    throw new InvalidOperationException(
+        "No email or SMS provider is configured. Password reset (011) and the SMS second factor " +
+        "(047) both depend on outbound messages, and a provider that silently drops them is " +
+        "indistinguishable from one that works. Configure a real sender before deploying.");
+}
+
+// The pending-login state between password and second factor (047).
+builder.Services.AddScoped<TwoFactorLogin>();
+
 // OpenAPI 3.1, generated from the real endpoint signatures rather than
 // hand-written (009, 039). .NET 10 emits 3.1 by default, and NSwag turns the
 // document into the TypeScript client 004 planned for.
@@ -109,17 +138,34 @@ builder.Services.AddRateLimiter(o =>
         // Per IP, because the attacker chooses the account name — limiting per
         // account only lets one IP spray a whole user list unimpeded.
         //
+        // TOKEN BUCKET, not a fixed window. A fixed window has a seam at every
+        // boundary: twenty attempts at 4:59 and twenty more at 5:01 is forty in
+        // two seconds, which is exactly the burst the limit exists to stop. A
+        // bucket refills continuously, so the sustained rate is the real limit
+        // and there is no edge to aim at.
+        //
+        // Ten to spend at once — a person who mistypes a password twice and then
+        // fumbles a TOTP code never notices — refilling at one per ten seconds,
+        // so a sustained attack gets six attempts a minute rather than hundreds.
+        //
         // ponytail: partitions on the socket address. Ceiling: behind Cloudflare
         // (042) that is CLOUDFLARE'S address, so every visitor shares one bucket
         // and one attacker locks out the entire site. Upgrade path: resolve the
         // real client IP from CF-Connecting-IP with Cloudflare's ranges as known
         // proxies — required BEFORE this goes near production.
-        return RateLimitPartition.GetFixedWindowLimiter(
+        return RateLimitPartition.GetTokenBucketLimiter(
             ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            _ => new FixedWindowRateLimiterOptions
+            _ => new TokenBucketRateLimiterOptions
             {
-                PermitLimit = 20,
-                Window = TimeSpan.FromMinutes(5),
+                TokenLimit = 10,
+                TokensPerPeriod = 1,
+                ReplenishmentPeriod = TimeSpan.FromSeconds(10),
+                AutoReplenishment = true,
+
+                // Refuse immediately rather than queueing. A queued login attempt
+                // is a request held open on the server while the person stares at
+                // a spinner — worse for them and worse for us than a clear no.
+                QueueLimit = 0,
             });
     });
 });
@@ -137,6 +183,7 @@ builder.Services.AddRazorPages(o =>
     // order, and the locale prefix has to apply to this route too.
     o.Conventions.AddPageRoute("/Teams/Details", "teams/{id:guid}");
     o.Conventions.AddPageRoute("/Teams/Edit", "teams/{id:guid}/edit");
+    o.Conventions.AddPageRoute("/Account/TwoFactor", "account/two-factor");
     o.Conventions.AddPageRoute("/Tournaments/Details", "t/{id:guid}");          // 043: the link pasted mid-event
     o.Conventions.AddPageRoute("/Tournaments/Bracket", "t/{id:guid}/bracket");  // 041: a different page SHAPE, not a tab
 
@@ -183,6 +230,14 @@ if (!app.Environment.IsDevelopment())
 // handler. Combined with the Secure session cookie (011), a session token can
 // never travel in the clear.
 app.UseHttpsRedirection();
+// A reset link travels in a URL, so the page it lands on must not leak that
+// URL to anything it references. Cheap, and it applies to every page (012).
+app.Use(async (ctx, next) =>
+{
+    ctx.Response.Headers["Referrer-Policy"] = "same-origin";
+    await next();
+});
+
 app.UseRouting();
 app.UseRequestLocalization();
 app.UseRateLimiter();

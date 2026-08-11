@@ -26,10 +26,7 @@ public static class TeamChecks
 
     public static void Run(string connectionString, Action<string, Action> check, Action<bool, string> that)
     {
-        using var factory = new WebApplicationFactory<NextSkillDb>()
-            .WithWebHostBuilder(b => b
-                .UseEnvironment("Development")
-                .UseContentRoot(FindApiContentRoot()));
+        using var factory = TestHost.Create();
 
         NextSkillDb Db() => new(
             new DbContextOptionsBuilder<NextSkillDb>().UseNpgsql(connectionString).Options,
@@ -41,20 +38,11 @@ public static class TeamChecks
         var outsider = $"Out{stamp}";
         const string password = "a-long-enough-passphrase";
 
-        HttpClient Client() => factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false,
-            HandleCookies = true,
-            BaseAddress = new Uri("https://localhost"),
-        });
+        HttpClient Client() => factory.NewClient();
 
-        async Task<HttpResponseMessage> PostAsync(
-            HttpClient http, string path, Dictionary<string, string> fields, string? tokenPage = null)
-        {
-            var page = await http.GetAsync(tokenPage ?? path);
-            fields["__RequestVerificationToken"] = TokenFrom(await page.Content.ReadAsStringAsync());
-            return await http.PostAsync(path, new FormUrlEncodedContent(fields));
-        }
+        Task<HttpResponseMessage> PostAsync(
+            HttpClient http, string path, Dictionary<string, string> fields, string? tokenPage = null) =>
+            http.PostFormAsync(path, fields, tokenPage);
 
         HttpClient SignedInAs(string nickname)
         {
@@ -610,25 +598,5 @@ public static class TeamChecks
                 $"%{stamp}@nextskill.test", tag);
     }
 
-    private static string TokenFrom(string html)
-    {
-        const string marker = "name=\"__RequestVerificationToken\"";
-        var at = html.IndexOf(marker, StringComparison.Ordinal);
-        if (at < 0) throw new Exception("No antiforgery token in the page — Razor Pages should always emit one.");
 
-        var valueAt = html.IndexOf("value=\"", at, StringComparison.Ordinal) + 7;
-        return html[valueAt..html.IndexOf('"', valueAt)];
-    }
-
-    private static string FindApiContentRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir.FullName, "src", "NextSkill.Api");
-            if (Directory.Exists(candidate)) return candidate;
-            dir = dir.Parent;
-        }
-        throw new DirectoryNotFoundException("Could not locate src/NextSkill.Api from " + AppContext.BaseDirectory);
-    }
 }

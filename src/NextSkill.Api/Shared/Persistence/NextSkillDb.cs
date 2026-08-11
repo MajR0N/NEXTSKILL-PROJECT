@@ -15,6 +15,9 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
     public DbSet<Organiser> Organisers => Set<Organiser>();
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<Session> Sessions => Set<Session>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<RecoveryCode> RecoveryCodes => Set<RecoveryCode>();
+    public DbSet<OneTimeCode> OneTimeCodes => Set<OneTimeCode>();
     public DbSet<Team> Teams => Set<Team>();
     public DbSet<GameServer> Servers => Set<GameServer>();
     public DbSet<Tournament> Tournaments => Set<Tournament>();
@@ -45,6 +48,8 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
         b.Entity<Match>().Property(x => x.LoserToSlot).HasConversion<string>();
         b.Entity<Rating>().Property(x => x.Game).HasConversion<string>();
         b.Entity<Account>().Property(x => x.PlatformRole).HasConversion<string>();
+        b.Entity<Account>().Property(x => x.TwoFactorMethod).HasConversion<string>();
+        b.Entity<OneTimeCode>().Property(x => x.Purpose).HasConversion<string>();
         b.Entity<TeamMembership>().Property(x => x.Role).HasConversion<string>();
         b.Entity<TeamMembership>().Property(x => x.Slot).HasConversion<string>();
         b.Entity<OrganiserStaff>().Property(x => x.Role).HasConversion<string>();
@@ -100,6 +105,28 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
         // Sessions are global like the accounts they belong to. The index is the
         // logout-everywhere query: every session for one account.
         b.Entity<Session>(e => e.HasIndex(x => x.AccountId));
+
+        b.Entity<RecoveryCode>(e =>
+        {
+            e.HasIndex(x => x.AccountId);
+            e.Property(x => x.CodeHash).HasMaxLength(64);
+        });
+
+        b.Entity<OneTimeCode>(e =>
+        {
+            e.HasIndex(x => new { x.AccountId, x.Purpose });
+            e.Property(x => x.CodeHash).HasMaxLength(64);
+        });
+
+        b.Entity<PasswordResetToken>(e =>
+        {
+            // The hash IS the lookup key — a reset link is redeemed by hashing
+            // what arrived and finding the row, never by trusting an id in the
+            // URL alongside it.
+            e.HasIndex(x => x.TokenHash).IsUnique();
+            e.HasIndex(x => x.AccountId);
+            e.Property(x => x.TokenHash).HasMaxLength(64);
+        });
 
         b.Entity<Team>(e =>
         {

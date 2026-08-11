@@ -456,6 +456,10 @@ Console.WriteLine("TOURNAMENT LIFECYCLE & SEEDING  (decision 046)");
 NextSkill.Checks.TournamentChecks.RunPure(Check, That);
 
 Console.WriteLine();
+Console.WriteLine("TOTP · against the RFC 6238 vectors  (decision 047)");
+NextSkill.Checks.TotpChecks.Run(Check, That);
+
+Console.WriteLine();
 Console.WriteLine("PASSWORDS & REDIRECTS  (decisions 011, 040)");
 NextSkill.Checks.AccountChecks.RunPure(Check, That);
 
@@ -487,6 +491,19 @@ catch (Exception ex)
 {
     failed++;
     Console.WriteLine("  FAIL  account checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
+Console.WriteLine("RESET & TWO-FACTOR · real messages, real cookies  (decisions 011, 047)");
+try
+{
+    NextSkill.Checks.ResetAndTwoFactorChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  reset / two-factor checks could not run");
     Console.WriteLine($"        {ex.Message}");
 }
 

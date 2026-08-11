@@ -220,3 +220,21 @@ moat is the strategic differentiator. **Verify it before building the AMXX plugi
 - **Run our own cups** so the platform is never empty and never unproven.
 - **Stay free while it costs €5/month**, because BYO servers mean growth is free.
 - **The gate that matters** is an organiser running an event without our help.
+
+---
+
+## Bring-your-own servers as the pitch (see [048](decisions/048-organiser-server-configuration.md))
+
+Organisers already own the machines and the community. A platform that rents them capacity is
+asking them to pay for something they have — so **"your servers, your community, your rules"**
+is a position the hosted incumbents structurally cannot take.
+
+Three consequences for how this is sold:
+
+- **Our cost does not scale with their events.** That keeps the monetisation question open
+  rather than forcing a per-slot fee before there is anything to charge for.
+- **The plugins are the product surface.** There will be more than one, ours, versioned — and
+  that is precisely the piece an organiser cannot assemble themselves in an evening.
+- **Support is the hidden cost.** When a match fails on someone else's machine the organiser
+  blames us regardless. Failures have to surface *before* the event, which is an engineering
+  position ([007](decisions/007-server-hosting-model.md)) taken for a commercial reason.

@@ -1,0 +1,54 @@
+@page
+@model NextSkill.Api.Pages.Account.ForgotModel
+@using NextSkill.Api.Localisation
+@using NextSkill.Api.Shared.Auth
+@{
+    ViewData["Title"] = "Reset hasła";
+    var locale = Locales.Current;
+    var minutes = (int)ResetTokens.Lifetime.TotalMinutes;
+}
+
+<div class="wrap-narrow section">
+
+    <p class="eyebrow">NEXTSKILL</p>
+    <h1>Nie pamiętasz hasła?</h1>
+
+    @if (Model.Sent)
+    {
+        @* The same message whether or not the address exists (040). *@
+        <div class="card" style="margin-top:var(--s6)">
+            <p class="lede" style="margin-top:0">
+                <b>Jeśli takie konto istnieje, wysłaliśmy link.</b>
+                Sprawdź skrzynkę — także spam.
+            </p>
+            <p class="lede">
+                Link działa <b>@minutes minut</b> i tylko raz.
+                Jeśli wygaśnie, po prostu poproś o nowy.
+            </p>
+            <a class="btn" asp-page="/Account/Forgot" asp-route-culture="@locale">Wyślij ponownie</a>
+        </div>
+    }
+    else
+    {
+        <p class="lede">
+            Podaj adres e-mail konta. Wyślemy link, którym ustawisz nowe hasło.
+            Link działa <b>@minutes minut</b> i tylko raz.
+        </p>
+
+        <form method="post" class="card" style="margin-top:var(--s6)">
+            <div class="field">
+                <label asp-for="Input.Email">E-mail</label>
+                <input class="input" asp-for="Input.Email" type="email" autocomplete="email"
+                       inputmode="email" required autofocus />
+                <span class="field__error" asp-validation-for="Input.Email"></span>
+            </div>
+            <button class="btn btn--primary" type="submit" style="width:100%;justify-content:center">
+                Wyślij link
+            </button>
+        </form>
+    }
+
+    <p class="lede" style="text-align:center">
+        <a asp-page="/Account/Login" asp-route-culture="@locale">Wróć do logowania</a>
+    </p>
+</div>

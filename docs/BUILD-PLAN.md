@@ -210,12 +210,14 @@ endpoint, request, handler and validator together.
   - ☐ Pagination and search — fine at three teams, not at three hundred
 - ◐ **Accounts** — sign-up and sign-in are solid; everything *after* sign-in is missing
   - ☑ Argon2id, session row + signed cookie, revocation, rate limiting, identical answers for unknown address and wrong password
-  - ☐ **Password reset** — [011](decisions/011-accounts-and-login.md) requires it and it does not exist. **The largest single gap in the product**: a user who forgets their password is locked out permanently
-  - ☐ Email sending at all, and its deliverability (SPF/DKIM/DMARC) ([043](decisions/043-page-contents.md))
+  - ☑ **Password reset** — single-use link, **5-minute expiry**, token stored hashed, mailbomb throttle, and **every session dies on redemption** ([047](decisions/047-two-factor.md))
+  - ☑ **Two-factor** — TOTP checked against the RFC 6238 vectors (Authy, Google Authenticator, 1Password, Aegis), SMS behind a provider seam and named as weaker, single-use recovery codes ([047](decisions/047-two-factor.md))
+  - ☑ Outbound messaging seam that **fails closed** — production refuses to start without a real sender
+  - ☐ A real email/SMS provider, and deliverability (SPF/DKIM/DMARC) ([043](decisions/043-page-contents.md))
   - ☐ **Profile page** ([029](decisions/029-profile-login-footer.md)) — nothing exists
   - ☐ `setinfo` token rotate ([011](decisions/011-accounts-and-login.md))
   - ☐ Steam / Discord linking — Steam OpenID is the proof of ownership ([011](decisions/011-accounts-and-login.md))
-  - ☐ **Log out everywhere** — the `sessions` table exists precisely to make this possible, and nothing calls it
+  - ◐ **Log out everywhere** — a password reset now revokes every session; there is still no button for it
   - ☐ Account deletion and IP retention — **GDPR, and the audience is in the EU** ([011](decisions/011-accounts-and-login.md), [012](decisions/012-security.md))
 - ◐ **Teams** — roster mechanics done, presentation not
   - ☑ Create (founder becomes captain in one transaction), invite by nickname, accept/decline, remove, leave, promote to captain

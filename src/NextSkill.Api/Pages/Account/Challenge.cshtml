@@ -1,0 +1,77 @@
+@page
+@model NextSkill.Api.Pages.Account.ChallengeModel
+@using NextSkill.Api.Localisation
+@using NextSkill.Domain.Auth
+@{
+    ViewData["Title"] = "Weryfikacja dwuetapowa";
+    var locale = Locales.Current;
+}
+
+<div class="wrap-narrow section">
+
+    <p class="eyebrow">Krok 2 z 2</p>
+    <h1>Potwierdź, że to Ty</h1>
+
+    @if (Model.Recovery)
+    {
+        <p class="lede">Wpisz jeden z kodów zapasowych. Każdy działa tylko raz.</p>
+    }
+    else if (Model.Method == TwoFactorMethod.Sms)
+    {
+        <p class="lede">Wysłaliśmy kod SMS-em. Wygasa za 5 minut.</p>
+    }
+    else
+    {
+        <p class="lede">Otwórz aplikację (Authy, Google Authenticator, 1Password) i przepisz kod.</p>
+    }
+
+    <form method="post" class="card" style="margin-top:var(--s6)">
+        <input type="hidden" asp-for="ReturnUrl" />
+        <input type="hidden" asp-for="Recovery" />
+
+        @if (ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+        {
+            <div class="alert alert--error" role="alert" style="margin-bottom:var(--s4)">
+                @foreach (var error in ViewData.ModelState[string.Empty]!.Errors)
+                {
+                    <div>@error.ErrorMessage</div>
+                }
+            </div>
+        }
+
+        <div class="field">
+            <label asp-for="Code">@(Model.Recovery ? "Kod zapasowy" : "Kod")</label>
+            @* inputmode numeric brings up the number pad; one-time-code lets the
+               phone offer the SMS it just received. *@
+            <input class="input" asp-for="Code" required autofocus autocomplete="one-time-code"
+                   inputmode="@(Model.Recovery ? "text" : "numeric")" />
+            <span class="field__error" asp-validation-for="Code"></span>
+        </div>
+
+        <button class="btn btn--primary" type="submit" style="width:100%;justify-content:center">
+            Zaloguj się
+        </button>
+    </form>
+
+    <div class="row" style="justify-content:center;margin-top:var(--s4)">
+        @if (Model.Method == TwoFactorMethod.Sms && !Model.Recovery)
+        {
+            <form method="post" asp-page-handler="Resend">
+                <input type="hidden" asp-for="ReturnUrl" />
+                <button class="btn btn--ghost" type="submit">Wyślij kod ponownie</button>
+            </form>
+        }
+
+        @* Never a dead end: a lost phone must not be a lost account (047). *@
+        @if (Model.Recovery)
+        {
+            <a class="btn btn--ghost" asp-page="/Account/Challenge" asp-route-culture="@locale"
+               asp-route-returnUrl="@Model.ReturnUrl">Mam telefon — wróć</a>
+        }
+        else
+        {
+            <a class="btn btn--ghost" asp-page="/Account/Challenge" asp-route-culture="@locale"
+               asp-route-recovery="true" asp-route-returnUrl="@Model.ReturnUrl">Nie mam telefonu</a>
+        }
+    </div>
+</div>

@@ -94,10 +94,7 @@ public static class AccountChecks
     // ── end-to-end: the real pipeline, real cookies, real database ───────
     public static void Run(string connectionString, Action<string, Action> check, Action<bool, string> that)
     {
-        using var factory = new WebApplicationFactory<NextSkillDb>()
-            .WithWebHostBuilder(b => b
-                .UseEnvironment("Development")
-                .UseContentRoot(FindApiContentRoot()));
+        using var factory = TestHost.Create();
 
         NextSkillDb Db() => new(
             new DbContextOptionsBuilder<NextSkillDb>().UseNpgsql(connectionString).Options,
@@ -116,16 +113,7 @@ public static class AccountChecks
         // it back — the tests would fail for a reason that does not exist in
         // production. Fixing that by weakening the cookie in Development would
         // mean testing a configuration we never ship.
-        HttpClient Client()
-        {
-            var http = factory.CreateClient(new WebApplicationFactoryClientOptions
-            {
-                AllowAutoRedirect = false,
-                HandleCookies = true,
-                BaseAddress = new Uri("https://localhost"),
-            });
-            return http;
-        }
+        HttpClient Client() => factory.NewClient();
 
         /// Razor Pages rejects a POST without the antiforgery token, so every
         /// form post here must read the real token off a real page first.
@@ -133,14 +121,9 @@ public static class AccountChecks
         /// `tokenPage` exists because the logout form lives in the layout rather
         /// than on a page of its own — GETting /account/logout deliberately
         /// redirects instead of rendering anything.
-        async Task<HttpResponseMessage> PostFormAsync(
-            HttpClient http, string path, Dictionary<string, string> fields, string? tokenPage = null)
-        {
-            var page = await http.GetAsync(tokenPage ?? path);
-            var html = await page.Content.ReadAsStringAsync();
-            fields["__RequestVerificationToken"] = TokenFrom(html);
-            return await http.PostAsync(path, new FormUrlEncodedContent(fields));
-        }
+        Task<HttpResponseMessage> PostAsync(
+            HttpClient http, string path, Dictionary<string, string> fields, string? tokenPage = null) =>
+            http.PostFormAsync(path, fields, tokenPage);
 
         // Lives here to reuse the running app rather than start a second one.
         // It guards a bug that was invisible from the outside: the site rendered
@@ -169,7 +152,7 @@ public static class AccountChecks
         check("E2E: registering creates an account with a HASHED password and signs the user in", () =>
         {
             using var http = Client();
-            var res = PostFormAsync(http, "/pl/account/register", new()
+            var res = PostAsync(http, "/pl/account/register", new()
             {
                 ["Input.Nickname"] = nick,
                 ["Input.Email"] = email,
@@ -190,7 +173,7 @@ public static class AccountChecks
         check("E2E: the email is normalised, so ONE address cannot become two accounts", () =>
         {
             using var http = Client();
-            var res = PostFormAsync(http, "/pl/account/register", new()
+            var res = PostAsync(http, "/pl/account/register", new()
             {
                 ["Input.Nickname"] = nick + "B",
                 ["Input.Email"] = email.ToUpperInvariant(),
@@ -206,7 +189,7 @@ public static class AccountChecks
         check("E2E: a nickname differing only in CASE is refused (impersonation)", () =>
         {
             using var http = Client();
-            var res = PostFormAsync(http, "/pl/account/register", new()
+            var res = PostAsync(http, "/pl/account/register", new()
             {
                 ["Input.Nickname"] = nick.ToUpperInvariant(),
                 ["Input.Email"] = $"other-{stamp}@nextskill.test",
@@ -223,14 +206,14 @@ public static class AccountChecks
         check("E2E: a wrong password and an unknown address give the SAME answer", () =>
         {
             using var wrong = Client();
-            var wrongPassword = PostFormAsync(wrong, "/pl/account/login", new()
+            var wrongPassword = PostAsync(wrong, "/pl/account/login", new()
             {
                 ["Input.Email"] = email,
                 ["Input.Password"] = "definitely-not-the-password",
             }).GetAwaiter().GetResult();
 
             using var unknown = Client();
-            var noSuchUser = PostFormAsync(unknown, "/pl/account/login", new()
+            var noSuchUser = PostAsync(unknown, "/pl/account/login", new()
             {
                 ["Input.Email"] = $"nobody-{stamp}@nextskill.test",
                 ["Input.Password"] = password,
@@ -253,7 +236,7 @@ public static class AccountChecks
         check("E2E: logging in issues a session and the headbar shows the nickname", () =>
         {
             using var http = Client();
-            var res = PostFormAsync(http, "/pl/account/login", new()
+            var res = PostAsync(http, "/pl/account/login", new()
             {
                 ["Input.Email"] = email,
                 ["Input.Password"] = password,
@@ -271,7 +254,7 @@ public static class AccountChecks
         check("E2E: LOGOUT actually revokes — the cookie stops working, not just disappears", () =>
         {
             using var http = Client();
-            PostFormAsync(http, "/pl/account/login", new()
+            PostAsync(http, "/pl/account/login", new()
             {
                 ["Input.Email"] = email,
                 ["Input.Password"] = password,
@@ -286,7 +269,7 @@ public static class AccountChecks
 
             // The token comes from the home page, where the logout form actually
             // renders — the logout route itself has no GET view by design.
-            var res = PostFormAsync(http, "/pl/account/logout", new(), tokenPage: "/pl")
+            var res = PostAsync(http, "/pl/account/logout", new(), tokenPage: "/pl")
                 .GetAwaiter().GetResult();
             that(res.StatusCode == HttpStatusCode.Redirect, $"logout should redirect, got {(int)res.StatusCode}");
 
@@ -304,7 +287,7 @@ public static class AccountChecks
             // This is what a signed cookie alone cannot do, and the reason the
             // sessions table exists (011). It is also what makes a ban real.
             using var http = Client();
-            PostFormAsync(http, "/pl/account/login", new()
+            PostAsync(http, "/pl/account/login", new()
             {
                 ["Input.Email"] = email,
                 ["Input.Password"] = password,
@@ -332,7 +315,7 @@ public static class AccountChecks
             // A GET logout can be fired by any <img src> on any page, and by
             // link prefetchers by accident.
             using var http = Client();
-            PostFormAsync(http, "/pl/account/login", new()
+            PostAsync(http, "/pl/account/login", new()
             {
                 ["Input.Email"] = email,
                 ["Input.Password"] = password,
@@ -373,7 +356,7 @@ public static class AccountChecks
             var limited = false;
             for (var i = 0; i < 40 && !limited; i++)
             {
-                var res = PostFormAsync(http, "/pl/account/login", new()
+                var res = PostAsync(http, "/pl/account/login", new()
                 {
                     ["Input.Email"] = email,
                     ["Input.Password"] = $"wrong-{i}",
@@ -393,26 +376,5 @@ public static class AccountChecks
                 $"%{stamp}@nextskill.test");
     }
 
-    /// <summary>Pulls the antiforgery token out of a rendered form.</summary>
-    private static string TokenFrom(string html)
-    {
-        const string marker = "name=\"__RequestVerificationToken\"";
-        var at = html.IndexOf(marker, StringComparison.Ordinal);
-        if (at < 0) throw new Exception("No antiforgery token in the page — Razor Pages should always emit one.");
 
-        var valueAt = html.IndexOf("value=\"", at, StringComparison.Ordinal) + 7;
-        return html[valueAt..html.IndexOf('"', valueAt)];
-    }
-
-    private static string FindApiContentRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir.FullName, "src", "NextSkill.Api");
-            if (Directory.Exists(candidate)) return candidate;
-            dir = dir.Parent;
-        }
-        throw new DirectoryNotFoundException("Could not locate src/NextSkill.Api from " + AppContext.BaseDirectory);
-    }
 }
