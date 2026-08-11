@@ -4,7 +4,7 @@ The shared, general-purpose document. Anything true across the whole project liv
 Anything specific to one decision lives in `docs/` as its own file.
 
 **Status:** **building.** Phases 0–3 complete; **Phase 4 (web platform) in progress**.
-**239 checks passing** against a real PostgreSQL, including in-process end-to-end runs of the
+**242 checks passing** against a real PostgreSQL, including in-process end-to-end runs of the
 plugin pipeline, the tournament and bracket flow, and the whole authentication surface.
 
 ### What actually runs today
@@ -21,9 +21,10 @@ plugin pipeline, the tournament and bracket flow, and the whole authentication s
 
 ### The three things that most need saying
 
-1. **Every page is hardcoded Polish.** Only the *routing* half of
-   [018](docs/decisions/018-frontend-architecture.md) exists — locale in the URL, `hreflang`,
-   the switcher — with no resource files behind it. `/de/teams` returns 200 and serves Polish.
+1. **Localisation is now a habit, not yet a translation set.** The shared shell reads
+   `IStringLocalizer<UiText>` from a neutral Polish `.resx`; `/de/...` serves that Polish by
+   designed framework fallback. Existing page-specific copy remains hardcoded until each page is
+   touched, and no en/ru/de translation catalog exists yet.
 2. **The product ships monochrome on purpose** until [044](docs/decisions/044-visual-direction.md)
    closes. Colour is an open question, not an oversight.
 3. **Matches, veto, the panels and the home page are not built.** See
@@ -43,6 +44,27 @@ alone is not an open slot.
 
 **Application:** a player's private expression of interest in one open slot. It grants no team
 membership; joining still requires the ordinary invitation and acceptance flow.
+
+### Recruitment language
+
+**LFT board:** one public, server-rendered recruitment marketplace with separate **teams
+recruiting** and **players looking for teams** views under a page-wide CS2 / CS 1.6 context. It
+defaults predictably to CS2 openings; filters are explicit and freshness-ordered, never an opaque
+compatibility or highest-rating feed.
+
+**Recruitment cycle:** one fourteen-day publication of a structured player listing or team opening.
+Material compatibility changes and explicit renewal start a fresh cycle; note edits do not. Players
+may list while rostered or unrated, with those facts displayed honestly.
+
+**Team interest:** a captain's private, reversible approach to an LFT player on behalf of one real
+opening. It is not the binding roster invitation and cannot become context-free direct messaging.
+
+**Mutual contact:** acceptance of an application or team interest temporarily reveals only each
+side's chosen verified Discord/Steam contact. Conversation leaves NEXTSKILL; there is no recruitment
+chat. Only a later accepted roster invitation counts as recruitment success.
+
+The full board, compatibility, consent, lifecycle, abuse, notification and retention contract is
+[056](docs/decisions/056-lft-board.md).
 
 ---
 
@@ -212,8 +234,8 @@ These are binding, not aspirational.
 ## 2a. Strategy
 
 Go-to-market, positioning and the commercial model live in
-[MARKETING-AND-SALES-STRATEGY.md](MARKETING-AND-SALES-STRATEGY.md), **revised 2026-08-11** after a
-research pass falsified three of its assumptions. **Scope is Poland first.**
+[MARKETING-AND-SALES-STRATEGY.md](docs/MARKETING-AND-SALES-STRATEGY.md), **revised 2026-08-12** after
+research, strategy grilling and the LFT boundary pass. **Scope is Poland first.**
 
 Five points from it that constrain engineering:
 
@@ -238,9 +260,10 @@ Five points from it that constrain engineering:
    unserved is *community-hosted 1.6 competition* — which keeps **V3** (does `setinfo` behave the
    same on non-Steam clients?) the single biggest product risk on the board.
 
-> ⚠️ **Cheating is not in the threat model.** [040](docs/decisions/040-threat-model.md) covers
-> SSRF, IDOR and decompression bombs, and says nothing about cheating — while the rating it
-> protects is the entire commercial moat. This needs a recorded decision rather than an omission.
+> **Cheating now has its own model.** [052](docs/decisions/052-cheating-and-rating-integrity.md)
+> defends the record with layered evidence, optional organiser-required user-mode anti-cheat and
+> reversible ratings. Kernel anti-cheat remains behind explicit preconditions rather than becoming
+> an accidental launch dependency.
 
 ## 3a. How we work on this project
 
@@ -323,7 +346,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [009](docs/decisions/009-api-contract.md) | API contract | **decided** — REST, HMAC-signed, versioned, **plugin-initiated in every direction**; plugin retries until acknowledged |
 | [010](docs/decisions/010-identity-binding.md) | Player identity & in-game binding | **decided** — identity is the web account; 1.6 sessions bound by single-use link code, never by SteamID |
 | [011](docs/decisions/011-accounts-and-login.md) | Accounts, login & two-factor binding | **decided** — native account primary, Steam/Discord optional links; in-game binding requires `setinfo` token **and** per-match code |
-| [040](docs/decisions/040-threat-model.md) | **Threat model** | **decided** — threat-by-threat; top risks are **SSRF (designed into server registration)**, IDOR/tenant leakage, and demo decompression bombs |
+| [040](docs/decisions/040-threat-model.md) | **Threat model** | **decided** — threat-by-threat; IDOR/tenant leakage and demo decompression bombs remain major risks. [051](docs/decisions/051-phase-4-remainder.md) removed the original server-registration SSRF sink by deciding that the panel never dials game servers |
 | [012](docs/decisions/012-security.md) | Security measures | **decided** — HMAC + replay window, demo-upload hardening, secrets never logged, rate limits, GDPR retention/anonymisation |
 | [013](docs/decisions/013-server-connect.md) | Connecting players to the server | **decided** — **always show both** `steam://` button and copyable console command; `steam://` silently fails for non-Steam 1.6 players |
 | [014](docs/decisions/014-discord.md) | Discord integration | **decided** — outgoing **webhooks only**, no bot. Webhook URL is a credential *and* an SSRF sink |
@@ -335,7 +358,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 
 | # | Decision | Status |
 | --- | --- | --- |
-| [018](docs/decisions/018-frontend-architecture.md) | Frontend architecture & i18n | **decided** — Razor Pages + TS islands; **4 locales** (pl primary, en/ru/de) with locale in the URL; no Node runtime |
+| [018](docs/decisions/018-frontend-architecture.md) | Frontend architecture & i18n | **decided** — Razor Pages + TS islands; **4 locales** (pl primary, en/ru/de) with locale in the URL; neutral Polish `UiText.resx` and the localised shared shell are built; page copy retrofits when touched; no Node runtime |
 | [043](docs/decisions/043-page-contents.md) | **Page contents** | **decided** — home leads with activity + announcements; in-app inbox + email; trigram search; state-driven tournament page; **NEXTSKILL as first-party organiser** |
 | [041](docs/decisions/041-layout-system.md) | **Layout system** | **decided** — five page archetypes, three content widths, 4px spacing scale, two breakpoints, 18 components |
 | [019](docs/decisions/019-visual-identity.md) | Visual identity | **split** — the *behavioural* rules hold (colour never carries meaning alone, uncertainty shown, spacing is information). The **palette is reopened**: CT/T colours were picked in one pass and never argued against |
@@ -353,6 +376,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [053](docs/decisions/053-rewards-and-prize-pools.md) | **Rewards & prize pools** | **decided** — Valve removed progression from community servers; rewards are how we give it back. **Earned, never drawn**: no chance mechanics, because a deterministic reward *is* another verifiable fact on the record while a random one imports a permanent regulatory question. Three tiers — status (free, already built), **community-funded stackable attributed pools** (a feature, not a cost), deterministic perks. We never hold anyone's prize money |
 | [054](docs/decisions/054-becoming-a-rated-player.md) | **Becoming a rated player** | **decided** — the *"this counted"* moment must land in-session or it never lands. **CS2 plays first and claims after** (verified SteamID, one-click Steam OpenID attaches the whole history); **CS 1.6 registers first and binds with two factors**, because [010](docs/decisions/010-identity-binding.md) proved its identity spoofable. Not an inconsistency — the lazy path exists in one game and is a hole in the other. Claiming reuses [050](docs/decisions/050-match-results-and-ratings.md)'s promotion shape |
 | [055](docs/decisions/055-multi-game-scope.md) | **Multi-game scope** | **decided — deferred on purpose, ladder fixed.** Nothing built, nothing narrowed: `Match.Game`, `jsonb` payloads and pure engines are already game-agnostic, and [006](docs/decisions/006-architecture.md)'s rule of two forbids generalising before one game runs end to end. **Tier A** = plugin games (the moat); **Tier B** = official tournament APIs, and **LoL via Riot Tournament API is the only viable non-CS first step** because its results callback is the same inversion of control as our plugin contract; **Tier C** (CoD, Rocket League, Clash Royale) is refused — no community servers, no rating gap, different customer, and a manual-score path would make *"results are reported, not entered"* false in our own product. CS:GO stays out pending a ten-minute population count |
+| [056](docs/decisions/056-lft-board.md) | **LFT board & recruitment marketplace** | **decided** — one two-sided, game-scoped board ordered by freshness; structured compatibility with unrated/rostered players allowed; real openings on every team approach; bounded applications/interests; verified contact revealed only by mutual consent and then taken off-platform; `/me/recruitment`, explicit expiry, blocking and short retention. **No mixed feed, self-rated skill, opaque matching or recruitment chat** |
 | [045](docs/decisions/045-teams-and-rosters.md) | **Teams: roster size, edit, disband, restore** | **decided** — **5 players + 3 subs + 2 coaches**, capped per slot. Slot is a second axis to role, so a coach can captain without being fieldable. Pending invites occupy a place; disband is soft and reserves the tag; a captain present at disband may restore the same team without rewriting old roster history |
 | [023](docs/decisions/023-bracket.md) | Bracket data model & rendering | **decided** — whole bracket generated up front with **explicit routing links**; mobile gets round-by-round + follow-team, not a shrunken tree |
 | [024](docs/decisions/024-demos.md) | Demo storage & retention | **decided** — 90 days, then deleted; finals and disputes kept indefinitely; local disk, authorised endpoint only |
@@ -386,7 +410,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | **Premature abstraction over two game lifecycles** | Wrong seam, expensive to undo | Rule of two — build CS2 concretely, then CS 1.6 concretely, then extract ([001](docs/decisions/001-game-scope.md)) |
 | CS 1.6 has no demo pipeline | Feature parity impossible across games | Accepted. UI must treat demos as nullable; product must not promise them for 1.6. |
 | No simulation mode (we don't inherit MatchZy-Enhanced's) | Can't test a full match cheaply | Owed by decision 034 |
-| **We store third-party RCON passwords** | A breach hands attackers control of hundreds of community servers. Far worse than a normal credential leak. | Encrypted at rest with an out-of-DB key; never returned by any API; never logged; redacted from staff view. **Best mitigation: find out whether RCON is needed at all** ([007](docs/decisions/007-server-hosting-model.md)) |
+| **A future feature reintroduces outbound game-server control** | It recreates both the deleted SSRF sink and a high-value third-party credential store. | [051](docs/decisions/051-phase-4-remainder.md) makes `host:port` display data and the normal contract plugin-initiated. Any RCON proposal must reopen that decision explicitly; Phase 4 stores no RCON password. |
 | **Malicious organiser fabricates a result** | Match-fixing. Inherent to BYO servers; not solvable at the protocol level | Corroboration: both-team confirmation, demo evidence (CS2 only), dispute flow, challenge window before ratings settle |
 | **We don't control plugin versions on BYO servers** | Old plugins send stale contracts; we cannot force upgrades | Plugin reports version; panel refuses match allocation on incompatible versions; contract carries a version field; deprecation windows |
 | ~~Repo inside OneDrive~~ | ~~Git corruption, `index.lock` contention~~ | **RESOLVED 2026-08-11** — OneDrive sync disabled; the folder name is now cosmetic. The remaining backup story is the private GitHub remote, so **push regularly** |
@@ -406,7 +430,7 @@ verified before code depends on it — per project instruction, test before ackn
 | V2b | Values are readable **early enough at connect** to gate team joining | [011](docs/decisions/011-accounts-and-login.md) | Log the value in a connect hook on a real server |
 | V3 | `setinfo` behaves consistently on **non-Steam clients** (Reunion/dproto), not just legit Steam | [011](docs/decisions/011-accounts-and-login.md) | Test with both client types |
 | V4 | Info-key length limits allow a high-entropy token | [011](docs/decisions/011-accounts-and-login.md) | Set progressively longer values, find the ceiling |
-| V5 | RCON is **not** required for the normal CS2 match lifecycle | [007](docs/decisions/007-server-hosting-model.md) — if true, we avoid storing RCON passwords entirely | **Expected to resolve favourably** — [009](docs/decisions/009-api-contract.md) made the contract outbound-only, so the panel never dials the game server. Confirm with a full CS2 match |
+| V5 | RCON is **not** part of the normal CS2 match lifecycle | [051](docs/decisions/051-phase-4-remainder.md) closes this as a product boundary: the plugin always dials us and the panel never stores or uses RCON | **Resolved by design.** A future outbound-control proposal must reopen 051 rather than quietly adding a credential |
 | V6 | CS2 can expose authoritative final match state for reconciliation | [035](docs/decisions/035-match-result-integrity.md) | Inspect what a map-end payload can contain |
 | V7 | Steam OpenID 2.0 remains available with no announced sunset | [011](docs/decisions/011-accounts-and-login.md) | Re-check Steamworks docs periodically |
 

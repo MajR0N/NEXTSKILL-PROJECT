@@ -4,7 +4,7 @@ The design phase is complete (**43 decision records** in `docs/decisions/`, two 
 deliberately reopened). This is the implementation sequence, derived from
 [038 — build order](decisions/038-build-order.md).
 
-**Currently: Phase 4, roughly half built. 239 checks passing.** The marks below are audited
+**Currently: Phase 4, roughly half built. 242 checks passing.** The marks below are audited
 rather than asserted — see the note at the end of Phase 4 about what "◐" means here.
 
 **Status legend:** ☐ pending · ◐ in progress · ☑ done · ⊘ blocked — nothing to test until the slice it belongs to exists · ➡ deliberately moved
@@ -184,7 +184,7 @@ Built before any UI, because they are pure functions and they hide the silent bu
 > cup's teams appear in the **provisional** section with no rank ([025](decisions/025-rating-system.md)
 > already separates them). Do not promise "get ranked" until a season exists — promise the record.
 
-> ### ✅ Phase 4 grilling is complete (2026-08-11)
+> ### ✅ Phase 4 grilling is complete (updated 2026-08-12)
 >
 > [021](decisions/021-site-structure.md) settled **which pages exist** and
 > [041](decisions/041-layout-system.md) settled **how a page is composed**. Neither settled
@@ -196,7 +196,8 @@ Built before any UI, because they are pure functions and they hide the silent bu
 > | Home, tournament detail, notifications, search, onboarding | [043](decisions/043-page-contents.md) |
 > | **Team page `/teams/{id}`** — match history, rating trend, trophies, open slots | [049](decisions/049-team-page.md) |
 > | **How a result becomes a rating** — participants, lineup, ledger, dispute, confirmation | **[050](decisions/050-match-results-and-ratings.md)** |
-> | **LFT board `/lft`**, **News `/news`**, **Seasons `/seasons/{n}`**, search, audit log | **[051](decisions/051-phase-4-remainder.md)** |
+> | **LFT board `/lft` and `/me/recruitment`** | **[056](decisions/056-lft-board.md)** |
+> | **News `/news`**, **Seasons `/seasons/{n}`**, search, audit log | **[051](decisions/051-phase-4-remainder.md)** |
 >
 > **Still open and deliberately so:** team logos, blocked on
 > [044](decisions/044-visual-direction.md) — [049](decisions/049-team-page.md) refuses to let one
@@ -293,15 +294,14 @@ endpoint, request, handler and validator together.
 > changed the sequence. **Servers → veto → matches** is a chain, not a preference: a match cannot
 > be configured without decided maps, and cannot be played without a verified server.
 
-- ☐ **Localisation habit — do this first, it is cheapest now** ([051](decisions/051-phase-4-remainder.md) §3)
-  - The plumbing has existed since Phase 0 and is unused: `Program.cs` registers `AddLocalization`,
-    wires route → cookie → `Accept-Language`, runs the middleware. **Not one `.resx` file, and no
-    page injects `IStringLocalizer`**
+- ☑ **Localisation habit** ([051](decisions/051-phase-4-remainder.md) §3)
+  - `UiText` is the small shared interface; its neutral `.resx` contains Polish and the shared
+    shell now reads it through `IStringLocalizer<UiText>`
   - **The neutral resource holds Polish** — so there is no `.pl.resx`, no fallback logic and no
     missing-key path to write. `/de/teams` serves Polish exactly as today, by design rather than by
     accident
   - Every slice below uses `IStringLocalizer` from its first line; existing pages retrofit as touched.
-    Phase 4 is about to double the page count, so this halves the retrofit by doing nothing clever
+    Three checks cover direct neutral fallback, the rendered-shell seam and a real German route
 - ☐ **Server registration** ([051](decisions/051-phase-4-remainder.md) §2, closes half of [048](decisions/048-organiser-server-configuration.md))
   - `GameServer` is a real table with an HMAC secret and a `Verified` flag — and **there is no way
     to create one**. Servers exist only where tests insert them
@@ -344,11 +344,19 @@ endpoint, request, handler and validator together.
 - ☐ **Notifications** — rows are written on every invite and roster change, and **there is no bell
   to read them** ([043](decisions/043-page-contents.md)). Invites are only findable because the
   teams page lists them as a stopgap. Server-rendered count in the layout; polling is 5c
-- ☐ **LFT board + recruitment** ([049](decisions/049-team-page.md), [051](decisions/051-phase-4-remainder.md) §5)
-  - `TeamOpening`, `OpeningApplication`, `TeamInterest` — three tables, not one polymorphic listing
-  - `TeamInterest` exists because a **roster invitation occupies a place** ([045](decisions/045-teams-and-rosters.md)),
-    so a captain with one slot cannot talk to five candidates without committing blind
-  - Cheap interest reopens the spam hole 045 closed: **10 open per team, one per pair, 7-day expiry**
+- ☐ **LFT board + recruitment** ([056](decisions/056-lft-board.md))
+  - One server-rendered two-sided board; defaults to **CS2 / teams recruiting**, with shareable
+    game, view and explicit filter state. Freshness orders; rating never buys prominence
+  - Expand the existing `LftListing`; add `TeamOpening`, `OpeningApplication`, `TeamInterest` and
+    `RecruitmentBlock` as distinct objects rather than a nullable polymorphic row
+  - Structured roles, roster commitment, weekly availability, languages and server regions;
+    unrated and already-rostered players remain eligible and are labelled honestly
+  - Team interest always names a real opening; mutual acceptance reveals only chosen verified
+    contact and moves conversation off-platform. **No recruitment chat**
+  - Fourteen-day advert cycle, seven-day pending requests, bounded outreach/applications, durable
+    block, fourteen-day failed-request retention and thirty-day mutual-contact grant
+  - Add `/me/recruitment`, lifecycle notifications, stable profile/team share links, and
+    `noindex, follow` on the volatile board
 - ☐ **News/CMS** — `DisableHtml()` **plus** `HtmlRenderer.LinkRewriter` with an http/https/relative
   allow-list. Tested: `DisableHtml()` alone lets `javascript:`, `vbscript:` and `data:` through
   ([051](decisions/051-phase-4-remainder.md) §8)
@@ -456,7 +464,8 @@ Named in [041](decisions/041-layout-system.md) as the ones a design system does 
 Concretely, one at a time. **No shared abstraction until both exist** ([001](decisions/001-game-scope.md)).
 
 - ☐ **CS2 plugin** ([002](decisions/002-cs2-plugin.md)) — CounterStrikeSharp, original code
-- ☐ Verify **V5** — is RCON needed at all? ([009](decisions/009-api-contract.md) suggests not)
+- ⊘ **V5 closed by design** — [051](decisions/051-phase-4-remainder.md) makes the normal contract
+  plugin-initiated and forbids the panel from storing or using RCON. Reopen 051 before adding it
 - ☐ **Verify V2b / V3 / V4** on a real CS 1.6 server before writing the AMXX plugin
 - ☐ **CS 1.6 plugin** ([005](decisions/005-cs16-plugin.md)) — Pawn/AMXX
 - ☐ **Round backup/restore verified by actually killing a server mid-match** ([034](decisions/034-test-strategy.md))
@@ -482,7 +491,7 @@ Carried from CONTEXT §7. **Must be resolved before the code that depends on the
 | V2b | Is `setinfo` readable at connect time, early enough to gate team joining? | [005](decisions/005-cs16-plugin.md) |
 | **V3** | Does `setinfo` behave identically on **non-Steam clients**? | [005](decisions/005-cs16-plugin.md) — **the one that could hurt**, since most active 1.6 servers admit non-Steam clients |
 | V4 | Does the info-key length limit allow a high-entropy token? | [005](decisions/005-cs16-plugin.md) |
-| V5 | Is RCON needed for the normal CS2 match lifecycle? | [007](decisions/007-server-hosting-model.md) — if not, we never store the credential |
+| V5 | Is RCON needed for the normal CS2 match lifecycle? | **Resolved by [051](decisions/051-phase-4-remainder.md): no.** The plugin dials us; a future outbound-control feature must reopen that boundary |
 | — | Do **Unbounded** and **IBM Plex** actually cover Cyrillic? | [019](decisions/019-visual-identity.md) |
 
 ## Design note

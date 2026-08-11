@@ -66,6 +66,10 @@ box, and the difference has to be decided before either is built.
 never secrets. Whatever shape server configuration takes, RCON passwords and HMAC secrets are
 write-only and rotatable, never displayed — including to the organiser who typed them.
 
+> **Updated by [051](051-phase-4-remainder.md) §2:** the normal product never stores an RCON
+> password or dials the game server. The write-only rule above remains a boundary for any future
+> secret type; it is not permission to add RCON quietly.
+
 ---
 
 ## Questions to answer

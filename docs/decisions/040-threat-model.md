@@ -45,6 +45,11 @@ column. That one line is the whole risk.
 
 ## 2. SSRF (Server-Side Request Forgery) — **High, and designed into the product**
 
+> **Superseded for game-server registration by [051](051-phase-4-remainder.md) §2.** The panel
+> never fetches organiser-supplied `host:port`; the first signed inbound heartbeat verifies the
+> plugin. This section remains the threat analysis that applies if outbound server control is ever
+> proposed again. Discord webhooks remain the product's live outbound-fetch sink.
+
 > *Plain version:* you trick the *server* into making a network request for you. Because the
 > server sits inside the network, it can reach things you can't — internal admin panels,
 > cloud metadata endpoints, databases bound to localhost.

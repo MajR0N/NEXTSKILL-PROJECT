@@ -42,6 +42,10 @@ PUBLIC (no login)                     PLAYER (logged in)
 
 ### Free agent / LFT board — `/lft`
 
+> **Completed by [056](056-lft-board.md).** The full pass keeps one public route but separates
+> team openings from player listings, adds the game-wide switcher and structured compatibility,
+> and sends mutually accepted contact back to verified Discord/Steam rather than building chat.
+
 Players advertise as looking-for-team; teams advertise open slots.
 
 **Why it earns its place:** finding a fifth is the single hardest problem in the community
@@ -54,13 +58,13 @@ channel can't do that.
 
 | Field | Source |
 | --- | --- |
-| Rating ±RD | [025](025-rating-system.md) — genuine, not self-reported |
+| Rating + uncertainty, or **Unrated** | [025](025-rating-system.md) — genuine, not self-reported |
 | Games (CS2 / 1.6) | [001](001-game-scope.md) |
-| Role, availability, region | Self-declared |
+| Roster slot, role, weekly availability, language, server region | Structured preferences ([056](056-lft-board.md)) |
 | Recent form | Match history |
 
-Needs: expiry (stale listings are worse than none), rate limiting, and moderation
-([040](040-threat-model.md) §9 — user-generated content is an SEO-spam surface).
+Expiry, rate limiting, moderation, consent and short retention are closed in
+[056](056-lft-board.md); public free text is inert and the volatile board is `noindex, follow`.
 
 ### News / announcements — `/news`, managed in `/admin/news`
 
@@ -128,7 +132,7 @@ That alone rules out a sidebar on public pages.
   a Russian speaker landing on a Polish page must be able to fix that immediately.
 - Panels: sidebar collapses to a drawer.
 - **The bracket gets its own treatment on mobile** — round-by-round paging rather than a
-  scaled-down tree. Deferred to [023](023) as its own decision.
+  scaled-down tree. Deferred to [023](023-bracket.md) as its own decision.
 
 > `ponytail:` two nav patterns, one per surface. Ceiling: two components to maintain instead
 > of one. Upgrade path: none needed — this is the standard split for a reason.

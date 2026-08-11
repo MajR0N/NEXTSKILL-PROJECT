@@ -113,5 +113,5 @@ direction is not quietly decided by one page slice.
 The current page already has identity, roster roles/capacity, captain controls, disband/restoration
 and current per-game rating. Complete history, trend and trophies require the Matches slice to
 commit reported results, rating changes and tournament placements. Openings/applications share
-the recruitment model that the LFT slice will complete. Those dependencies block fabrication,
+the recruitment model completed by [056](056-lft-board.md). Those dependencies block fabrication,
 not this design: the product contract above is closed.

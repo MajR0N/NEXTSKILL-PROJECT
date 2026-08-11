@@ -1,7 +1,7 @@
 # NEXTSKILL — Marketing & Solution Sale Strategy
 
 **Status:** living document
-**Date:** 2026-08-10 · **revised 2026-08-11** after a research pass and a full grilling session
+**Date:** 2026-08-10 · **revised 2026-08-12** after research, strategy grilling and the LFT boundary
 **Scope:** **Poland first.** The product is global-capable by construction; the go-to-market is not.
 
 How NEXTSKILL reaches people, why they stay, and what we sell. Grounded in decisions already
@@ -250,6 +250,16 @@ tournaments are tenant-scoped, ratings are global ([036](decisions/036-authoriza
 sceptical admin can be shown the data model.
 **Given up:** CYBERSHOKE's business model, deliberately. See §7.
 
+The LFT board follows the same boundary rather than becoming an exception. [056](decisions/056-lft-board.md)
+attaches public recruitment to verified player/team records, reveals a chosen verified contact only
+after mutual acceptance, and then moves the conversation back to Discord or Steam. There is no
+NEXTSKILL recruitment chat or social feed. The product can prove that it helped form a roster only
+when the ordinary invitation is accepted; it does not call a contact reveal a conversion.
+
+**Marketing consequence:** LFT cards are shared as durable player/team links, not disposable advert
+URLs. The volatile `/lft` inventory is `noindex`; Discord remains the discovery channel and the
+community retains the relationship.
+
 ### 3.4 Teams compete; communities are the story
 
 Open entry for any team. Affiliation is displayed, and a **derived community standings table**
@@ -462,7 +472,7 @@ Revisit when a partner asks to pay, or when support time becomes the binding con
 | **A Valve update breaks CS2 plugins** | Matches stop mid-tournament | Pinned CSSharp version, staging server, documented rollback ([002](decisions/002-cs2-plugin.md)) |
 | **Ratings feel unfair** | Players argue the number is wrong | Uncertainty shown openly (±RD) ([025](decisions/025-rating-system.md)) |
 | **CS 1.6 identity does not work** | `setinfo` behaves differently on non-Steam clients | **V3**, still open. §3.5 turns it into a partner conversation |
-| Building for years without launching | 51 decision docs, no users | Ship the first inter-community cup early, even ugly |
+| Building for years without launching | The decision stack keeps growing while user count stays zero | Ship the first inter-community cup early, even ugly |
 
 ---
 

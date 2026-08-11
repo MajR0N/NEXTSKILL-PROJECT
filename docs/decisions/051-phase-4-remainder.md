@@ -94,10 +94,14 @@ organiser*. That is marked honestly rather than ☑.
 
 ## 3. Localisation becomes a habit now, not a sweep later
 
-The plumbing has been in place since Phase 0 and nobody has used it: `Program.cs` registers
-`AddLocalization`, wires route → cookie → `Accept-Language` in the right precedence, runs the
-middleware, and applies the locale prefix. **There is not one `.resx` file and no page
-injects `IStringLocalizer`.**
+> **Built 2026-08-12.** `UiText` plus a neutral Polish resource forms the shared interface, the
+> layout consumes it, and three checks prove neutral fallback, adapter use and `/de/...` rendering.
+> Page-specific copy still moves when its page is touched; no bulk translation was claimed.
+
+Before this slice, the plumbing had been in place since Phase 0 and nobody used it: `Program.cs`
+registered `AddLocalization`, wired route → cookie → `Accept-Language` in the right precedence,
+ran the middleware, and applied the locale prefix — while **not one `.resx` existed and no page
+injected `IStringLocalizer`.** The built note above records the state after closing that gap.
 
 Phase 4 is about to roughly double the page count. Every page built the current way is a page
 to revisit — the same argument [BUILD-PLAN](../BUILD-PLAN.md) makes for shipping monochrome
@@ -161,6 +165,10 @@ without measurement, and archives are the least-viewed pages in the product.
 ---
 
 ## 5. Recruitment has three objects, because the two directions cost different things
+
+> **Completed by [056](056-lft-board.md).** This section decides why the persistence objects are
+> separate and why cheap team interest exists. Decision 056 owns the public board, structured
+> compatibility, contact consent, request lifecycle, private workspace and retention rules.
 
 [049](049-team-page.md) designed team openings and applications and left the rest to "the LFT
 slice". Three tables, not one polymorphic listing — the columns match, the *meanings* do not,

@@ -7,7 +7,9 @@
     unfurling, which is the growth mechanism (018).
 *@
 @using System.Globalization
+@using Microsoft.Extensions.Localization
 @using NextSkill.Api.Localisation
+@inject IStringLocalizer<UiText> Text
 @{
     // The URL is the source of truth for language (018). RequestLocalization
     // has already resolved it by the time the layout renders.
@@ -35,7 +37,7 @@
        links pasted into Discord and forums, and those crawlers do not run JS. *@
     <meta property="og:site_name" content="NEXTSKILL" />
     <meta property="og:title" content="@(title ?? "NEXTSKILL")" />
-    <meta property="og:description" content="@(ViewData["Description"] ?? "Platforma turniejowa dla sceny CS 1.6 i CS2.")" />
+    <meta property="og:description" content="@(ViewData["Description"] ?? Text["Meta.Description"].Value)" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="@Locales.OpenGraph(locale)" />
 
@@ -52,7 +54,7 @@
     <link rel="icon" href="~/favicon.ico" />
 </head>
 <body>
-    <a class="visually-hidden" href="#main">Przejdź do treści</a>
+    <a class="visually-hidden" href="#main">@Text["Accessibility.SkipToContent"]</a>
 
     <header class="wrap">
         <nav class="headbar">
@@ -61,11 +63,11 @@
                silently drops the locale — a German reader clicking "Ranking"
                would land back in Polish (018). *@
             <a class="brand" asp-page="/Index" asp-route-culture="@locale">next<b>skill</b></a>
-            <a asp-page="/Ranking/Index" asp-route-culture="@locale">Ranking</a>
-            <a asp-page="/Teams/Index" asp-route-culture="@locale">Drużyny</a>
-            <a asp-page="/Tournaments/Index" asp-route-culture="@locale">Turnieje</a>
-            <a asp-page="/Index" asp-route-culture="@locale">Mecze</a>
-            <a asp-page="/Index" asp-route-culture="@locale">Szukam drużyny</a>
+            <a asp-page="/Ranking/Index" asp-route-culture="@locale">@Text["Navigation.Ranking"]</a>
+            <a asp-page="/Teams/Index" asp-route-culture="@locale">@Text["Navigation.Teams"]</a>
+            <a asp-page="/Tournaments/Index" asp-route-culture="@locale">@Text["Navigation.Tournaments"]</a>
+            <a asp-page="/Index" asp-route-culture="@locale">@Text["Navigation.Matches"]</a>
+            <a asp-page="/Index" asp-route-culture="@locale">@Text["Navigation.Lft"]</a>
             <span class="headbar__spacer"></span>
 
             @if (User.Identity?.IsAuthenticated == true)
@@ -74,14 +76,14 @@
                 @* Logout is a POST, so it cannot be triggered by an <img src> on
                    someone else's page — and Razor Pages signs the form for us. *@
                 <form method="post" asp-page="/Account/Logout" asp-route-culture="@locale" style="display:inline">
-                    <button class="btn btn--ghost" type="submit" style="padding:6px 12px;font-size:13px">Wyloguj</button>
+                    <button class="btn btn--ghost" type="submit" style="padding:6px 12px;font-size:13px">@Text["Account.Logout"]</button>
                 </form>
             }
             else
             {
-                <a asp-page="/Account/Login" asp-route-culture="@locale">Zaloguj</a>
+                <a asp-page="/Account/Login" asp-route-culture="@locale">@Text["Account.Login"]</a>
                 <a class="btn btn--primary" asp-page="/Account/Register" asp-route-culture="@locale"
-                   style="padding:7px 14px;font-size:13px">Załóż konto</a>
+                   style="padding:7px 14px;font-size:13px">@Text["Account.Register"]</a>
             }
 
             @* Locale switcher stays visible — a Russian speaker landing on a
@@ -103,19 +105,19 @@
         <div class="footer__cols">
             <div>
                 <h4>NEXTSKILL</h4>
-                <p class="dim" style="font-size:13px;margin:0">Platforma turniejowa dla sceny CS&nbsp;1.6 i CS2.</p>
+                <p class="dim" style="font-size:13px;margin:0">@Text["Meta.Description"]</p>
             </div>
             <div>
-                <h4>Turnieje</h4>
-                <a href="#">Ranking</a><a href="#">Turnieje</a><a href="#">Szukam drużyny</a><a href="#">Archiwum sezonów</a>
+                <h4>@Text["Navigation.Tournaments"]</h4>
+                <a href="#">@Text["Navigation.Ranking"]</a><a href="#">@Text["Navigation.Tournaments"]</a><a href="#">@Text["Navigation.Lft"]</a><a href="#">@Text["Navigation.Seasons"]</a>
             </div>
             <div>
-                <h4>Społeczność</h4>
-                <a href="#">Discord</a><a href="#">Forum</a><a href="#">Regulamin</a><a href="#">FAQ</a>
+                <h4>@Text["Footer.Community"]</h4>
+                <a href="#">Discord</a><a href="#">@Text["Footer.Forum"]</a><a href="#">@Text["Footer.Rules"]</a><a href="#">FAQ</a>
             </div>
         </div>
         <div class="footer__bottom">
-            <span>Prywatność · Warunki · Kontakt</span>
+            <span>@Text["Footer.Privacy"] · @Text["Footer.Terms"] · @Text["Footer.Contact"]</span>
             <span>PL EN RU DE</span>
             @* Version makes "which version were you on?" answerable in support
                and confirms a deploy landed (017). *@

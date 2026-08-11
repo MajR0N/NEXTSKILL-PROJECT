@@ -463,6 +463,10 @@ Console.WriteLine();
 Console.WriteLine("PASSWORDS & REDIRECTS  (decisions 011, 040)");
 NextSkill.Checks.AccountChecks.RunPure(Check, That);
 
+Console.WriteLine();
+Console.WriteLine("LOCALISATION · neutral Polish fallback  (decisions 018, 051)");
+NextSkill.Checks.LocalisationChecks.Run(Check, That);
+
 // Tenancy needs a real PostgreSQL — a mock would prove nothing about whether
 // EF's global query filters actually reach the SQL (decision 034).
 var connectionString = Environment.GetEnvironmentVariable("NEXTSKILL_DB")

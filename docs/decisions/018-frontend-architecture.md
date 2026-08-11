@@ -7,13 +7,14 @@ map veto/lobby and live match views.
 **Lenses applied:** architecture-designer, frontend-design
 
 
-> **Built (2026-08-11):** the *routing* half — locale in the URL, `hreflang`, `og:locale`, the
-> switcher, one canonical URL per page per language, and server-rendered pages that work with
-> JavaScript disabled.
+> **Built (updated 2026-08-12):** locale routing, `hreflang`, `og:locale`, the switcher, one
+> canonical URL per page per language, and server-rendered pages that work without JavaScript.
+> The neutral Polish `UiText.resx` now exists and the shared shell consumes it through
+> `IStringLocalizer<UiText>`.
 >
-> **Not built:** **the translations themselves.** There is not one resource file, so
-> `/de/teams` returns 200 and serves Polish. The **TypeScript islands** do not exist either —
-> no build step, no SSE, no bracket panning. Both are [Phase 5](../BUILD-PLAN.md).
+> **Not built:** locale-specific translations or a wholesale page retrofit. Existing page copy
+> moves into the neutral catalog when touched; `/de/teams` serves Polish through designed fallback.
+> The **TypeScript islands** also do not exist — no build step, SSE or bracket panning.
 
 ---
 

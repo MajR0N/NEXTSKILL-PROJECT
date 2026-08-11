@@ -222,13 +222,15 @@ history/integrity rules, rating trend, trusted trophies and recruitment lifecycl
 
 ### LFT `/lft`
 
-Shape already set by [021](021-site-structure.md). Additions:
+Shape was set by [021](021-site-structure.md), and the complete board, listing, outreach,
+consent and retention contract is now [056](056-lft-board.md). The additions first decided here
+still hold:
 
 - **Listings expire after 14 days**, with a one-click renew. A stale board is worse than an
   empty one — nothing kills an LFT board faster than messaging five people who all quit
   months ago.
-- Rate-limited, moderated, `rel="nofollow ugc"` on anything user-supplied
-  ([040](040-threat-model.md) section 9).
+- Rate-limited and moderated. [056](056-lft-board.md) tightens the launch surface to short plain
+  text with inert URLs and makes the whole volatile board `noindex, follow`.
 
 ### News `/news`
 

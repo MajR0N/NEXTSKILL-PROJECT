@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+  </resheader>
+  <data name="Navigation.Teams" xml:space="preserve">
+    <value>Drużyny</value>
+  </data>
+  <data name="Accessibility.SkipToContent" xml:space="preserve">
+    <value>Przejdź do treści</value>
+  </data>
+  <data name="Account.Login" xml:space="preserve">
+    <value>Zaloguj</value>
+  </data>
+  <data name="Account.Logout" xml:space="preserve">
+    <value>Wyloguj</value>
+  </data>
+  <data name="Account.Register" xml:space="preserve">
+    <value>Załóż konto</value>
+  </data>
+  <data name="Footer.Community" xml:space="preserve">
+    <value>Społeczność</value>
+  </data>
+  <data name="Footer.Contact" xml:space="preserve">
+    <value>Kontakt</value>
+  </data>
+  <data name="Footer.Forum" xml:space="preserve">
+    <value>Forum</value>
+  </data>
+  <data name="Footer.Privacy" xml:space="preserve">
+    <value>Prywatność</value>
+  </data>
+  <data name="Footer.Rules" xml:space="preserve">
+    <value>Regulamin</value>
+  </data>
+  <data name="Footer.Terms" xml:space="preserve">
+    <value>Warunki</value>
+  </data>
+  <data name="Meta.Description" xml:space="preserve">
+    <value>Platforma turniejowa dla sceny CS 1.6 i CS2.</value>
+  </data>
+  <data name="Navigation.Lft" xml:space="preserve">
+    <value>Szukam drużyny</value>
+  </data>
+  <data name="Navigation.Matches" xml:space="preserve">
+    <value>Mecze</value>
+  </data>
+  <data name="Navigation.Ranking" xml:space="preserve">
+    <value>Ranking</value>
+  </data>
+  <data name="Navigation.Seasons" xml:space="preserve">
+    <value>Archiwum sezonów</value>
+  </data>
+  <data name="Navigation.Tournaments" xml:space="preserve">
+    <value>Turnieje</value>
+  </data>
+</root>
