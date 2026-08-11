@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using NextSkill.Api.Features.Tournaments;
 using NextSkill.Api.Localisation;
 using NextSkill.Api.Shared.Auth;
 using NextSkill.Api.Shared.Persistence;
@@ -185,6 +186,12 @@ public class DetailsModel(NextSkillDb db, TenantContext tenant) : PageModel
         // moment seeds can exist at all (046).
         if (to == TournamentStatus.RegistrationClosed)
             await AssignSeedsAsync(id);
+
+        // Starting the tournament is where the bracket comes into existence.
+        // Doing it here, in the same transaction as the status change, means a
+        // tournament can never be Running without one (023, 046).
+        if (to == TournamentStatus.Running)
+            await BracketBuilder.BuildAsync(db, tournament);
 
         if (to == TournamentStatus.RegistrationOpen)
             // Reopening invalidates seeds: the field is about to change again.

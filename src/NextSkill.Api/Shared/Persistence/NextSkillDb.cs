@@ -40,6 +40,9 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
         b.Entity<Match>().Property(x => x.Game).HasConversion<string>();
         b.Entity<Match>().Property(x => x.Status).HasConversion<string>();
         b.Entity<Match>().Property(x => x.Integrity).HasConversion<string>();
+        b.Entity<Match>().Property(x => x.Side).HasConversion<string>();
+        b.Entity<Match>().Property(x => x.WinnerToSlot).HasConversion<string>();
+        b.Entity<Match>().Property(x => x.LoserToSlot).HasConversion<string>();
         b.Entity<Rating>().Property(x => x.Game).HasConversion<string>();
         b.Entity<Account>().Property(x => x.PlatformRole).HasConversion<string>();
         b.Entity<TeamMembership>().Property(x => x.Role).HasConversion<string>();
@@ -134,6 +137,27 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
                 .HasDatabaseName("ix_one_live_match_per_server");
 
             e.HasIndex(x => new { x.TournamentId, x.Status });
+
+            // Routing as real foreign keys. The whole point is that the database
+            // refuses a link to a match that does not exist — the application
+            // cannot "mostly" get routing right any more (023).
+            //
+            // NoAction rather than Cascade: deleting a match that others route
+            // into should FAIL loudly, not quietly delete half a bracket.
+            e.HasOne<Match>().WithMany()
+                .HasForeignKey(x => x.WinnerToMatchId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            e.HasOne<Match>().WithMany()
+                .HasForeignKey(x => x.LoserToMatchId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // One match per bracket position per tournament. Generating twice
+            // would otherwise produce a second, overlapping bracket rather than
+            // an error (023).
+            e.HasIndex(x => new { x.TournamentId, x.Side, x.Round, x.Position })
+                .IsUnique()
+                .HasDatabaseName("ix_one_match_per_bracket_position");
         });
 
         b.Entity<TeamMembership>(e =>

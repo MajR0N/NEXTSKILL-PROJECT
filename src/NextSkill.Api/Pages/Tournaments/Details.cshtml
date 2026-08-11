@@ -103,7 +103,9 @@
                 <div class="empty">
                     <div class="empty__icon">◍</div>
                     <h4>@(t.Status == TournamentStatus.Running ? "Turniej trwa" : "Turniej zakończony")</h4>
-                    <p>Drabinka i wyniki pojawią się tutaj.</p>
+                    <p>Drabinka jest na osobnej stronie — to ona trafia do Discorda w trakcie turnieju.</p>
+                    <a class="btn btn--primary" asp-page="/Tournaments/Bracket"
+                       asp-route-culture="@locale" asp-route-id="@t.Id">Zobacz drabinkę</a>
                 </div>
             }
 

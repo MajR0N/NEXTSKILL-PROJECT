@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using NextSkill.Api.Shared.Tenancy;
 using NextSkill.Domain.Access;
+using NextSkill.Domain.Brackets;
 using NextSkill.Domain.Matches;
 using NextSkill.Domain.Tournaments;
 
@@ -223,6 +224,58 @@ public class Match : ITenantOwned
     public int? ScoreA { get; set; }
     public int? ScoreB { get; set; }
     public string? Map { get; set; }
+
+    /// <summary>
+    /// Who won. <b>Stored, not inferred from the score.</b>
+    ///
+    /// A forfeit has no score, a bye has no match, and a 16-14 that was later
+    /// reversed still has its old numbers on it. Deriving the winner from
+    /// ScoreA/ScoreB would be right most of the time, and advancement is not a
+    /// place where "most of the time" is good enough — it decides who plays next
+    /// (decisions 023, 035).
+    /// </summary>
+    public Guid? WinnerTeamId { get; set; }
+
+    // ── bracket position and routing (decision 023) ──────────────────────
+
+    /// <summary>Upper, lower, or grand final. Single elimination is all upper.</summary>
+    public BracketSide Side { get; set; }
+
+    public int Round { get; set; }
+    public int Position { get; set; }
+
+    /// <summary>
+    /// Where the winner goes, as a <b>real foreign key</b> to another match.
+    ///
+    /// The generator works in per-bracket integers; those ids are turned into
+    /// Guids before anything is written, so routing becomes a constraint the
+    /// database enforces rather than an invariant the application hopes for.
+    /// <b>A dangling routing link is now impossible</b> — which is exactly the
+    /// bug that shipped and was caught in Phase 2, where upper round 2's losers
+    /// routed nowhere and round 1's routed twice.
+    ///
+    /// Null is legal and meaningful: the final routes its winner nowhere.
+    /// </summary>
+    public Guid? WinnerToMatchId { get; set; }
+    public SlotRef? WinnerToSlot { get; set; }
+
+    /// <summary>Where the loser goes — null in single elimination, and for the final.</summary>
+    public Guid? LoserToMatchId { get; set; }
+    public SlotRef? LoserToSlot { get; set; }
+
+    /// <summary>
+    /// The grand-final reset: generated up front, inactive unless the
+    /// lower-bracket team wins the first grand final (decision 022). It exists
+    /// from the start so the most commonly forgotten rule in tournament
+    /// software cannot be forgotten.
+    /// </summary>
+    public bool IsConditional { get; set; }
+
+    /// <summary>
+    /// A walkover. The occupying team advances immediately and the match is
+    /// <b>never rated</b> — a free win must not move a rating (022, 025).
+    /// </summary>
+    public bool IsBye { get; set; }
 
     /// <summary>
     /// Highest <c>seq</c> accepted for this match. Gaps mark the match

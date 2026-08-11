@@ -120,3 +120,42 @@ Beyond [022](022-tournament-formats.md)'s engine tests, one check on generation:
 
 Check 1 catches generation bugs before a tournament is ever played, which is the only time
 they are cheap to fix.
+
+---
+
+## Persistence (added 2026-08-11, when the engine first ran on live data)
+
+The generator works in **per-bracket integers**. Persisting those integers would have left
+routing checkable only by application code — so the match `Guid`s are minted **before anything
+is written**, and routing becomes a real foreign key:
+
+```
+matches.winner_to_match_id  →  matches.id     (ON DELETE NO ACTION)
+matches.loser_to_match_id   →  matches.id
+```
+
+**A dangling routing link is now impossible at the database level.** That is deliberate: the
+one real bug this project has shipped so far was exactly a dangling routing link, and it
+rendered perfectly. `NO ACTION` rather than cascade, so deleting a match other matches route
+into *fails loudly* instead of quietly deleting half a bracket.
+
+A partial-free unique index on `(tournament_id, side, round, position)` means generating twice
+produces an **error**, not a second overlapping bracket.
+
+### `winner_team_id` is stored, not derived
+
+A forfeit has no score, a bye has no match, and a reversed 16–14 still has its old numbers on
+it. Deriving the winner from the score would be right most of the time, and advancement is not
+a place where most of the time is good enough — it decides who plays next.
+
+### Byes resolve at generation
+
+A bye is completed with **no score**, its occupant advances immediately, and it is never rated
+([025](025-rating-system.md)). Resolving them at generation rather than as a runtime special
+case is what stops "why is this match waiting for a team that does not exist?".
+
+### Advancement happens in exactly one place
+
+`BracketBuilder.AdvanceAsync` is the only path, and it is **gated on
+`MatchIntegrity`** ([035](035-match-result-integrity.md)) — so the gate cannot be bypassed by a
+caller that forgot about it. It also refuses a winner who did not play in the match.

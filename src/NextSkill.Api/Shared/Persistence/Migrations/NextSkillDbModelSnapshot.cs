@@ -206,9 +206,25 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("integrity");
 
+                    b.Property<bool>("IsBye")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_bye");
+
+                    b.Property<bool>("IsConditional")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_conditional");
+
                     b.Property<long>("LastEventSeq")
                         .HasColumnType("bigint")
                         .HasColumnName("last_event_seq");
+
+                    b.Property<Guid?>("LoserToMatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("loser_to_match_id");
+
+                    b.Property<string>("LoserToSlot")
+                        .HasColumnType("text")
+                        .HasColumnName("loser_to_slot");
 
                     b.Property<string>("Map")
                         .HasColumnType("text")
@@ -222,6 +238,14 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("payload");
 
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<int>("Round")
+                        .HasColumnType("integer")
+                        .HasColumnName("round");
+
                     b.Property<int?>("ScoreA")
                         .HasColumnType("integer")
                         .HasColumnName("score_a");
@@ -233,6 +257,11 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                     b.Property<Guid?>("ServerId")
                         .HasColumnType("uuid")
                         .HasColumnName("server_id");
+
+                    b.Property<string>("Side")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("side");
 
                     b.Property<DateTimeOffset?>("StartedAt")
                         .HasColumnType("timestamp with time zone")
@@ -255,7 +284,21 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("tournament_id");
 
+                    b.Property<Guid?>("WinnerTeamId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("winner_team_id");
+
+                    b.Property<Guid?>("WinnerToMatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("winner_to_match_id");
+
+                    b.Property<string>("WinnerToSlot")
+                        .HasColumnType("text")
+                        .HasColumnName("winner_to_slot");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("LoserToMatchId");
 
                     b.HasIndex("Payload");
 
@@ -266,7 +309,13 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasDatabaseName("ix_one_live_match_per_server")
                         .HasFilter("status = 'Live'");
 
+                    b.HasIndex("WinnerToMatchId");
+
                     b.HasIndex("TournamentId", "Status");
+
+                    b.HasIndex("TournamentId", "Side", "Round", "Position")
+                        .IsUnique()
+                        .HasDatabaseName("ix_one_match_per_bracket_position");
 
                     b.ToTable("matches");
                 });
@@ -731,6 +780,19 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasFilter("withdrawn_at IS NULL");
 
                     b.ToTable("registrations");
+                });
+
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.Match", b =>
+                {
+                    b.HasOne("NextSkill.Api.Shared.Persistence.Match", null)
+                        .WithMany()
+                        .HasForeignKey("LoserToMatchId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("NextSkill.Api.Shared.Persistence.Match", null)
+                        .WithMany()
+                        .HasForeignKey("WinnerToMatchId")
+                        .OnDelete(DeleteBehavior.NoAction);
                 });
 #pragma warning restore 612, 618
         }

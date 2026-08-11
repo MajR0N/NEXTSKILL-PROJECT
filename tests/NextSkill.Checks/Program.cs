@@ -517,6 +517,19 @@ catch (Exception ex)
 }
 
 Console.WriteLine();
+Console.WriteLine("BRACKET PERSISTENCE · the engine on live data  (decisions 023, 046)");
+try
+{
+    NextSkill.Checks.BracketPersistenceChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  bracket persistence checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
 Console.WriteLine("END-TO-END · simulator vs the real pipeline  (decisions 034, 038)");
 try
 {

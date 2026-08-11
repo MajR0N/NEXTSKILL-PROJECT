@@ -1,0 +1,79 @@
+@page "{id:guid}"
+@model NextSkill.Api.Pages.Tournaments.BracketModel
+@using NextSkill.Api.Localisation
+@{
+    var t = Model.Tournament!;
+    ViewData["Title"] = $"Drabinka — {t.Name}";
+    ViewData["Description"] = $"Drabinka turnieju {t.Name}.";
+    var locale = Locales.Current;
+}
+
+@* Wide canvas (041): full bleed, its own horizontal scroll, no 1120px column. *@
+<div class="wrap-wide section">
+
+    <p class="eyebrow">@Model.OrganiserName</p>
+    <h1>@t.Name</h1>
+    <p class="lede">
+        <a asp-page="/Tournaments/Details" asp-route-culture="@locale" asp-route-id="@t.Id">← Strona turnieju</a>
+    </p>
+
+    @if (Model.Columns.Count == 0)
+    {
+        <div class="empty" style="max-width:560px;margin-top:var(--s6)">
+            <div class="empty__icon">◫</div>
+            <h4>Drabinki jeszcze nie ma</h4>
+            <p>Powstanie w momencie startu turnieju, z rozstawienia ustalonego przy zamknięciu zapisów.</p>
+        </div>
+    }
+    else
+    {
+        @* The horizontal scroll lives HERE, not on the page body — a bracket is
+           the one thing allowed to be wider than the screen (041). *@
+        <div style="overflow-x:auto;padding-block:var(--s5)">
+            <div class="bracket">
+                @foreach (var (label, nodes) in Model.Columns)
+                {
+                    <div class="bracket__col">
+                        <p class="label" style="margin-bottom:var(--s2)">@label</p>
+                        @foreach (var node in nodes)
+                        {
+                            <div class="node @(node.IsConditional && !node.Decided ? "node--conditional" : "")
+                                            @(node.Live ? "node--live" : "")">
+                                <div class="node__head">
+                                    <span>
+                                        @if (node.IsBye)
+                                        {
+                                            @* A bye is a free win, and saying so is
+                                               kinder than an empty slot nobody can explain. *@
+                                            <span>Wolny los</span>
+                                        }
+                                        else if (node.IsConditional)
+                                        {
+                                            <span>Dogrywka</span>
+                                        }
+                                        else
+                                        {
+                                            <span>M@(node.Position + 1)</span>
+                                        }
+                                    </span>
+                                    @if (node.Live) { <span>NA ŻYWO</span> }
+                                </div>
+
+                                @foreach (var slot in new[] { node.A, node.B })
+                                {
+                                    <div class="node__slot @(slot.Won ? "node__slot--won" : "")
+                                                           @(slot.Lost ? "node__slot--lost" : "")
+                                                           @(slot.Team is null ? "node__slot--tbd" : "")">
+                                        <span class="node__seed">@(slot.Seed?.ToString() ?? "")</span>
+                                        <span class="node__team">@(slot.Team ?? "—")</span>
+                                        <span class="node__score">@(slot.Score?.ToString() ?? "")</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>

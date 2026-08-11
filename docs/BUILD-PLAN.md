@@ -221,7 +221,15 @@ endpoint, request, handler and validator together.
   - ☑ `PublicReads` — the one sanctioned cross-tenant read seam ([036](decisions/036-authorization.md))
   - ☐ Templates and post-creation editing ([015](decisions/015-admin-panel.md))
   - ☐ Check-in before start, and **forfeit** as the honest exit from a running event
-- ☐ **Brackets** — persist the generated bracket to `matches` (routing links included), render, advance (integrity-gated). Seeds already exist ([046](decisions/046-tournament-lifecycle.md)); the engine is tested but has never run on live data
+- ◐ **Brackets** — the engine now runs on live data ([023](decisions/023-bracket.md))
+  - ☑ Schema: bracket position + routing as **real foreign keys**, so a dangling link is impossible
+  - ☑ `winner_team_id` stored rather than derived from the score
+  - ☑ Generation on start, in one transaction — a tournament cannot be `Running` without a bracket
+  - ☑ Byes resolved at generation, never rated, advanced into the correct slot
+  - ☑ Advancement in **one** place, integrity-gated ([035](decisions/035-match-result-integrity.md))
+  - ☑ `/t/{id}/bracket` — wide canvas, its own horizontal scroll ([041](decisions/041-layout-system.md))
+  - ☐ Advancing on a **reported result** — waits on the match slice
+  - ☐ Bracket reset triggered live; mobile round-by-round view ([023](decisions/023-bracket.md))
 - ☐ **Matches** — detail, config endpoint, event ingest, bind, demo upload
 - ☐ **Veto & lobby** — web veto over SSE ([028](decisions/028-veto-and-lobby.md))
 - ☐ **Organiser panel** — servers, disputes, staff
