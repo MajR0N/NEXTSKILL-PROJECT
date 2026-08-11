@@ -56,8 +56,9 @@ arrives here disguised as a convenience feature.
 
 ## Presentation
 
-Embeds use the NEXTSKILL palette ([019](019-visual-identity.md)) — gold for confirmed results,
-red for disputes and live matches — so a channel post reads as ours without a logo.
+The intended semantic colour treatment remains part of the visual-direction decision. While
+[044](044-visual-direction.md) is reopened, embeds deliberately carry no colour rather than
+spreading provisional palette choices into an external surface.
 
 Posts always link back, and the linked page carries its own Open Graph card
 ([018](018-frontend-architecture.md)) — the post and the unfurl reinforce each other.
@@ -67,3 +68,30 @@ Posts always link back, and the linked page carries its own Open Graph card
 Discord OAuth as an **optional account link** was already decided in
 [011](011-accounts-and-login.md). It is unrelated to webhooks: linking is about identity,
 webhooks are about announcements. Neither depends on the other.
+
+## Built slice — 2026-08-11
+
+The first event slice is live for **registration opening, match start, and confirmed results**.
+Registration reopening has a monotonic occurrence number, while plugin event retries deduplicate
+on the stable match id. A disputed or suspect result never enters the announcement outbox; an
+audited scoreless forfeit does, because it is already a confirmed administrative result.
+
+Delivery is a transactional PostgreSQL outbox: the lifecycle/result transaction commits the
+event fact, not a network call. A background worker claims due rows with `FOR UPDATE SKIP LOCKED`,
+retries six times with bounded backoff, and records success/failure for the tournament editor.
+Removing the integration destroys the protected credential and abandons pending work.
+
+The URL is protected with ASP.NET Data Protection, whose key ring is outside PostgreSQL. The save
+boundary accepts only the exact HTTPS `discord.com/api/webhooks/{id}/{token}` shape and never
+echoes a rejected value. Delivery uses a deliberately unlogged HTTP transport, follows no
+redirects, and resolves the destination itself so loopback, private, link-local, reserved and
+mixed public/private DNS answers are refused.
+
+Rich embeds disable all allowed mentions and link back to NEXTSKILL. Until the lobby and match
+detail surfaces exist, match start and result messages link to the tournament bracket rather than
+to a route that would be dead. Registration-close, dispute, champion and maintenance messages
+remain attached to their future owning slices.
+
+Ten new runnable checks cover URL/DNS SSRF controls, protection/tamper failure, staff
+authorization, non-echo and encryption at rest, transactional deduplication, safe embed output,
+confirmed-versus-disputed behavior, retries and exception sanitization, forfeits, and removal.

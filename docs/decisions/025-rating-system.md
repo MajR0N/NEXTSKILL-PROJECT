@@ -7,11 +7,12 @@ one system with three layers, not three systems.
 
 
 > **Built (2026-08-11):** both engines — Glicko-2 for teams, OpenSkill for players — with
-> Glickman's published example reproduced exactly. The **team** ranking page is live, provisional
-> teams separated, `±RD` shown openly. Seeding uses the same provisional rule.
+> Glickman's published example reproduced exactly. The **team and player** ranking views are
+> live; provisional subjects are separated, team `±RD` is shown openly, and player order uses
+> OpenSkill's conservative `μ − 3σ` score. Seeding uses the same provisional rule.
 >
-> **Not built:** **the player ranking has no page at all**, and neither do tiers, movement
-> arrows or form strips — all three need match history, which the matches slice will produce.
+> **Not built:** tiers, movement arrows or form strips — all three need match history, which
+> the matches slice will produce. Ranking search and cursor pagination are live.
 
 ---
 

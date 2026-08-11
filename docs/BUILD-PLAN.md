@@ -1,10 +1,10 @@
 # NEXTSKILL — Build plan
 
-The design phase is complete (**42 decision records** in `docs/decisions/`, two of them
+The design phase is complete (**43 decision records** in `docs/decisions/`, two of them
 deliberately reopened). This is the implementation sequence, derived from
 [038 — build order](decisions/038-build-order.md).
 
-**Currently: Phase 4, roughly half built. 169 checks passing.** The marks below are audited
+**Currently: Phase 4, roughly half built. 239 checks passing.** The marks below are audited
 rather than asserted — see the note at the end of Phase 4 about what "◐" means here.
 
 **Status legend:** ☐ pending · ◐ in progress · ☑ done · ⊘ blocked — nothing to test until the slice it belongs to exists · ➡ deliberately moved
@@ -166,25 +166,60 @@ Built before any UI, because they are pure functions and they hide the silent bu
 
 ## Phase 4 — Web platform, slice by slice ◐ **IN PROGRESS**
 
-> ### ⚠ Phase 4 requires further grilling before it starts
+> ### v1 = this phase, complete (decided 2026-08-11)
+>
+> **Definition of done, in one testable sentence:**
+>
+> > A tournament created by one Polish network, played on their server by teams from at least two
+> > others, produces a bracket that advanced itself from a result **the server reported**.
+>
+> That sentence contains the entire differentiator — *wyniki z serwera, nie ze zrzutu ekranu*.
+>
+> **The date is not a build estimate.** Measured velocity is roughly a phase per session; getting
+> three Polish networks to agree on a Saturday evening is weeks. Set the cup date with a partner
+> and work backwards — and not in August, since Starter League's season began 2026-08-08 and teams
+> have just committed ([strategy](MARKETING-AND-SALES-STRATEGY.md) §2).
+>
+> **One consequence to hold:** ratings ship before there is volume to settle them, so the first
+> cup's teams appear in the **provisional** section with no rank ([025](decisions/025-rating-system.md)
+> already separates them). Do not promise "get ranked" until a season exists — promise the record.
+
+> ### ✅ Phase 4 grilling is complete (2026-08-11)
 >
 > [021](decisions/021-site-structure.md) settled **which pages exist** and
 > [041](decisions/041-layout-system.md) settled **how a page is composed**. Neither settled
-> **what is actually on most pages.**
+> **what is actually on most pages.** That gap is now closed.
 >
-> Grilled: ranking, match detail, bracket, lobby/veto, profile, login, footer, admin panel —
-> plus home, tournament detail, notifications, search and onboarding, which
-> [043](decisions/043-page-contents.md) closed.
->
-> **Not yet grilled — each needs a pass before its slice is built:**
->
-> | Page | Open questions |
+> | Page | Closed by |
 > | --- | --- |
-> | **Team page `/teams/{id}`** | Roster and roles are **built and decided**. Still open: match history, rating trend, trophies, open slots, team logos |
-> | **LFT board `/lft`** | Filters, listing shape, expiry rules, how a team contacts a player, abuse controls |
-> | **News `/news`** | Index and post layout, pinning, localisation fallback presentation |
-> | **Seasons `/seasons/{n}`** | What does a frozen archive look like — standings only, or full browsable history? |
-> | **Error pages** | 404, 500, banned, maintenance ([033](decisions/033-maintenance-mode.md)) |
+> | Ranking, match detail, bracket, lobby/veto, profile, login, footer, admin panel | earlier grilling |
+> | Home, tournament detail, notifications, search, onboarding | [043](decisions/043-page-contents.md) |
+> | **Team page `/teams/{id}`** — match history, rating trend, trophies, open slots | [049](decisions/049-team-page.md) |
+> | **How a result becomes a rating** — participants, lineup, ledger, dispute, confirmation | **[050](decisions/050-match-results-and-ratings.md)** |
+> | **LFT board `/lft`**, **News `/news`**, **Seasons `/seasons/{n}`**, search, audit log | **[051](decisions/051-phase-4-remainder.md)** |
+>
+> **Still open and deliberately so:** team logos, blocked on
+> [044](decisions/044-visual-direction.md) — [049](decisions/049-team-page.md) refuses to let one
+> page slice quietly decide the visual direction. Error pages (404/500/banned) are layout rather
+> than a decision; maintenance mode is [033](decisions/033-maintenance-mode.md) in Phase 7.
+>
+> ### ⚠ Three contradictions the grilling found between *decided* documents
+>
+> Recorded because "decided" did not mean "consistent":
+>
+> 1. **Bracket advancement vs. the challenge window** — [035](decisions/035-match-result-integrity.md)
+>    advances on `confirmed`; [007](decisions/007-server-hosting-model.md) says a result is final
+>    only after the window closes. Resolved in [050](decisions/050-match-results-and-ratings.md):
+>    human judgement holds the *reversible* thing (the rating) and never the irreversible one
+>    (the bracket).
+> 2. **Frozen seasons vs. derived ratings** — [021](decisions/021-site-structure.md):87 freezes
+>    standings forever; [025](decisions/025-rating-system.md):30 derives them at read time.
+>    Resolved in [051](decisions/051-phase-4-remainder.md) §4 by filtering the append-only ledger
+>    on `AppliedAt <= Season.ClosedAt`.
+> 3. **Challenge-response vs. outbound-only** — [007](decisions/007-server-hosting-model.md) proves
+>    a server by dialling it; [009](decisions/009-api-contract.md) forbids ever talking to it.
+>    Resolved in [051](decisions/051-phase-4-remainder.md) §2: the plugin dials us, which
+>    **deletes** [040](decisions/040-threat-model.md)'s top risk instead of defending against it.
 
 > ### ⚠ The palette is reopened — build monochrome until [044](decisions/044-visual-direction.md) closes
 >
@@ -206,42 +241,43 @@ settled.
 Vertical slices ([006](decisions/006-architecture.md)). Each slice is a folder containing
 endpoint, request, handler and validator together.
 
-- ◐ **Ranking** — *was marked done; it is not.* The team ranking works end to end
+- ◐ **Ranking** — team and player rankings work end to end
   - ☑ Server-rendered on live data; provisional teams listed separately; `±RD` and confidence bar shown openly
-  - ☐ **"Sezon 1" is hardcoded in the page** — there is no season behind it, which makes it a claim the product cannot back ([021](decisions/021-site-structure.md))
-  - ☐ **Player ranking** — [025](decisions/025-rating-system.md) designed team *and* player rating; OpenSkill is built and tested but appears nowhere
-  - ☐ Movement arrows (▲▼) and form strips (W/L) — the CSS exists and is unused, because both need match history
-  - ☐ Pagination and search — fine at three teams, not at three hundred
-- ◐ **Accounts** — sign-up and sign-in are solid; everything *after* sign-in is missing
+  - ☑ **Current season comes from live data** — a future or closed season is ignored, and no active season means the page invents no label ([021](decisions/021-site-structure.md))
+  - ☑ **Player ranking** — OpenSkill's conservative `μ − 3σ` score is derived at read time; provisional players are visible but receive no rank ([025](decisions/025-rating-system.md))
+  - ⊘ Movement arrows (▲▼) and form strips (W/L) — blocked on the Matches slice because both need match history; the CSS alone is not a feature
+  - ☑ **Protected cursor pagination and literal search** — 20 rows per page across ranked/provisional sections; cursor state is tamper-evident, filters remain shareable, and `%`/`_` are text rather than wildcard operators ([039](decisions/039-public-api.md))
+- ◐ **Accounts** — authentication, profile and destructive account mutations work; export and production messaging remain
   - ☑ Argon2id, session row + signed cookie, revocation, rate limiting, identical answers for unknown address and wrong password
   - ☑ **Password reset** — single-use link, **5-minute expiry**, token stored hashed, mailbomb throttle, and **every session dies on redemption** ([047](decisions/047-two-factor.md))
   - ☑ **Two-factor** — TOTP checked against the RFC 6238 vectors (Authy, Google Authenticator, 1Password, Aegis), SMS behind a provider seam and named as weaker, single-use recovery codes ([047](decisions/047-two-factor.md))
   - ☑ Outbound messaging seam that **fails closed** — production refuses to start without a real sender
-  - ☐ A real email/SMS provider, and deliverability (SPF/DKIM/DMARC) ([043](decisions/043-page-contents.md))
-  - ☐ **Profile page** ([029](decisions/029-profile-login-footer.md)) — nothing exists
-  - ☐ `setinfo` token rotate ([011](decisions/011-accounts-and-login.md))
-  - ☐ Steam / Discord linking — Steam OpenID is the proof of ownership ([011](decisions/011-accounts-and-login.md))
-  - ◐ **Log out everywhere** — a password reset now revokes every session; there is still no button for it
-  - ☐ Account deletion and IP retention — **GDPR, and the audience is in the EU** ([011](decisions/011-accounts-and-login.md), [012](decisions/012-security.md))
+  - ⊘ A real email/SMS provider, and deliverability (SPF/DKIM/DMARC) — blocked on the production provider, sending domain and credentials ([043](decisions/043-page-contents.md))
+  - ☑ **Profile pages** ([029](decisions/029-profile-login-footer.md)) — public `/players/{id}` and private `/me`; ratings remain split by game, provisional state is explicit, team history and live LFT state are shown, and the public query selects an allow-list that cannot expose email, IP, token hashes or provider IDs
+    - ⊘ Recent player matches and achievements — blocked on immutable match-participant history. Current team membership cannot prove who actually played an old match, so the profile does not fabricate it
+  - ☑ **`setinfo` token rotation** — 256-bit console-safe token, only SHA-256 stored; the copy-ready `setinfo _ns "…"` command is shown once under `no-store`, every rotation immediately invalidates the previous token, and the POST is CSRF-protected ([011](decisions/011-accounts-and-login.md))
+  - ☑ **Steam / Discord linking** — Steam OpenID assertions are verified server-to-server; Discord uses authorization code + the minimum `identify` scope and never stores provider tokens. Correlation state is protected, tied to the account and live session, and backed by an HttpOnly one-use cookie; link/unlink starts are CSRF-protected; unique database indexes ensure one provider identity belongs to only one NEXTSKILL account even under concurrent callbacks. Discord activates when its application ID/secret are supplied ([011](decisions/011-accounts-and-login.md))
+  - ☑ **Log out everywhere** — the CSRF-protected `/me` action deletes every server-side session for the account in one database statement, clears the initiating cookie and confirms completion; two-browser coverage proves both sessions lose private-page access immediately
+  - ☑ **Account deletion and IP minimisation** — password + exact-nickname confirmation and CSRF protection; refuses to orphan the last team captain, organiser owner or platform owner; destroys contact data, credentials, provider links, transient community data and every session in one transaction; accepted roster/rating history survives behind an anonymous tombstone and disappears from live rankings. PostgreSQL stores no IP column; the in-memory auth limiter partitions on a per-process HMAC that becomes unlinkable on restart ([011](decisions/011-accounts-and-login.md), [012](decisions/012-security.md))
 - ◐ **Teams** — roster mechanics done, presentation not
   - ☑ Create (founder becomes captain in one transaction), invite by nickname, accept/decline, remove, leave, promote to captain
   - ☑ A pending invite grants nothing and is never counted as roster
   - ☑ The last captain cannot leave — **and can hand over**, which is what makes that rule a safeguard rather than a trap
   - ☑ Edit (rename, re-tag, city) and **disband** — soft, tag stays reserved, confirmed by typing the tag ([045](decisions/045-teams-and-rosters.md))
   - ☑ **Roster is 5 players + 3 substitutes + 2 coaches = 10 places**, capped *per slot*. Coaches are **never fieldable**; pending invites occupy a place; moving between slots respects the destination cap ([045](decisions/045-teams-and-rosters.md))
-  - ☐ Team logos — a [044](decisions/044-visual-direction.md) question, and it brings image validation and moderation with it
-  - ☐ **Team page needs grilling**: match history, rating trend, trophies, open slots
-  - ☐ Un-disbanding — currently impossible, so a captain who dissolves by mistake needs staff ([045](decisions/045-teams-and-rosters.md))
+  - ⊘ Team logos — blocked on [044](decisions/044-visual-direction.md); uploads also require image validation, storage and moderation decisions
+  - ⊘ **Team page expansion** — design is closed in [049](decisions/049-team-page.md): one shareable per-game view, integrity-aware history/record, accessible rating trend, trusted trophies and intentional recruitment openings. History/trend/trophies wait on the Matches result/ledger/completion seams; openings/applications wait on the LFT recruitment model
+  - ☑ **Un-disbanding** — only a captain active at the exact disband moment may restore; exact-tag confirmation keeps the same team id and tag, leaves every old tenure closed, and starts a new roster with only the restoring captain. A transaction and row lock make retries and competing restores safe ([045](decisions/045-teams-and-rosters.md))
 - ◐ **Tournaments** — lifecycle, registration and seeding done ([046](decisions/046-tournament-lifecycle.md))
   - ☑ State machine as a pure function; **`Draft → Running` refused**, `Completed`/`Cancelled` terminal
   - ☑ **Drafts are private** — invisible to the list, to strangers and by direct id
   - ☑ Entry requires enough **fieldable** members for the format (coaches excluded)
   - ☑ Seeding on close: strongest first, **provisional teams last**, deterministic, written to the database
   - ☑ `PublicReads` — the one sanctioned cross-tenant read seam ([036](decisions/036-authorization.md))
-  - ☐ Templates and post-creation editing ([015](decisions/015-admin-panel.md))
-  - ☐ Check-in before start, and **forfeit** as the honest exit from a running event
-  - ☐ Season assignment — the column exists and nothing sets it ([021](decisions/021-site-structure.md))
-  - ☐ Discord announcement on registration open / match start / results ([014](decisions/014-discord.md))
+  - ☑ **Templates and post-creation editing** — organiser-owned, case-insensitively named snapshots clone every currently executable setup field into an independent private draft; tournament identity and absolute date are deliberately not copied. Drafts may edit structure; opening registration freezes game/format/team size; all setup freezes on start. Capacity cannot shrink below the active field, and entry/withdraw/edit/status mutations serialize on the tournament row ([015](decisions/015-admin-panel.md), [046](decisions/046-tournament-lifecycle.md))
+  - ☑ **Check-in before start, and forfeit as an event exit** — every captain confirms after registration closes; start revalidates every roster under the tournament lock and creates no partial bracket on refusal. A captain may forfeit only their own team; organiser staff may record either side with exact-tag confirmation and a reason. The audited, scoreless result advances the opponent, never changes rating, and propagates a resolved vacancy so the exiting team cannot reappear in a double-elimination lower bracket. Late plugin events serialize on the match and cannot overwrite it
+  - ☑ **Season assignment** — create/edit offers every non-closed platform season plus an explicit independent-event option; active season is the default on a fresh form, and templates deliberately copy neither season nor date. Submitted ids are checked against live rows, scheduled dates must fall inside the season window, the database enforces the relationship with a foreign key, and public tournament surfaces show the assignment. Closed-season membership is frozen and a tournament assigned to one cannot start ([021](decisions/021-site-structure.md), [046](decisions/046-tournament-lifecycle.md))
+  - ☑ **Discord announcements on registration open / match start / confirmed results** — each event writes a deduplicated fact to a transactional PostgreSQL outbox, then a background worker sends a rich embed with bounded backoff. The per-tournament webhook is accepted only at the exact Discord HTTPS boundary, encrypted through Data Protection, never returned or logged, and destroyed on removal; redirects and private/reserved DNS destinations are refused. Delivery state and abandoned jobs are visible on the tournament editor. Plugin retries cannot duplicate start/results, disputed results stay silent, and scoreless confirmed forfeits use the same seam ([014](decisions/014-discord.md))
 - ◐ **Brackets** — the engine now runs on live data ([023](decisions/023-bracket.md))
   - ☑ Schema: bracket position + routing as **real foreign keys**, so a dangling link is impossible
   - ☑ `winner_team_id` stored rather than derived from the score
@@ -251,23 +287,80 @@ endpoint, request, handler and validator together.
   - ☑ `/t/{id}/bracket` — wide canvas, its own horizontal scroll ([041](decisions/041-layout-system.md))
   - ☐ Advancing on a **reported result** — waits on the match slice
   - ☐ Bracket reset triggered live; mobile round-by-round view ([023](decisions/023-bracket.md))
-- ☐ **Matches** — detail, config endpoint, event ingest, bind, demo upload. *The ingest half already
-  works and is proven end to end; what is missing is the web surface and the join to
-  `BracketBuilder.AdvanceAsync`*
+> ### The remaining slices are ordered, and the order is load-bearing
+>
+> [050](decisions/050-match-results-and-ratings.md) and [051](decisions/051-phase-4-remainder.md)
+> changed the sequence. **Servers → veto → matches** is a chain, not a preference: a match cannot
+> be configured without decided maps, and cannot be played without a verified server.
+
+- ☐ **Localisation habit — do this first, it is cheapest now** ([051](decisions/051-phase-4-remainder.md) §3)
+  - The plumbing has existed since Phase 0 and is unused: `Program.cs` registers `AddLocalization`,
+    wires route → cookie → `Accept-Language`, runs the middleware. **Not one `.resx` file, and no
+    page injects `IStringLocalizer`**
+  - **The neutral resource holds Polish** — so there is no `.pl.resx`, no fallback logic and no
+    missing-key path to write. `/de/teams` serves Polish exactly as today, by design rather than by
+    accident
+  - Every slice below uses `IStringLocalizer` from its first line; existing pages retrofit as touched.
+    Phase 4 is about to double the page count, so this halves the retrofit by doing nothing clever
+- ☐ **Server registration** ([051](decisions/051-phase-4-remainder.md) §2, closes half of [048](decisions/048-organiser-server-configuration.md))
+  - `GameServer` is a real table with an HMAC secret and a `Verified` flag — and **there is no way
+    to create one**. Servers exist only where tests insert them
+  - **We never dial a game server.** Organiser registers `host:port`, gets a one-time secret,
+    pastes it into the plugin config; the **first correctly signed heartbeat sets `Verified`**
+  - Ends Phase 4 built and *provably unusable by a real organiser* until Phase 6. Marked honestly
+  - ⚠ `GameServer.HmacSecret` is still plaintext — its `ponytail:` ceiling says encrypt with an
+    out-of-DB key **before production** ([012](decisions/012-security.md))
+- ☐ **Veto & lobby** — *before* matches, not after ([028](decisions/028-veto-and-lobby.md), [051](decisions/051-phase-4-remainder.md) §1)
+  - **Server-rendered with form posts.** [028](decisions/028-veto-and-lobby.md)'s own check #5 already
+    demands full correct state from a plain fetch, so this version must exist regardless; SSE in 5c
+    becomes a pure view layer
+  - **Turn timer resolves lazily on read**, derived from `TurnStartedAt` — no thread, survives a
+    restart, replays identically. `ponytail:` ceiling recorded
+  - `<meta http-equiv="refresh" content="5">` on the veto page only, deleted when SSE lands
+  - Writes `Match.Map`, which is what unblocks the config endpoint
+- ☐ **Matches** — the keystone ([050](decisions/050-match-results-and-ratings.md)). *The ingest half
+  works and is proven end to end. What is missing is larger than "the web surface":*
+  - ☐ `map_end` sets `WinnerTeamId` and calls `BracketBuilder.AdvanceAsync` — **today it does
+    neither**, and `AdvanceAsync`'s only production caller is bye resolution
+  - ☐ **`MatchParticipant` + `Provenance`** — `Declared` from the lineup frozen at check-in,
+    upgraded to `Bound` by a `player_bound` event. Both count toward a player rating, because
+    CS 1.6 may never bind reliably (**V3**) and it is the moat
+  - ☐ **Lineup captured at check-in** — `IsFieldable` admits 8 for a lineup of 5; check-in never
+    asked which. No picker when there is nothing to pick
+  - ☐ **Rating ledger** — append-only, unique on `(MatchId, SubjectId, Game)`, unrated rows carry
+    `ExcludedBecause`'s reason. **Nothing in the app has ever written a `Rating` row**
+  - ☐ **Rating sweeper** — `BackgroundService`, same shape as `DiscordAnnouncementWorker`, ordered
+    `(EndedAt, Id)` because Glicko-2 is rating-period based
+  - ☐ **Confirmation accelerates, dispute holds** — both touch the rating, neither touches the
+    bracket. `organiser.trusted` finally means something
+  - ☐ **Bind / per-match link code** — in, so the simulator proves `Declared → Bound` before Phase 6
+  - ➡ **Demo upload moves to Phase 6** with the plugin that produces one. UI treats demos as
+    nullable from the start ([024](decisions/024-demos.md))
+- ☐ **Audit log** ([051](decisions/051-phase-4-remainder.md) §7) — three decided docs require one and
+  there are 18 `DbSet`s, none of them it. A **denied** attempt has no row to attribute it to, which
+  is what forces a table. Privileged decisions only this phase; `retention_class` column from the start
 - ☐ **Home `/`** — still the scaffold. [043](decisions/043-page-contents.md) decided its contents
   (live matches, pinned announcements, upcoming, recent results, top teams) and none of it is built
 - ☐ **Notifications** — rows are written on every invite and roster change, and **there is no bell
   to read them** ([043](decisions/043-page-contents.md)). Invites are only findable because the
-  teams page lists them as a stopgap
-- ☐ **LFT board**, **News/CMS**, **Seasons archive** — decided in [021](decisions/021-site-structure.md)/[043](decisions/043-page-contents.md), tables exist, no pages
-- ☐ **Search** — `pg_trgm` + `unaccent` decided in [043](decisions/043-page-contents.md); the extension is not even enabled
-- ☐ **Veto & lobby** — web veto over SSE ([028](decisions/028-veto-and-lobby.md))
-- ☐ **Organiser panel** — servers, disputes, staff
-- ☐ **Staff panel** — users, orgs, audit, maintenance mode
-- ☐ **Translations — every page is hardcoded Polish.** `/de/teams` returns 200 and serves Polish
-  text. Only the *routing* half of [018](decisions/018-frontend-architecture.md) is built: locale in
-  the URL, `hreflang`, `og:locale` and the switcher all work, and there is not one resource file
-  behind them. This is a bigger surface than it looks — it touches every string already written
+  teams page lists them as a stopgap. Server-rendered count in the layout; polling is 5c
+- ☐ **LFT board + recruitment** ([049](decisions/049-team-page.md), [051](decisions/051-phase-4-remainder.md) §5)
+  - `TeamOpening`, `OpeningApplication`, `TeamInterest` — three tables, not one polymorphic listing
+  - `TeamInterest` exists because a **roster invitation occupies a place** ([045](decisions/045-teams-and-rosters.md)),
+    so a captain with one slot cannot talk to five candidates without committing blind
+  - Cheap interest reopens the spam hole 045 closed: **10 open per team, one per pair, 7-day expiry**
+- ☐ **News/CMS** — `DisableHtml()` **plus** `HtmlRenderer.LinkRewriter` with an http/https/relative
+  allow-list. Tested: `DisableHtml()` alone lets `javascript:`, `vbscript:` and `data:` through
+  ([051](decisions/051-phase-4-remainder.md) §8)
+- ☐ **Seasons archive** — frozen by **timestamp, not snapshot**: filter the ledger on
+  `AppliedAt <= Season.ClosedAt`. `Season` gains `ClosedAt`; it currently records *that* it closed
+  but not *when* ([051](decisions/051-phase-4-remainder.md) §4)
+- ☐ **Search** — one headbar search, one server-rendered results page, `GET /search?q=`, works with
+  JS off; typeahead is 5c. **[043](decisions/043-page-contents.md)'s SQL does not execute** —
+  `unaccent()` is not `IMMUTABLE`, so it needs an `f_unaccent` wrapper before it can be indexed
+- ☐ **Organiser panel** — servers, disputes, staff. Now load-bearing: [050](decisions/050-match-results-and-ratings.md)'s
+  referee reversal has nowhere to happen without it
+- ☐ **Staff panel** — users, orgs (the `trusted` toggle), audit, maintenance mode
 
 > ### What ◐ means here
 >
@@ -283,15 +376,17 @@ endpoint, request, handler and validator together.
 
 - ☑ Tenant isolation — B cannot see A's tournament; by-ID returns **404 not 403** *(proven against real PostgreSQL since Phase 1, and again for drafts in [046](decisions/046-tournament-lifecycle.md))*
 - ☑ No tenant context → **throws**, returns nothing
-- ⊘ SSRF — `127.0.0.1`, `169.254.169.254`, and a hostname resolving to a private IP all rejected. **Nothing to test yet**: server registration is unbuilt, and it is [040](decisions/040-threat-model.md)'s top risk, so this ships *with* that slice ([048](decisions/048-organiser-server-configuration.md))
+- ☑ SSRF — **re-scoped, and mostly deleted rather than defended** ([051](decisions/051-phase-4-remainder.md) §2). [040](decisions/040-threat-model.md) called this the top risk on the grounds that it was "designed into server registration". It is not: the panel **never dials a game server**, so a user-supplied `host:port` is display data, never a fetch target. The only outbound sink in the product is the Discord webhook, where the exact-boundary check, redirect refusal and private/reserved-DNS refusal already ship ([014](decisions/014-discord.md))
 - ☑ Open redirect — `//evil.com`, absolute URLs, `javascript:` and `/\` all rejected
 - ⊘ Sort allowlist — `?sort=id;DROP` rejected, never interpolated. **Nothing to test yet**: no page takes a sort parameter
-- ⊘ Zip bomb aborted; archive filenames never trusted. **Nothing to test yet**: demo upload is unbuilt ([024](decisions/024-demos.md))
+- ➡ Zip bomb aborted; archive filenames never trusted. **Moves to Phase 6** with demo upload — the endpoint shares no state with anything Phase 4 designs, and its specifics (headers, zip layout, size ceiling) are what the real plugin will settle ([024](decisions/024-demos.md), [050](decisions/050-match-results-and-ratings.md) §6)
+- ☐ **Stored XSS in news markdown** — `DisableHtml()` alone is **not sufficient**, proven against Markdig 1.3.2: `javascript:`, `vbscript:` and `data:` URLs survive it in `href`/`src`. A post with a `javascript:` link renders with the target removed; `https:`, relative and anchor links survive ([051](decisions/051-phase-4-remainder.md) §8)
+- ☐ **Recruitment spam** — a team cannot exceed 10 open interests, nor approach the same player twice ([051](decisions/051-phase-4-remainder.md) §5). Without this, `TeamInterest` reopens the 200-invite hole [045](decisions/045-teams-and-rosters.md) deliberately closed
 - ☐ No secret appears in any log — **genuinely untested**, and testable today: HMAC secrets, reset tokens and TOTP secrets all exist
 - ☑ CSRF — an untokened POST is refused ([011](decisions/011-accounts-and-login.md))
 - ☑ Account enumeration — unknown address and wrong password are indistinguishable by **message and by timing**, on both login and password reset
 - ☑ Brute force — **token-bucket** limiter on every auth POST, page views never counted ([047](decisions/047-two-factor.md))
-- ☑ Session revocation — logout, and a password reset, kill the session **server-side** ([047](decisions/047-two-factor.md))
+- ☑ Session revocation — ordinary logout kills the current session; password reset and the explicit `/me` control kill **every server-side session** for the account ([047](decisions/047-two-factor.md))
 
 ## Phase 5 — Frontend: make it look like something
 
@@ -388,7 +483,6 @@ Carried from CONTEXT §7. **Must be resolved before the code that depends on the
 | **V3** | Does `setinfo` behave identically on **non-Steam clients**? | [005](decisions/005-cs16-plugin.md) — **the one that could hurt**, since most active 1.6 servers admit non-Steam clients |
 | V4 | Does the info-key length limit allow a high-entropy token? | [005](decisions/005-cs16-plugin.md) |
 | V5 | Is RCON needed for the normal CS2 match lifecycle? | [007](decisions/007-server-hosting-model.md) — if not, we never store the credential |
-| V7 | Steam OpenID 2.0 still available? | [011](decisions/011-accounts-and-login.md) |
 | — | Do **Unbounded** and **IBM Plex** actually cover Cyrillic? | [019](decisions/019-visual-identity.md) |
 
 ## Design note

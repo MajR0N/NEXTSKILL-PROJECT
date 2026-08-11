@@ -7,12 +7,14 @@ but they are now **one of two required factors**, not the whole mechanism.
 
 
 > **Built (2026-08-11):** registration, login, logout, **password reset**, **two-factor**
-> (TOTP + SMS) and recovery codes — see [047](047-two-factor.md). Argon2id, server-side
+> (TOTP + SMS), recovery codes, account-wide session revocation, GDPR account erasure,
+> rotate-never-retrieve `setinfo` tokens, and verified Steam/Discord linking — see
+> [047](047-two-factor.md). Argon2id, server-side
 > sessions, token-bucket rate limiting, answers that reveal nothing.
 >
-> **Not built:** the `setinfo` token and per-match code binding described below — it needs the
-> plugins ([005](005-cs16-plugin.md)) and has **no runnable check yet**. Also missing: profile
-> page, Steam/Discord linking, account deletion (**GDPR**).
+> **Not built:** per-match code binding described below — binding needs the plugins
+> ([005](005-cs16-plugin.md)) and has **no runnable check yet**. The public
+> and private profile surfaces now exist. Data export remains a separate slice.
 
 ---
 
@@ -38,6 +40,12 @@ profile, rating and history without owning the game on Steam.
 redirected to Steam, authenticates there, and Steam returns their SteamID to us. A user can
 only complete that flow for an account they can actually log into. We never ask them to
 *type* a SteamID — a typed SteamID proves nothing.
+
+**Re-verified 2026-08-11:** [Valve still documents browser OpenID 2.0](https://partner.steamgames.com/doc/features/auth?l=english)
+for linking a verified 64-bit SteamID to an existing third-party account. Discord linking uses
+its [authorization-code flow](https://docs.discord.com/developers/topics/oauth2) with only
+[`identify`](https://docs.discord.com/developers/resources/user); the temporary access token
+reads `/users/@me` and is never stored.
 
 ### Cost accepted: we now store passwords
 
@@ -188,11 +196,17 @@ in-game identifiers are **personal data** under GDPR.
 Cheap to get right now, expensive to retrofit:
 
 - Collect only what is needed, and say so plainly in a privacy notice.
-- Store IPs **hashed with a salt** where they are used for abuse detection rather than
-  displayed; never expose them in any UI.
+- Do not persist IPs when an in-memory abuse control is enough. The authentication limiter uses
+  a per-process HMAC partition key, so the raw IP is not retained and the key becomes unlinkable
+  on restart; never expose either in any UI.
 - Define a retention period for demos, IPs and logs — and actually enforce it.
 - Support account deletion, including what happens to match history (anonymise the player,
   keep the match — deleting results would corrupt tournaments).
+
+> **Built (2026-08-11):** PostgreSQL has no application IP column. Account erasure destroys
+> contact details, credentials, provider links, live memberships and transient community data;
+> the stable account id remains only behind an anonymous tombstone so competition history is
+> not rewritten.
 
 Tracked further under decisions 012 and 024.
 

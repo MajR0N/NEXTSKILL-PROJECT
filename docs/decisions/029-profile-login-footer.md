@@ -8,11 +8,22 @@ Three small page specs, kept together because each is short and they share one p
 ([019](019-visual-identity.md)) — nothing here can surprise us.
 
 
-> **Built (2026-08-11):** login and the footer, including errors that reveal nothing and a
-> footer carrying obligations rather than marketing.
+> **Built (2026-08-11):** login, the footer, public `/players/{id}` profiles and private
+> `/me`. Public profiles show per-game rating and uncertainty, accepted team history,
+> linked-account badges without provider IDs, and live LFT state. The public account query
+> is an explicit allow-list and is checked not to expose email, IP, token hashes or provider IDs.
+> `/me` also rotates the CS 1.6 `setinfo` token: a copy-ready command is shown once, only the
+> hash is stored, and the page states plainly that the token is readable by servers and useless
+> without the per-match code. Steam and Discord can be linked and unlinked only through their
+> verified provider flows; typed external IDs are never accepted. The security rail reports the
+> active-session count and exposes a CSRF-protected sign-out-everywhere action that revokes every
+> server-side session before clearing the current cookie. Account erasure requires the current
+> password and exact nickname, explains that match history survives anonymously, destroys private
+> data and live state, and leaves historical links pointing to a plain anonymous tombstone.
 >
-> **Not built:** **the profile page does not exist**, so the rotate-never-retrieve `setinfo`
-> token has nowhere to live yet.
+> **Still owed by their own slices:** persisted locale and export.
+> Recent player matches and achievements need an
+> immutable participant snapshot; current roster membership cannot honestly reconstruct them.
 
 ---
 

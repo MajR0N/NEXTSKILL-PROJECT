@@ -52,6 +52,36 @@ SZABLONY
 Same engine underneath — purely a setup shortcut. Two real benefits: a tournament takes
 three clicks instead of twelve, and organisers stop making poor format choices by accident.
 
+### Implemented template semantics
+
+- Templates belong to one organiser and their names are unique without regard to case.
+- Saving snapshots every setup field the running application currently understands: game,
+  format, team size, registration cap and description.
+- Tournament name and absolute start date are deliberately not copied. They identify one event,
+  not a reusable format.
+- Cloning writes those values into a **new private draft**. There is no template foreign key and
+  no live inheritance, so editing the clone or deleting the template cannot rewrite the other.
+- Any organiser role with `ManageTournament` may save, use and delete its templates; another
+  organiser cannot even load one by id.
+
+The setup mapper is shared by create, edit and clone. When later slices add map pools, veto
+presets or stage-specific Bo-N settings, they extend this one setup seam rather than growing a
+second, partial template format.
+
+### Editing after creation
+
+The URL and tournament id never change. The lifecycle decides which fields remain mutable:
+
+| State | Name, description, date, capacity | Game, format, team size |
+| --- | --- | --- |
+| Draft | editable | editable |
+| Registration open / closed | editable; capacity cannot fall below the active field | **frozen** — teams entered this structure |
+| Running / completed / cancelled | **frozen history** | **frozen history** |
+
+The server enforces the table even for hand-written POSTs. Entry, withdrawal, editing and
+status transitions lock the same tournament row, so two requests cannot validate against
+different lifecycle or capacity states and then both land.
+
 ## Panel scope
 
 ### Organiser panel — `/org/*` (tenant-scoped, [036](036-authorization.md))

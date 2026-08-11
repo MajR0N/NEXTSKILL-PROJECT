@@ -1,4 +1,4 @@
-# 045 — Teams: roster size, editing, and disbanding
+# 045 — Teams: roster size, editing, disbanding, and restoration
 
 **Status:** **decided** — roster size settled by the tournament formats
 **Date:** 2026-08-11
@@ -96,6 +96,7 @@ nothing at the cost of something people actually do.
 | --- | --- | --- |
 | `ManageRoster` | invite, remove, promote | captain |
 | **`ManageTeam`** | rename, re-tag, disband | captain |
+| **`RestoreTeam`** | restore a disbanded team | captain whose tenure ended at the current disband timestamp |
 
 Split rather than merged. They are the same authority *today*, but removing a player and
 dissolving the team are not the same act — and the moment a manager-style role exists that may
@@ -144,19 +145,38 @@ so far.
 
 ---
 
-## Still open
+## Restoration
 
-- **Un-disbanding.** Currently impossible — a captain who dissolves by mistake needs staff.
-  Nothing about the data model prevents adding it; it just has not been decided who may.
-- **Team logos.** Monograms are generated from the tag ([019](019-visual-identity.md)).
-  Whether uploads ever exist is a [044](044-visual-direction.md) question, and it brings image
-  validation, storage and moderation with it.
-- **Team page contents** — match history, rating trend, trophies. Flagged in
-  [BUILD-PLAN](../BUILD-PLAN.md) as needing its own grilling.
+Restoration makes the **same team row** live again by clearing `disbanded_at`. Its id, tag,
+matches, ratings and public URL do not change. It does not reopen the old roster: every former
+membership remains closed, and only the captain performing the restoration receives a new
+captain membership. Former players must be invited again and consent again.
+
+Eligibility comes from history. `RestoreTeam` is granted only when the caller has a captain
+membership whose `left_at` equals the team's current `disbanded_at` — proof that they were an
+active captain when that specific disband happened. A current captain role, platform role or
+an older captain tenure grants nothing. The rule is represented on `Actor` and decided by the
+central `AccessPolicy`, like every other privilege ([036](036-authorization.md)).
+
+The captain must retype the reserved tag. The mutation runs in a database transaction and
+locks the team row, so a double submit or two eligible former captains racing can create only
+one new active captain membership. A retry after success is an idempotent redirect.
+
+---
+
+## Connected decisions and implementation blockers
+
+- **Team logos.** [049](049-team-page.md) decides that captain-managed square uploads will exist
+  with permanent monogram fallback. Phase 4 stays on monograms; [044](044-visual-direction.md)
+  still owns presentation, image validation, storage and moderation.
+- **Team page contents** are decided in [049](049-team-page.md). Their match/rating/trophy data
+  waits on the Matches result ledger, while recruitment openings share the future LFT model.
 
 ## The runnable checks
 
-All in `tests/NextSkill.Checks/TeamChecks.cs`, against a real database and the real pipeline:
+The HTTP and persistence checks are in `tests/NextSkill.Checks/TeamChecks.cs`, against a real
+database and the real pipeline. The pure privilege boundary is also enumerated in
+`tests/NextSkill.Checks/AccessChecks.cs`:
 
 - each slot caps separately (5 / 3 / 2), and **an unaccepted invite still occupies a place**
 - a member can be moved between slots, and **the destination cap applies to a move**
@@ -165,3 +185,6 @@ All in `tests/NextSkill.Checks/TeamChecks.cs`, against a real database and the r
 - a captain can rename and re-tag, and the team **id does not move**
 - disbanding demands the exact tag, and **the row survives**
 - a disbanded team leaves the directory, keeps its page, keeps its tag, and recruits nobody
+- only a captain present at the current disband may see or submit the restoration path
+- restoration demands the exact tag, keeps old tenure closed and starts with only its restorer
+- a repeated restoration creates no second membership, and the same team returns to the directory

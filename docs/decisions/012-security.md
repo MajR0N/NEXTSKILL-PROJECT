@@ -110,14 +110,18 @@ in-game identifiers are personal data.
 | Obligation | Implementation |
 | --- | --- |
 | Minimise collection | Store what is needed; document why |
-| IP handling | Store **hashed with a salt** where used for abuse detection; never display |
-| Retention | Explicit periods for demos, logs and IPs — **and a job that actually enforces them** |
-| Deletion | **Anonymise the player, keep the match.** Deleting results would corrupt tournament history and other players' ratings |
+| IP handling | **No persistent application IP column.** The auth limiter uses a random per-process HMAC key; it retains neither the raw address nor a cross-restart identifier |
+| Retention | Application IP retention is zero. Demos and future infrastructure logs need their own explicit periods — **and jobs that actually enforce them** |
+| Deletion | **Anonymise the player, keep the match.** Contact data, credentials, provider links, sessions and transient community data are destroyed; deleting results would corrupt tournament history and other players' ratings |
 | Export | Users can obtain their data |
 | Hosting region | **EU region** ([037](037-platform-hosting.md)) |
 
 The deletion rule matters: a naive cascade delete would destroy match history and silently
 corrupt every opponent's rating ([025](025-rating-system.md)).
+
+The legal basis was rechecked on 2026-08-11 against the official [GDPR text](https://eur-lex.europa.eu/eli/reg/2016/679/2016-05-04): Recital 30 names IP addresses as online identifiers,
+Article 5 requires storage limitation, and Article 17 defines erasure. The European Commission
+also states that data may be retained after an [appropriate anonymisation process](https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/dealing-requests-individuals/do-we-always-have-delete-personal-data-if-person-asks_en).
 
 ## 7. Audit log
 

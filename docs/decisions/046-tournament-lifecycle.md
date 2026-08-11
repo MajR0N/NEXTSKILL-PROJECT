@@ -131,13 +131,100 @@ something the form said.
 
 ---
 
-## Still open
+## Editing and templates
 
-- **Bracket generation and persistence.** `Running` is reachable and seeds exist, but the
-  bracket is not yet written to `matches`. That is the next slice ([023](023-bracket.md)).
-- **Forfeit as an operation** — the honest path out of a running tournament.
-- **Tournament editing** after creation, and templates ([015](015-admin-panel.md)).
-- **Check-in before start.** Seeds prove who registered, not who turned up.
+Tournament setup remains editable without changing the permanent tournament id or URL. A
+draft may change all executable setup. Opening registration freezes game, format and team size
+because teams have committed to that event shape; name, description, date, season and capacity remain
+editable until start. Capacity can never fall below the active field. Running, completed and
+cancelled setup is immutable history.
+
+Organisers may save the repeatable setup as a named, tenant-scoped template and clone it into
+another private draft ([015](015-admin-panel.md)). Templates are value snapshots, not inherited
+configuration: they do not copy the event name, date or season and retain no link to either source or
+clone.
+
+Registration, withdrawal, editing and status transitions all take a row lock on the same
+tournament. This makes the lifecycle checks atomic with their mutations and also makes bracket
+generation genuinely part of the transaction that changes the status to `Running`.
+
+---
+
+## Season assignment
+
+Season membership is optional because a community cup may be independent of platform standings.
+Fresh create forms default to the currently active season, while organisers may explicitly choose
+another non-closed season or “outside a season”. A submitted id is checked against live season rows
+and backed by a foreign key; a hand-written Guid cannot create a dangling archive membership.
+
+When a tournament has a date, that date must fall within the selected season's window. Assignment
+may change with other descriptive setup until start. Once a season is closed, existing membership
+is frozen and no new tournament may be assigned or started inside it. Otherwise a new result could
+silently change standings [021](021-site-structure.md) promises never to recompute.
+
+The assignment appears on the public tournament list and detail page. Templates omit it because a
+season is absolute event context, like the date, not reusable competitive setup.
+
+---
+
+## Check-in and event forfeits
+
+> **Amended 2026-08-11 — check-in no longer blocks.** The original design required every captain
+> to confirm before a tournament could start. Organiser interviews named the wound precisely —
+> *"organization: a lot of delays, manual work, no free time"*, 3–5 people per event — and a gate
+> that makes an organiser chase sleeping captains is the labour this product exists to delete
+> (CONTEXT §3 rule 7). **Three layers replace one gate**, and no human action is required at any
+> point; every action that *is* taken adds information.
+
+Closing registration opens the check-in window, and it resolves in three layers:
+
+| Layer | When | Who acts | Meaning |
+| --- | --- | --- | --- |
+| **1 — automatic** | On registration close | **Nobody** | Every entrant that can still field the team size is **checked in by default** |
+| **2 — explicit** | Any time before start | A captain, optionally | A stronger signal, and the moment to **set a lineup** other than the default ([050](050-match-results-and-ratings.md) §2). A captain who cannot play **withdraws** instead |
+| **3 — presence** | At match time | The players, by connecting | **Ground truth.** A team absent past the grace window is forfeited automatically by the existing event-forfeit path |
+
+Each layer is a fallback for the previous one failing to produce information, so the truth is
+settled by what actually happens rather than by who remembered to click. Reopening registration
+clears explicit confirmations, because the field may change; the automatic layer re-evaluates.
+
+The start transaction still checks the facts that matter, and **layer 2 is no longer among them**:
+
+1. at least two active entrants exist;
+2. every entrant can still field the tournament's team size;
+3. an assigned season has not been closed.
+
+Any refusal leaves both lifecycle state and bracket rows untouched.
+
+**The grace window is one configurable number**, defaulting to 15 minutes after the scheduled
+start. It is the only new parameter this amendment introduces.
+
+**What was given up:** a captain who knows in advance they cannot field a team previously said so
+by *not* checking in; now they must actively withdraw. That is a fair trade — one announcement
+("withdraw by Friday or you are in") replaces five individual chases, and the cost of being wrong
+is a forfeit that the bracket already handles correctly.
+
+The organiser view shows all three states per team — *automatic*, *confirmed*, *connected* — which
+is strictly more information than the binary it replaces.
+
+Once the bracket exists, leaving is an **event forfeit**, not pre-start withdrawal and not one
+ordinary match loss. A captain may forfeit only their own team; organiser staff and referees may
+record either side. The actor, timestamp and required human reason are stored on both the match
+result and the registration. Exact-tag confirmation guards the destructive action.
+
+The opponent advances without a score and the result is never rated. In double elimination the
+loser route receives an explicitly resolved empty slot, so the forfeiting team cannot fall into
+the lower bracket. When later routing leaves a match with one occupant it resolves as an unrated
+bye; zero occupants cancel and propagate the vacancy. Plugin events take the same match lock and
+acknowledge terminal events without overwriting the administrative result.
+
+---
+
+## Connected slice
+
+Registration-open announcements are now implemented through [014](014-discord.md)'s durable
+outbox. They are committed in the same locked lifecycle transaction, while network delivery is
+decoupled and cannot roll back the status transition.
 
 ## The runnable checks
 
@@ -146,6 +233,7 @@ Pure (`TournamentChecks.cs`):
 - the happy path is legal end to end, and **`Draft → Running` is not**
 - `Completed` and `Cancelled` have **no way out**
 - every status has a decided answer for public / accepts-entries / frozen
+- start requires at least two checked-in, currently fieldable entrants
 - a **provisional team never takes a top seed**, however high its rating
 - seeding is **deterministic** — reordering the input does not reorder the seeds
 
@@ -158,3 +246,19 @@ End to end (`TournamentE2EChecks.cs`), against a real database:
 - entering is refused for anyone who is not the captain
 - closing registration seeds every entrant, with **no duplicate seeds**
 - withdrawing **clears the seeding**; a running tournament refuses withdrawal
+- only the owning organiser can edit or manage templates
+- drafts edit every setup field; publishing freezes competitive structure; starting freezes all setup
+- template names are case-insensitively unique and clones are independent private drafts
+- capacity never shrinks below the active field
+- open, existent, date-compatible season assignments persist and are shown publicly
+- closed, unknown and out-of-window seasons are refused; the database rejects a dangling id
+- a closed season blocks tournament start without creating a bracket
+- start is refused for unchecked or newly incomplete rosters without creating a bracket
+- only each team's captain may check it in
+- a captain cannot forfeit an opponent by changing the submitted team id
+- a forfeit is audited and scoreless, advances the opponent, and changes no rating
+
+Persistence (`BracketPersistenceChecks.cs`), against real routing rows:
+
+- an event forfeit propagates a resolved vacancy through double elimination
+- the exiting team never appears downstream; a lone surviving team receives an unrated bye

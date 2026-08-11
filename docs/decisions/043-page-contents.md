@@ -209,16 +209,16 @@ NEXTSKILL still hosts zero game servers.
 
 ---
 
-## Remaining pages — defaulted, not grilled
+## Remaining page defaults
 
 These follow from decisions already made. Recorded so they are choices rather than
 improvisations.
 
 ### Team `/teams/{id}`
 
-Roster with roles, match history, rating with RD ([025](025-rating-system.md)), trophies,
-open slots linking to `/lft`. **Editable by the captain only**
-([036](036-authorization.md)). Ratings shown **per game**, never mixed.
+The initial default below has now received its full grilling pass in
+[049](049-team-page.md). That decision supersedes this short sketch with the game switcher,
+history/integrity rules, rating trend, trusted trophies and recruitment lifecycle.
 
 ### LFT `/lft`
 

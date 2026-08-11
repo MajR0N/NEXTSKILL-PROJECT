@@ -4,18 +4,19 @@ The shared, general-purpose document. Anything true across the whole project liv
 Anything specific to one decision lives in `docs/` as its own file.
 
 **Status:** **building.** Phases 0–3 complete; **Phase 4 (web platform) in progress**.
-**169 checks passing** against a real PostgreSQL, including in-process end-to-end runs of the
+**239 checks passing** against a real PostgreSQL, including in-process end-to-end runs of the
 plugin pipeline, the tournament and bracket flow, and the whole authentication surface.
 
 ### What actually runs today
 
 | Working | Where |
 | --- | --- |
-| Accounts — register, login, logout, **password reset**, **two-factor (TOTP + SMS)**, recovery codes | [011](docs/decisions/011-accounts-and-login.md), [047](docs/decisions/047-two-factor.md) |
-| Teams — create, invite, accept, roster slots (5 + 3 + 2), promote, edit, disband | [045](docs/decisions/045-teams-and-rosters.md) |
-| Tournaments — create, private drafts, registration, seeding on close | [046](docs/decisions/046-tournament-lifecycle.md) |
-| Brackets — generated into the database on start, routing as real foreign keys, byes resolved | [023](docs/decisions/023-bracket.md) |
-| Ranking — server-rendered on live data, provisional teams separated | [025](docs/decisions/025-rating-system.md) |
+| Accounts — register, login, logout, **account-wide session revocation**, **password reset**, **two-factor (TOTP + SMS)**, recovery codes, private `/me`, rotate-only `setinfo` tokens, verified Steam/Discord links, GDPR erasure with anonymous history tombstones and zero persisted application IPs | [011](docs/decisions/011-accounts-and-login.md), [012](docs/decisions/012-security.md), [029](docs/decisions/029-profile-login-footer.md), [047](docs/decisions/047-two-factor.md) |
+| Teams — create, invite, accept, roster slots (5 + 3 + 2), promote, edit, disband and captain-authorised restoration | [045](docs/decisions/045-teams-and-rosters.md) |
+| Tournaments — create, private drafts, reusable organiser templates, lifecycle-safe editing, season assignment, registration, seeding, captain check-in, audited event forfeits, and durable Discord announcements for registration/start/confirmed results | [014](docs/decisions/014-discord.md), [015](docs/decisions/015-admin-panel.md), [021](docs/decisions/021-site-structure.md), [046](docs/decisions/046-tournament-lifecycle.md) |
+| Brackets — generated into the database on start, routing as real foreign keys, byes and forfeit vacancies resolved | [023](docs/decisions/023-bracket.md) |
+| Ranking — team + player views, provisional separation, search and cursor pagination | [025](docs/decisions/025-rating-system.md) |
+| Player profiles — public ratings/team/LFT history plus a private account and security surface | [029](docs/decisions/029-profile-login-footer.md) |
 | Plugin API — HMAC-signed ingest, sequencing, reconciliation, integrity gates | [009](docs/decisions/009-api-contract.md), [035](docs/decisions/035-match-result-integrity.md) |
 
 ### The three things that most need saying
@@ -28,6 +29,20 @@ plugin pipeline, the tournament and bracket flow, and the whole authentication s
 3. **Matches, veto, the panels and the home page are not built.** See
    [BUILD-PLAN](docs/BUILD-PLAN.md) for the itemised list, which is kept honest rather than
    flattering.
+
+### Team-page language
+
+**Competitive game context:** the selected CS2 or CS 1.6 view governing every rating, match,
+trophy and recruitment fact. Team identity and roster remain shared.
+
+**Trophy:** an authoritative top-three placement from a NEXTSKILL or trusted-organiser event.
+An untrusted event result remains history, not a self-issued profile credential.
+
+**Open slot:** a captain-published, game-specific recruitment position. Spare roster capacity
+alone is not an open slot.
+
+**Application:** a player's private expression of interest in one open slot. It grants no team
+membership; joining still requires the ordinary invitation and acceptance flow.
 
 ---
 
@@ -157,11 +172,10 @@ _Checked: 2026-08-10._
 ### 2.7 Steam login is still viable
 
 Steam supports [OpenID 2.0 for web authentication](https://partner.steamgames.com/doc/features/auth)
-and returns a SteamID. OpenID 2.0 is a deprecated *protocol* in general, but **no Steam
-sunset date has been announced.** Treat the login provider as a swappable seam rather
-than assuming it is permanent.
+and returns a SteamID. OpenID 2.0 is a legacy *protocol* in general, so the provider remains
+behind a swappable seam and its official documentation must be re-checked periodically.
 
-_Checked: 2026-08-10._
+_Checked: 2026-08-11._
 
 ---
 
@@ -182,23 +196,51 @@ These are binding, not aspirational.
 5. **One database until a profiler disagrees.** Same for caches, queues, and services.
 6. **Deliberate shortcuts are commented** with `ponytail:` and name their ceiling and
    upgrade path.
+7. **The product exists to remove manual work, so a feature that adds manual work must justify
+   itself.** Organisers told us the wound directly: *"organization — a lot of delays, manual work,
+   no free time"*, **3–5 people per event**, registration on a forum that is *"tedious and
+   unprofessional"*. Every step that asks a human to click something is measured against that.
+   A blocking gate must beat the automated alternative at the same job — otherwise it is a
+   non-blocking default with an opt-out, and the existing forfeit/expiry machinery handles whoever
+   does not act. Advancement, seeding and ratings are already automatic, and **check-in was the one
+   surviving blocking gate — now replaced by three layers** ([046](docs/decisions/046-tournament-lifecycle.md)):
+   automatic on registration close, optional explicit confirmation for captains who want to deviate
+   or withdraw, and presence at match time as ground truth with auto-forfeit after a grace window.
 
 ---
 
 ## 2a. Strategy
 
 Go-to-market, positioning and the commercial model live in
-[MARKETING-AND-SALES-STRATEGY.md](MARKETING-AND-SALES-STRATEGY.md).
+[MARKETING-AND-SALES-STRATEGY.md](MARKETING-AND-SALES-STRATEGY.md), **revised 2026-08-11** after a
+research pass falsified three of its assumptions. **Scope is Poland first.**
 
-Three points from it that constrain engineering:
+Five points from it that constrain engineering:
 
-1. **Organisers are the customer**, players are the reason the product exists. One converted
-   organiser brings dozens of players; one converted player brings nobody.
-2. **Growth is shared links, not advertising.** This is why server rendering and Open Graph
-   cards are load-bearing rather than cosmetic ([018](docs/decisions/018-frontend-architecture.md)).
-3. **CS 1.6 is the moat** — a one-time cost for us, a deterrent for competitors. Which makes
-   verification item **V3** (does `setinfo` behave the same on non-Steam clients?) the single
-   biggest product risk on the board, not merely a technical unknown.
+1. **Organisers are the customer**, tier 2–5 teams are the demand, players are the reason the
+   product exists. One converted organiser brings dozens of players; one converted player brings
+   nobody.
+2. **Growth is shared links, not advertising — and the channel is Discord**, because community
+   forums are dying. Server rendering and Open Graph cards are therefore load-bearing rather than
+   cosmetic ([018](docs/decisions/018-frontend-architecture.md)), and **the OG card should move
+   earlier than Phase 5d**: it is currently a `<meta>` tag and it is the entire top of the funnel.
+3. **The gap is structural, and it is not CS 1.6 alone.** Every alternative — FACEIT, CYBERSHOKE,
+   FastCup, Starter League, G5API — forces a community to choose between *owning the event* and
+   *having a rating anyone recognises*. NEXTSKILL is the only one offering both, and it is only
+   able to because tournaments are tenant-scoped while ratings are global
+   ([036](docs/decisions/036-authorization.md)). **The architecture is the positioning.**
+4. **Volume is a product requirement, not a growth metric.** Glicko-2 keeps teams `provisional`
+   until RD settles ([025](docs/decisions/025-rating-system.md)), so sporadic cups mean nobody is
+   ever ranked — and the acknowledgment promised to tier 2–5 teams silently never arrives. This is
+   why a continuous first-party ladder runs alongside community cups.
+5. **CS 1.6 is still a moat, but a narrower one than claimed.** [FastCup](https://cs.fastcup.net/)
+   already serves CS 1.6 matchmaking in CIS, so "nobody else serves 1.6" is false. What remains
+   unserved is *community-hosted 1.6 competition* — which keeps **V3** (does `setinfo` behave the
+   same on non-Steam clients?) the single biggest product risk on the board.
+
+> ⚠️ **Cheating is not in the threat model.** [040](docs/decisions/040-threat-model.md) covers
+> SSRF, IDOR and decompression bombs, and says nothing about cheating — while the rating it
+> protects is the entire commercial moat. This needs a recorded decision rather than an omission.
 
 ## 3a. How we work on this project
 
@@ -244,7 +286,7 @@ is what surfaced the identity problem in [010](docs/decisions/010-identity-bindi
 | Item | Value |
 | --- | --- |
 | Local repo | `C:\Users\miron\OneDrive\Pulpit\NEXTSKILL PROJECT` (git initialised, branch `main`) |
-| GitHub remote | **Not yet created.** `gh` CLI is not installed on this machine. Intended name `NEXT SKILL PROJECT` → GitHub will slugify to `NEXT-SKILL-PROJECT` (repo names cannot contain spaces). Visibility: **private**. |
+| GitHub remote | CREATED NAMED `NEXT-SKILL-PROJECT`. Visibility: **private**. |
 | Git | `C:\Program Files\Git\cmd\git.exe` |
 | OS | Windows 11 Pro |
 
@@ -284,7 +326,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [012](docs/decisions/012-security.md) | Security measures | **decided** — HMAC + replay window, demo-upload hardening, secrets never logged, rate limits, GDPR retention/anonymisation |
 | [013](docs/decisions/013-server-connect.md) | Connecting players to the server | **decided** — **always show both** `steam://` button and copyable console command; `steam://` silently fails for non-Steam 1.6 players |
 | [014](docs/decisions/014-discord.md) | Discord integration | **decided** — outgoing **webhooks only**, no bot. Webhook URL is a credential *and* an SSRF sink |
-| [015](docs/decisions/015-admin-panel.md) | Admin panel & CMS | **decided** — fixed formats + parameters + clonable templates. **No rule engine.** CMS manages news, static pages, map pools — not layouts |
+| [015](docs/decisions/015-admin-panel.md) | Admin panel & CMS | **decided** — fixed formats + parameters + clonable organiser templates. **No rule engine.** Tournament template snapshots and lifecycle-safe editing are implemented; CMS manages news, static pages, map pools — not layouts |
 | [016](docs/decisions/017-deployment-and-cicd.md#code-optimisation-016) | Code optimisation | **decided** — no optimisation without measurement; only design-time choices (indexes, N+1 avoidance, cursor pagination) done up front |
 | [017](docs/decisions/017-deployment-and-cicd.md) | Deployment & Docker | **decided** — Docker Compose, single EU host, CDN in front, no Kubernetes, no Redis. **Tested restores, not just backups** |
 
@@ -303,7 +345,14 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [046](docs/decisions/046-tournament-lifecycle.md) | **Tournament lifecycle** | **decided** — state machine as a pure function; drafts private; entry requires enough *fieldable* players; seeding on close puts provisional teams last and is deterministic |
 | [047](docs/decisions/047-two-factor.md) | **Two-factor & password reset** | **decided** — reset links single-use and 5 minutes; TOTP (any authenticator) preferred, SMS offered but named as weaker; recovery codes issued with the factor; messaging seam fails closed; token-bucket rate limiting |
 | [048](docs/decisions/048-organiser-server-configuration.md) | **Organiser server & plugin config** | 🔴 **OPEN** — BYO servers, a plugin *list*, per-tournament config. Also a **sales position**, cross-linked to the strategy |
-| [045](docs/decisions/045-teams-and-rosters.md) | **Teams: roster size, edit, disband** | **decided** — **5 players + 3 subs + 2 coaches**, capped per slot. Slot is a second axis to role, so a coach can captain without being fieldable. Pending invites occupy a place; disband is soft and the tag stays reserved |
+| [049](docs/decisions/049-team-page.md) | **Team page competitive history & recruitment** | **decided** — one shareable game context; integrity-aware history and record; accessible rating trend; trusted authoritative trophies; intentional expiring openings with private applications; monograms remain until 044 closes |
+| [050](docs/decisions/050-match-results-and-ratings.md) | **How a result becomes a rating** | **decided** — the join nothing had: `MatchParticipant` with `Declared`/`Bound` provenance, lineup frozen at check-in, an **append-only rating ledger** whose unique index *is* the sweeper's idempotency, and one rule for both human actions — **judgement holds the reversible thing (the rating), never the irreversible one (the bracket)**. `organiser.trusted` finally means something. Bind in, demos out |
+| [051](docs/decisions/051-phase-4-remainder.md) | **Phase 4 remainder** | **decided** — veto before matches (server-rendered, SSE is Phase 5); **we never dial a game server**, which deletes 040's top risk; localisation habit now with Polish as the *neutral* resource; seasons frozen by timestamp not snapshot; recruitment is three objects because an invite costs a roster place and interest does not; search SQL corrected (`unaccent` is not `IMMUTABLE`); audit log exists because a **denied** attempt has no row; `DisableHtml()` alone does not stop `javascript:` links |
+| [052](docs/decisions/052-cheating-and-rating-integrity.md) | **Cheating & rating integrity** | **decided** — **zero-install and kernel anti-cheat are the same decision seen from two ends**, recorded as a deliberate trade. Defend the *record*, not the machine: the team-based scheduled format is the first defence, Steam ban checks and demos are the cheap signals, and [050](docs/decisions/050-match-results-and-ratings.md)'s ledger already makes reversal a recompute. No fork (AGPL contagion, public detections, [003](docs/decisions/003-build-basis.md)). **Three tiers: none by default, an optional user-mode client an organiser may require per event, and a kernel driver reserved behind four hard preconditions** — whether the client ran is recorded *on the match* as evidence, never as an automatic verdict. **The labelled corpus is the moat, not the detector**, so demo retention and referee verdicts are load-bearing from day one |
+| [053](docs/decisions/053-rewards-and-prize-pools.md) | **Rewards & prize pools** | **decided** — Valve removed progression from community servers; rewards are how we give it back. **Earned, never drawn**: no chance mechanics, because a deterministic reward *is* another verifiable fact on the record while a random one imports a permanent regulatory question. Three tiers — status (free, already built), **community-funded stackable attributed pools** (a feature, not a cost), deterministic perks. We never hold anyone's prize money |
+| [054](docs/decisions/054-becoming-a-rated-player.md) | **Becoming a rated player** | **decided** — the *"this counted"* moment must land in-session or it never lands. **CS2 plays first and claims after** (verified SteamID, one-click Steam OpenID attaches the whole history); **CS 1.6 registers first and binds with two factors**, because [010](docs/decisions/010-identity-binding.md) proved its identity spoofable. Not an inconsistency — the lazy path exists in one game and is a hole in the other. Claiming reuses [050](docs/decisions/050-match-results-and-ratings.md)'s promotion shape |
+| [055](docs/decisions/055-multi-game-scope.md) | **Multi-game scope** | **decided — deferred on purpose, ladder fixed.** Nothing built, nothing narrowed: `Match.Game`, `jsonb` payloads and pure engines are already game-agnostic, and [006](docs/decisions/006-architecture.md)'s rule of two forbids generalising before one game runs end to end. **Tier A** = plugin games (the moat); **Tier B** = official tournament APIs, and **LoL via Riot Tournament API is the only viable non-CS first step** because its results callback is the same inversion of control as our plugin contract; **Tier C** (CoD, Rocket League, Clash Royale) is refused — no community servers, no rating gap, different customer, and a manual-score path would make *"results are reported, not entered"* false in our own product. CS:GO stays out pending a ten-minute population count |
+| [045](docs/decisions/045-teams-and-rosters.md) | **Teams: roster size, edit, disband, restore** | **decided** — **5 players + 3 subs + 2 coaches**, capped per slot. Slot is a second axis to role, so a coach can captain without being fieldable. Pending invites occupy a place; disband is soft and reserves the tag; a captain present at disband may restore the same team without rewriting old roster history |
 | [023](docs/decisions/023-bracket.md) | Bracket data model & rendering | **decided** — whole bracket generated up front with **explicit routing links**; mobile gets round-by-round + follow-team, not a shrunken tree |
 | [024](docs/decisions/024-demos.md) | Demo storage & retention | **decided** — 90 days, then deleted; finals and disputes kept indefinitely; local disk, authorised endpoint only |
 | [025](docs/decisions/025-rating-system.md) | Rating, ranking & tiers | **decided** — one system, three layers. Team = **Glicko-2**, player = **OpenSkill**. Ranking/tiers are derived views, never stored |
