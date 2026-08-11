@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.RateLimiting;
@@ -38,10 +37,6 @@ public class LoginModel(NextSkillDb db) : PageModel
     [BindProperty] public Form Input { get; set; } = new();
     [BindProperty(SupportsGet = true)] public string? ReturnUrl { get; set; }
 
-    private string Locale => Locales.IsSupported(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName)
-        ? CultureInfo.CurrentUICulture.TwoLetterISOLanguageName
-        : Locales.Default;
-
     public void OnGet() { }
 
     public async Task<IActionResult> OnPostAsync()
@@ -66,7 +61,7 @@ public class LoginModel(NextSkillDb db) : PageModel
         }
 
         await Sessions.SignInAsync(HttpContext, db, account);
-        return Redirect(Sessions.SafeReturnUrl(ReturnUrl, Locale));
+        return Redirect(Sessions.SafeReturnUrl(ReturnUrl, Locales.Current));
     }
 
     /// <summary>

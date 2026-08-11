@@ -1,0 +1,50 @@
+@page
+@model NextSkill.Api.Pages.Teams.CreateModel
+@{
+    ViewData["Title"] = "Załóż drużynę";
+}
+
+<div class="wrap-narrow section">
+
+    <p class="eyebrow">Drużyny</p>
+    <h1>Załóż drużynę</h1>
+    <p class="lede">
+        Zostaniesz kapitanem. Skład zaprosisz w następnym kroku —
+        drużyna może istnieć, zanim znajdziesz resztę graczy.
+    </p>
+
+    <form method="post" class="card" style="margin-top:var(--s6)">
+        @if (ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+        {
+            <div class="alert alert--error" role="alert" style="margin-bottom:var(--s4)">
+                @foreach (var error in ViewData.ModelState[string.Empty]!.Errors)
+                {
+                    <div>@error.ErrorMessage</div>
+                }
+            </div>
+        }
+
+        <div class="field">
+            <label asp-for="Input.Name">Nazwa</label>
+            <input class="input" asp-for="Input.Name" maxlength="60" required autofocus autocomplete="off" />
+            <span class="field__error" asp-validation-for="Input.Name"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.Tag">Tag</label>
+            <input class="input" asp-for="Input.Tag" maxlength="8" required autocomplete="off" />
+            <span class="field__hint">Krótki skrót widoczny w drabince i na tablicy wyników. Musi być unikalny.</span>
+            <span class="field__error" asp-validation-for="Input.Tag"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.City">Miasto <span class="dim">— opcjonalnie</span></label>
+            <input class="input" asp-for="Input.City" maxlength="60" autocomplete="off" />
+            <span class="field__error" asp-validation-for="Input.City"></span>
+        </div>
+
+        <button class="btn btn--primary" type="submit" style="width:100%;justify-content:center">
+            Załóż drużynę
+        </button>
+    </form>
+</div>

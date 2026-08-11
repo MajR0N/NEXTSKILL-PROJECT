@@ -71,6 +71,14 @@ builder.Services
         o.Events.OnValidatePrincipal = Sessions.ValidateAsync;
     });
 
+// OpenAPI 3.1, generated from the real endpoint signatures rather than
+// hand-written (009, 039). .NET 10 emits 3.1 by default, and NSwag turns the
+// document into the TypeScript client 004 planned for.
+//
+// A hand-maintained spec drifts from the code within weeks, and a plugin author
+// debugging against a stale spec is debugging the wrong thing.
+builder.Services.AddOpenApi();
+
 // HSTS: a year, subdomains included (012). The default 30 days is short enough
 // that a browser which has not visited recently is back to trusting http.
 //
@@ -121,6 +129,14 @@ builder.Services.AddLocalization(o => o.ResourcesPath = "Resources");
 
 builder.Services.AddRazorPages(o =>
 {
+    // Entity pages get a short, shareable URL: /pl/teams/{id} rather than
+    // /pl/teams/details/{id}. These links get pasted into Discord and live
+    // forever (018), so the ugly form must never be the one we emit.
+    //
+    // Registered BEFORE the locale convention on purpose — conventions run in
+    // order, and the locale prefix has to apply to this route too.
+    o.Conventions.AddPageRoute("/Teams/Details", "teams/{id:guid}");
+
     o.Conventions.Add(new LocaleRouteConvention());
 });
 
@@ -175,6 +191,15 @@ app.MapRazorPages().WithStaticAssets();
 
 // Plugin-facing API: HMAC-signed, plugin-initiated in every direction (009).
 app.MapPluginApi();
+
+// Development only for now. The document itself carries no secrets — every
+// endpoint is HMAC-protected regardless — but publishing a machine-readable map
+// of the API is a decision for 039's public-API work, not a side effect of
+// generating types. Serving it is one line when that decision is made.
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
 
 // The platform organiser must exist before anything can use it (043). Seeding
 // runs with NO tenant in scope, which is fine: Organiser and Season are global.

@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -106,12 +105,8 @@ public static class Sessions
     /// <summary>Login URL in the caller's language, with a return path attached.</summary>
     public static string LoginUrl(HttpRequest request)
     {
-        var locale = Locales.IsSupported(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName)
-            ? CultureInfo.CurrentUICulture.TwoLetterISOLanguageName
-            : Locales.Default;
-
         var returnTo = Uri.EscapeDataString(request.Path + request.QueryString);
-        return $"/{locale}/account/login?returnUrl={returnTo}";
+        return $"/{Locales.Current}/account/login?returnUrl={returnTo}";
     }
 
     /// <summary>

@@ -31,4 +31,16 @@ public static class Locales
 
     public static bool IsSupported(string? locale) =>
         locale is not null && Supported.Contains(locale);
+
+    /// <summary>
+    /// The locale of the request being handled, for building redirects and links.
+    ///
+    /// RequestLocalization has already resolved this from the URL by the time any
+    /// page or handler runs, so reading the culture is reading the URL — no
+    /// second source of truth.
+    /// </summary>
+    public static string Current =>
+        IsSupported(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName)
+            ? CultureInfo.CurrentUICulture.TwoLetterISOLanguageName
+            : Default;
 }

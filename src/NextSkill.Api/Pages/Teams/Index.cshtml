@@ -1,0 +1,101 @@
+@page
+@model NextSkill.Api.Pages.Teams.IndexModel
+@using NextSkill.Api.Localisation
+@{
+    ViewData["Title"] = "Drużyny";
+    ViewData["Description"] = "Drużyny CS 1.6 i CS2 na NEXTSKILL.";
+    var locale = Locales.Current;
+}
+
+<div class="wrap section">
+
+    <p class="eyebrow">Społeczność</p>
+    <h1>Drużyny</h1>
+    <p class="lede">Każda drużyna ma własną stronę, skład i rating liczony z rozegranych meczów.</p>
+
+    @if (Model.Invites.Count > 0)
+    {
+        @* Until the notification bell exists (043), this is where an invite is
+           findable. An invite nobody sees is an invite nobody accepts. *@
+        <p class="label" style="margin-top:var(--s6)">Zaproszenia dla Ciebie</p>
+        <div class="stack">
+            @foreach (var invite in Model.Invites)
+            {
+                <div class="card row" style="justify-content:space-between">
+                    <div class="team">
+                        <span class="avatar avatar--@NextSkill.Api.Pages.Teams.IndexModel.Palette(invite.Tag)">@NextSkill.Api.Pages.Teams.IndexModel.Initials(invite.Name)</span>
+                        <span>
+                            <span class="team__name">@invite.Name</span>
+                            <span class="team__meta"><span class="team__tag">@invite.Tag</span></span>
+                        </span>
+                    </div>
+                    <div class="row">
+                        <form method="post" asp-page="/Teams/Details" asp-page-handler="Respond"
+                              asp-route-culture="@locale" asp-route-id="@invite.TeamId" asp-route-accept="true">
+                            <button class="btn btn--primary" type="submit">Dołącz</button>
+                        </form>
+                        <form method="post" asp-page="/Teams/Details" asp-page-handler="Respond"
+                              asp-route-culture="@locale" asp-route-id="@invite.TeamId" asp-route-accept="false">
+                            <button class="btn btn--ghost" type="submit">Odrzuć</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="row" style="margin:var(--s6) 0 var(--s4);justify-content:space-between">
+        <p class="label" style="margin:0">@(Model.All.Count) @(Model.All.Count == 1 ? "drużyna" : "drużyn")</p>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a class="btn btn--primary" asp-page="/Teams/Create" asp-route-culture="@locale">Załóż drużynę</a>
+        }
+        else
+        {
+            <a class="btn" asp-page="/Account/Login" asp-route-culture="@locale">Zaloguj się, żeby założyć drużynę</a>
+        }
+    </div>
+
+    @if (Model.All.Count == 0)
+    {
+        <div class="empty">
+            <div class="empty__icon">◈</div>
+            <h4>Jeszcze nie ma drużyn</h4>
+            <p>Załóż pierwszą — potrzebujesz tylko nazwy i tagu, resztę składu zaprosisz później.</p>
+            <a class="btn btn--primary" asp-page="/Teams/Create" asp-route-culture="@locale">Załóż drużynę</a>
+        </div>
+    }
+    else
+    {
+        <div class="table-scroll">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">Drużyna</th>
+                        <th scope="col">Miasto</th>
+                        <th scope="col" class="r">Skład</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.All)
+                    {
+                        <tr>
+                            <td>
+                                <a class="team" style="text-decoration:none;color:inherit"
+                                   asp-page="/Teams/Details" asp-route-culture="@locale" asp-route-id="@row.Id">
+                                    <span class="avatar avatar--@NextSkill.Api.Pages.Teams.IndexModel.Palette(row.Tag)">@NextSkill.Api.Pages.Teams.IndexModel.Initials(row.Name)</span>
+                                    <span>
+                                        <span class="team__name">@row.Name</span>
+                                        <span class="team__meta"><span class="team__tag">@row.Tag</span></span>
+                                    </span>
+                                </a>
+                            </td>
+                            <td class="dim">@(row.City ?? "—")</td>
+                            <td class="r num">@row.Members</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

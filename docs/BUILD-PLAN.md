@@ -145,7 +145,6 @@ Built before any UI, because they are pure functions and they hide the silent bu
   - ☑ Bracket blocked unless `confirmed`
   - ☑ **A trusted organiser skips team confirmation but NOT the integrity gate** — trust is about intent, integrity is about whether we received the result correctly
   - ☑ Referee override advances anything, and is audited — without it a genuine dispute could deadlock a tournament
-- ☐ **OpenAPI 3.1 spec** generated from these types
 - ☑ **Plugin endpoints** ([009](decisions/009-api-contract.md)) — config pull, event ingest, heartbeat. HMAC filter establishes the tenant **from the verified server**, so a plugin request authenticates and scopes itself in one step
 - ☑ **Simulator** ([038](decisions/038-build-order.md)) — a real HTTP client that **misbehaves on demand**, driving the real pipeline in-process. **11/11 end-to-end checks:**
   - ☑ Signed heartbeat accepted; plugin version recorded ([007](decisions/007-server-hosting-model.md))
@@ -158,7 +157,7 @@ Built before any UI, because they are pure functions and they hide the silent bu
   - ☑ `map_end` agreeing with events → `confirmed`
   - ☑ **`map_end` disagreeing → `disputed`, bracket blocked** — the silent failure, made loud, end to end
   - ☑ Malformed body → 400, never silently defaulted
-- ☐ **OpenAPI 3.1 spec** generated from these types
+- ☑ **OpenAPI 3.1 spec** generated from the real endpoint signatures — `AddOpenApi()`/`MapOpenApi()`, in the box since .NET 9 and emitting 3.1.1. Verified at `/openapi/v1.json`. **Development only for now**: the document holds no secrets, but publishing a machine-readable map of the API belongs to [039](decisions/039-public-api.md)'s work, not to generating types
 - ➡ **503-retry check** moves to Phase 7 with maintenance mode ([033](decisions/033-maintenance-mode.md))
 
 ## Phase 4 — Web platform, slice by slice
@@ -177,7 +176,7 @@ Built before any UI, because they are pure functions and they hide the silent bu
 >
 > | Page | Open questions |
 > | --- | --- |
-> | **Team page `/teams/{id}`** | Roster with roles, match history, rating trend, trophies, open slots? Who can edit what? |
+> | **Team page `/teams/{id}`** | Roster and roles are **built and decided**. Still open: match history, rating trend, trophies, open slots, team logos |
 > | **LFT board `/lft`** | Filters, listing shape, expiry rules, how a team contacts a player, abuse controls |
 > | **News `/news`** | Index and post layout, pinning, localisation fallback presentation |
 > | **Seasons `/seasons/{n}`** | What does a frozen archive look like — standings only, or full browsable history? |
@@ -205,8 +204,8 @@ endpoint, request, handler and validator together.
 
 - ☑ **Ranking** — index archetype, the workhorse page. Server-rendered on live data;
   provisional teams listed separately, `±RD` and confidence bar shown openly
-- ☐ **Accounts** — register, login, `setinfo` token rotate ([011](decisions/011-accounts-and-login.md))
-- ☐ **Teams** — create, invite, roster
+- ◐ **Accounts** — register, login, logout done: Argon2id, session row + signed cookie, rate limiting, identical answers for unknown address and wrong password. **`setinfo` token rotation still open** ([011](decisions/011-accounts-and-login.md))
+- ◐ **Teams** — create (founder becomes captain in one transaction), invite by nickname, accept/decline, remove, leave. Pending invites grant nothing and are never counted as roster; the last captain cannot leave. **Team page not fully grilled** — match history, rating trend and trophies still open
 - ☐ **Tournaments** — create from template, register, seed ([015](decisions/015-admin-panel.md))
 - ☐ **Brackets** — render, advance (integrity-gated)
 - ☐ **Matches** — detail, config endpoint, event ingest, bind, demo upload
@@ -219,7 +218,7 @@ endpoint, request, handler and validator together.
 - ☐ Tenant isolation — B cannot see A's tournament; by-ID returns **404 not 403**
 - ☐ No tenant context → **throws**, returns nothing
 - ☐ SSRF — `127.0.0.1`, `169.254.169.254`, and a hostname resolving to a private IP all rejected
-- ☐ Open redirect — `//evil.com` and absolute URLs rejected
+- ☑ Open redirect — `//evil.com`, absolute URLs, `javascript:` and `/\` all rejected
 - ☐ Sort allowlist — `?sort=id;DROP` rejected, never interpolated
 - ☐ Zip bomb aborted; archive filenames never trusted
 - ☐ No secret appears in any log

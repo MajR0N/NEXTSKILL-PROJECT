@@ -487,6 +487,19 @@ catch (Exception ex)
 }
 
 Console.WriteLine();
+Console.WriteLine("TEAMS · invites, rosters, captaincy  (decisions 021, 036)");
+try
+{
+    NextSkill.Checks.TeamChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  team checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
 Console.WriteLine("END-TO-END · simulator vs the real pipeline  (decisions 034, 038)");
 try
 {

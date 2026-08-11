@@ -1,4 +1,3 @@
-using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using NextSkill.Api.Localisation;
@@ -21,11 +20,7 @@ public class LogoutModel(NextSkillDb db) : PageModel
     {
         await Sessions.SignOutAsync(HttpContext, db);
 
-        var locale = Locales.IsSupported(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName)
-            ? CultureInfo.CurrentUICulture.TwoLetterISOLanguageName
-            : Locales.Default;
-
-        return Redirect($"/{locale}");
+        return Redirect($"/{Locales.Current}");
     }
 
     /// <summary>A GET here means a stale link or a prefetch — bounce, never act.</summary>

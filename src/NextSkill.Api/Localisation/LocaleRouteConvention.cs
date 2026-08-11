@@ -30,17 +30,28 @@ public sealed class LocaleRouteConvention : IPageRouteModelConvention
         //
         // The original unlocalised selectors are left alone: they keep "/Error"
         // reachable for the exception handler, and they are never linked to.
+        // SuppressLinkGeneration means "this route still MATCHES, but never
+        // generate a link from it". Razor and AddPageRoute both use it to mark
+        // the non-canonical spelling of a page — "Ranking/Index" when the real
+        // URL is "Ranking", or "Teams/Details" when it is "teams/{id}".
+        //
+        // Several source selectors collapse to one localised template, so the
+        // flag is only carried over when EVERY source was suppressed. Taking it
+        // from whichever happened to come first silently stopped the site
+        // linking to /pl/ranking at all — it fell back to /ranking?culture=pl,
+        // which works and is wrong.
         var localised = model.Selectors
-            .Select(s => Collapse(s.AttributeRouteModel!.Template ?? ""))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(t => t.Length)
-            .Select(t => new SelectorModel
+            .GroupBy(s => Collapse(s.AttributeRouteModel!.Template ?? ""), StringComparer.OrdinalIgnoreCase)
+            .Select(g => (Template: g.Key, Suppress: g.All(s => s.AttributeRouteModel!.SuppressLinkGeneration)))
+            .OrderBy(x => x.Template.Length)
+            .Select(x => new SelectorModel
             {
                 AttributeRouteModel = new AttributeRouteModel
                 {
                     Order = -1,
+                    SuppressLinkGeneration = x.Suppress,
                     Template = AttributeRouteModel.CombineTemplates(
-                        $"{{{Prefix}:regex(^{Locales.RoutePattern}$)}}", t),
+                        $"{{{Prefix}:regex(^{Locales.RoutePattern}$)}}", x.Template),
                 },
             })
             .ToList();

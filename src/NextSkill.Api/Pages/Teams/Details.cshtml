@@ -1,0 +1,172 @@
+@page "{id:guid}"
+@model NextSkill.Api.Pages.Teams.DetailsModel
+@using NextSkill.Api.Localisation
+@using NextSkill.Api.Shared.Persistence
+@using NextSkill.Domain.Access
+@using Model = NextSkill.Api.Pages.Teams.DetailsModel
+@{
+    var team = Model.Team!;
+    ViewData["Title"] = team.Name;
+    ViewData["Description"] = $"{team.Name} ({team.Tag}) — skład i rating na NEXTSKILL.";
+    var locale = Locales.Current;
+
+    @* Whoever pastes this link into Discord is sharing the team, so the card
+       has to name the team, not the site (018). *@
+}
+
+<div class="wrap section">
+
+    <div class="row" style="gap:var(--s4)">
+        <span class="avatar avatar--lg avatar--@Model.Palette(team.Tag)">@Model.Initials(team.Name)</span>
+        <div>
+            <p class="eyebrow">Drużyna · <b>@team.Tag</b></p>
+            <h1 style="margin-top:var(--s1)">@team.Name</h1>
+        </div>
+    </div>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert--error" role="alert" style="margin-top:var(--s5)">
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <div>@error.ErrorMessage</div>
+            }
+        </div>
+    }
+
+    <div class="detail-grid" style="margin-top:var(--s7)">
+        <div>
+            <p class="label">Skład</p>
+
+            @if (Model.Roster.Count == 0)
+            {
+                <div class="empty">
+                    <div class="empty__icon">◇</div>
+                    <h4>Skład jest pusty</h4>
+                    <p>Nikt jeszcze nie przyjął zaproszenia.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-scroll">
+                    <table class="table table--dense">
+                        <tbody>
+                            @foreach (var member in Model.Roster)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="team">
+                                            <span class="avatar avatar--sm avatar--@Model.Palette(member.Nickname)">@Model.Initials(member.Nickname)</span>
+                                            <span class="team__name">@member.Nickname</span>
+                                        </div>
+                                    </td>
+                                    <td class="dim">@(member.Role == TeamRole.Captain ? "Kapitan" : "Zawodnik")</td>
+                                    <td class="r">
+                                        @if (Model.CanManage && member.Role != TeamRole.Captain)
+                                        {
+                                            @* Destructive, so it is a POST and it is signed (012, 020). *@
+                                            <form method="post" asp-page-handler="Remove" asp-route-culture="@locale"
+                                                  asp-route-id="@team.Id" asp-route-accountId="@member.AccountId">
+                                                <button class="btn btn--danger" type="submit"
+                                                        style="padding:5px 11px;font-size:12.5px">Usuń</button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            @if (Model.Invited.Count > 0)
+            {
+                @* Pending invites are shown SEPARATELY and never counted as
+                   roster — an invited player is not a player yet, and a roster
+                   that quietly includes them would misstate who can play. *@
+                <p class="label" style="margin-top:var(--s6)">Zaproszeni · czekają na odpowiedź</p>
+                <div class="stack">
+                    @foreach (var member in Model.Invited)
+                    {
+                        <div class="card row" style="justify-content:space-between;padding:var(--s3) var(--s4)">
+                            <div class="team">
+                                <span class="avatar avatar--sm avatar--@Model.Palette(member.Nickname)" style="opacity:.55">@Model.Initials(member.Nickname)</span>
+                                <span class="dim">@member.Nickname</span>
+                            </div>
+                            @if (Model.CanManage)
+                            {
+                                <form method="post" asp-page-handler="Remove" asp-route-culture="@locale"
+                                      asp-route-id="@team.Id" asp-route-accountId="@member.AccountId">
+                                    <button class="btn btn--ghost" type="submit"
+                                            style="padding:5px 11px;font-size:12.5px">Cofnij</button>
+                                </form>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (Model.CanManage)
+            {
+                <div class="card" style="margin-top:var(--s6)">
+                    <p class="label">Zaproś gracza</p>
+                    <form method="post" asp-page-handler="Invite" asp-route-culture="@locale" asp-route-id="@team.Id">
+                        <div class="field">
+                            <label asp-for="InviteNickname">Nick gracza</label>
+                            <input class="input" asp-for="InviteNickname" maxlength="32" required
+                                   autocomplete="off" placeholder="np. Pukawka" />
+                            <span class="field__hint">Gracz musi mieć konto na NEXTSKILL i sam przyjąć zaproszenie.</span>
+                            <span class="field__error" asp-validation-for="InviteNickname"></span>
+                        </div>
+                        <button class="btn btn--primary" type="submit">Wyślij zaproszenie</button>
+                    </form>
+                </div>
+            }
+            else if (Model.IsMember)
+            {
+                <form method="post" asp-page-handler="Leave" asp-route-culture="@locale" asp-route-id="@team.Id"
+                      style="margin-top:var(--s6)">
+                    <button class="btn btn--danger" type="submit">Opuść drużynę</button>
+                </form>
+            }
+        </div>
+
+        @* Meta rail carries FACTS, never actions (041). *@
+        <aside>
+            <p class="label">Rating</p>
+            <div class="rail">
+                @foreach (var (label, rating) in new[] { ("CS2", Model.Cs2), ("CS 1.6", Model.Cs16) })
+                {
+                    <div>
+                        <span>@label</span>
+                        <span>
+                            @if (rating is null)
+                            {
+                                <span class="dim">brak meczów</span>
+                            }
+                            else
+                            {
+                                @rating.Value.ToString("F0")<span class="rating__rd"> ±@rating.Deviation.ToString("F0")</span>
+                                @if (Model.IsProvisional(rating))
+                                {
+                                    <span class="dim" style="font-size:11px"> · wstępny</span>
+                                }
+                            }
+                        </span>
+                    </div>
+                }
+                <div><span>Założona</span><span>@team.CreatedAt.ToString("yyyy-MM-dd")</span></div>
+                @if (!string.IsNullOrWhiteSpace(team.City))
+                {
+                    <div><span>Miasto</span><span>@team.City</span></div>
+                }
+                <div><span>Zawodników</span><span>@Model.Roster.Count</span></div>
+            </div>
+
+            <p class="lede" style="font-size:13px">
+                Rating pojawia się po pierwszym rozstrzygniętym meczu.
+                <b>±</b> pokazuje, jak pewny jest wynik.
+            </p>
+        </aside>
+    </div>
+</div>
