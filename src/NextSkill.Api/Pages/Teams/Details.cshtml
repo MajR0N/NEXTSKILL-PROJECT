@@ -36,7 +36,14 @@
 
     <div class="detail-grid" style="margin-top:var(--s7)">
         <div>
-            <p class="label">Skład</p>
+            <div class="row" style="justify-content:space-between;margin-bottom:var(--s3)">
+                <p class="label" style="margin:0">Skład · @Model.Roster.Count / @NextSkill.Domain.Teams.RosterRules.MaxActiveMembers</p>
+                @if (Model.CanManage)
+                {
+                    <a class="btn btn--ghost" asp-page="/Teams/Edit" asp-route-culture="@locale" asp-route-id="@team.Id"
+                       style="padding:5px 12px;font-size:12.5px">Ustawienia</a>
+                }
+            </div>
 
             @if (Model.Roster.Count == 0)
             {
@@ -119,6 +126,14 @@
             {
                 <div class="card" style="margin-top:var(--s6)">
                     <p class="label">Zaproś gracza</p>
+                    @if (Model.PlacesLeft <= 0)
+                    {
+                        @* Five is the largest lineup any format fields, so a sixth
+                           place would mean nothing (045). *@
+                        <p class="lede" style="margin-top:0">
+                            Skład jest pełny. Zwolnij miejsce, zanim zaprosisz kogoś nowego.
+                        </p>
+                    }
                     <form method="post" asp-page-handler="Invite" asp-route-culture="@locale" asp-route-id="@team.Id">
                         <div class="field">
                             <label asp-for="InviteNickname">Nick gracza</label>
@@ -127,7 +142,7 @@
                             <span class="field__hint">Gracz musi mieć konto na NEXTSKILL i sam przyjąć zaproszenie.</span>
                             <span class="field__error" asp-validation-for="InviteNickname"></span>
                         </div>
-                        <button class="btn btn--primary" type="submit">Wyślij zaproszenie</button>
+                        <button class="btn btn--primary" type="submit" disabled="@(Model.PlacesLeft <= 0)">Wyślij zaproszenie</button>
                     </form>
                 </div>
             }
@@ -169,7 +184,7 @@
                 {
                     <div><span>Miasto</span><span>@team.City</span></div>
                 }
-                <div><span>Zawodników</span><span>@Model.Roster.Count</span></div>
+                <div><span>Zawodników</span><span>@Model.Roster.Count / @NextSkill.Domain.Teams.RosterRules.MaxActiveMembers</span></div>
             </div>
 
             <p class="lede" style="font-size:13px">

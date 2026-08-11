@@ -31,6 +31,7 @@ public enum Operation
 
     // team scope
     ManageRoster,           // invite, remove, change roles
+    ManageTeam,             // rename, re-tag, disband — the team, not its people
     ConfirmResult,          // captain agrees the score
     DisputeResult,          // captain contests the score
 
@@ -148,6 +149,14 @@ public static class AccessPolicy
             // because that is not a moderation action, it is playing someone
             // else's game for them.
             Operation.ManageRoster => teamRole == TeamRole.Captain,
+
+            // Separate from ManageRoster on purpose. Removing a player and
+            // deleting the whole team are the same authority today, but they are
+            // not the same ACT — and the moment a manager-style role exists that
+            // may shuffle a roster without being able to dissolve the team, the
+            // split is already where it needs to be. One enum value now beats
+            // untangling a merged rule later.
+            Operation.ManageTeam => teamRole == TeamRole.Captain,
 
             // Confirming and disputing a result are the corroboration that
             // anti-match-fixing rests on (007), so they belong to the captain

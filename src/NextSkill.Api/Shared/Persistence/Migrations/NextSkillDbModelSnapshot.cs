@@ -553,6 +553,10 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<DateTimeOffset?>("DisbandedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("disbanded_at");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(60)

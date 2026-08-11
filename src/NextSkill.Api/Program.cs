@@ -136,6 +136,7 @@ builder.Services.AddRazorPages(o =>
     // Registered BEFORE the locale convention on purpose — conventions run in
     // order, and the locale prefix has to apply to this route too.
     o.Conventions.AddPageRoute("/Teams/Details", "teams/{id:guid}");
+    o.Conventions.AddPageRoute("/Teams/Edit", "teams/{id:guid}/edit");
 
     o.Conventions.Add(new LocaleRouteConvention());
 });

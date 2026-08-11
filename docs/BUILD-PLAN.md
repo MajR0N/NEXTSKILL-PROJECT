@@ -209,10 +209,11 @@ endpoint, request, handler and validator together.
   - ☑ Create (founder becomes captain in one transaction), invite by nickname, accept/decline, remove, leave, promote to captain
   - ☑ A pending invite grants nothing and is never counted as roster
   - ☑ The last captain cannot leave — **and can hand over**, which is what makes that rule a safeguard rather than a trap
-  - ☐ Edit team (name, tag, city, logo) and disband
-  - ☐ Roster size limit — undecided, and it interacts with tournament registration
+  - ☑ Edit (rename, re-tag, city) and **disband** — soft, tag stays reserved, confirmed by typing the tag ([045](decisions/045-teams-and-rosters.md))
+  - ☑ **Roster capped at 5**, because tournaments are 1v1/2v2/5v5 and no format fields a sixth. **Pending invites occupy a place** ([045](decisions/045-teams-and-rosters.md))
+  - ☐ Team logos — a [044](decisions/044-visual-direction.md) question, and it brings image validation and moderation with it
   - ☐ **Team page needs grilling**: match history, rating trend, trophies, open slots
-- ☐ **Tournaments** — create from template, register, seed ([015](decisions/015-admin-panel.md))
+- ☐ **Tournaments** — create from template, register, seed ([015](decisions/015-admin-panel.md)). **1v1, 2v2 and 5v5** ([045](decisions/045-teams-and-rosters.md)); the registered lineup is capped by the tournament, not by the team
 - ☐ **Brackets** — render, advance (integrity-gated)
 - ☐ **Matches** — detail, config endpoint, event ingest, bind, demo upload
 - ☐ **Veto & lobby** — web veto over SSE ([028](decisions/028-veto-and-lobby.md))

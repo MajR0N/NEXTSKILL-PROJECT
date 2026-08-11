@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using NextSkill.Api.Shared.Persistence;
 using NextSkill.Api.Shared.Tenancy;
 using NextSkill.Domain.Access;
+using NextSkill.Domain.Teams;
 
 namespace NextSkill.Checks;
 
@@ -72,7 +73,7 @@ public static class TeamChecks
         using var asOutsider = SignedInAs(outsider);
 
         Guid teamId = default;
-        var tag = $"T{stamp % 1000000}";
+        var tag = $"T{stamp % 1000000}";   // reassigned when the team is re-tagged
 
         // Resolved once, as plain locals: EF cannot translate a call to a local
         // function inside a query expression.
@@ -325,12 +326,186 @@ public static class TeamChecks
             }
         });
 
+        // ── roster cap (045) ─────────────────────────────────────────────
+        check("teams: the roster caps at five, and PENDING INVITES occupy a place", () =>
+        {
+            // Five is the largest lineup any format fields — 1v1, 2v2, 5v5 —
+            // so a sixth place would mean nothing.
+            //
+            // asPlayer, not asCaptain: the founder handed over and left in the
+            // check above, so they no longer hold ManageRoster here.
+            var filler = new List<HttpClient>();
+            try
+            {
+                using var db = Db();
+                var active = db.TeamMemberships.Count(m => m.TeamId == teamId && m.LeftAt == null && m.JoinedAt != null);
+                var pending = db.TeamMemberships.Count(m => m.TeamId == teamId && m.LeftAt == null && m.JoinedAt == null);
+                var free = RosterRules.MaxActiveMembers - active - pending;
+                that(free > 0, $"the fixture team should have room, had {active} active + {pending} pending");
+
+                // Fill every remaining place with invites that are never accepted.
+                for (var i = 0; i < free; i++)
+                {
+                    var nickname = $"Fil{stamp}x{i}";
+                    filler.Add(SignedInAs(nickname));
+
+                    var res = PostAsync(asPlayer, $"/pl/teams/{teamId}?handler=Invite", new()
+                    {
+                        ["InviteNickname"] = nickname,
+                    }, tokenPage: $"/pl/teams/{teamId}").GetAwaiter().GetResult();
+
+                    that(res.StatusCode == HttpStatusCode.Redirect,
+                        $"invite {i + 1} of {free} should be accepted, got {(int)res.StatusCode}");
+                }
+
+                // One more, with places filled ONLY by unanswered invites. If the
+                // cap counted accepted members alone, this would sail through —
+                // and five members plus two hundred invites would be a way to
+                // spam two hundred people (040).
+                var overflowNick = $"Fil{stamp}over";
+                filler.Add(SignedInAs(overflowNick));
+
+                var overflow = PostAsync(asPlayer, $"/pl/teams/{teamId}?handler=Invite", new()
+                {
+                    ["InviteNickname"] = overflowNick,
+                }, tokenPage: $"/pl/teams/{teamId}").GetAwaiter().GetResult();
+
+                that(overflow.StatusCode == HttpStatusCode.OK,
+                    $"the sixth place must be refused, got {(int)overflow.StatusCode}");
+
+                using var after = Db();
+                that(!after.TeamMemberships.Any(m => m.TeamId == teamId && m.AccountId != captainId
+                        && m.LeftAt == null && after.Accounts.Any(a => a.Id == m.AccountId && a.Nickname == overflowNick)),
+                    "no membership row may be created past the cap");
+
+                var total = after.TeamMemberships.Count(m => m.TeamId == teamId && m.LeftAt == null);
+                that(total <= RosterRules.MaxActiveMembers,
+                    $"active places must never exceed {RosterRules.MaxActiveMembers}, found {total}");
+            }
+            finally
+            {
+                foreach (var c in filler) c.Dispose();
+            }
+        });
+
+        // ── edit and disband (045) ───────────────────────────────────────
+        check("teams: a stranger cannot open or submit team settings", () =>
+        {
+            var get = asOutsider.GetAsync($"/pl/teams/{teamId}/edit").GetAwaiter().GetResult();
+            that((int)get.StatusCode == 403, $"expected 403, got {(int)get.StatusCode}");
+
+            using var db = Db();
+            var before = db.Teams.AsNoTracking().Single(t => t.Id == teamId).Name;
+
+            var post = PostAsync(asOutsider, $"/pl/teams/{teamId}/edit", new()
+            {
+                ["Input.Name"] = "Przejęte",
+                ["Input.Tag"] = $"X{stamp % 100000}",
+            }, tokenPage: $"/pl/teams/{teamId}").GetAwaiter().GetResult();
+
+            that((int)post.StatusCode is 403 or 400, $"expected a refusal, got {(int)post.StatusCode}");
+
+            using var after = Db();
+            that(after.Teams.AsNoTracking().Single(t => t.Id == teamId).Name == before,
+                "the team must be unchanged");
+        });
+
+        check("teams: a captain can rename and re-tag, and history is unaffected", () =>
+        {
+            var newTag = $"R{stamp % 1000000}";
+            var res = PostAsync(asPlayer, $"/pl/teams/{teamId}/edit", new()
+            {
+                ["Input.Name"] = "Nowa Nazwa",
+                ["Input.Tag"] = newTag,
+                ["Input.City"] = "Gdańsk",
+            }).GetAwaiter().GetResult();
+
+            that(res.StatusCode == HttpStatusCode.Redirect, $"expected a redirect, got {(int)res.StatusCode}");
+
+            using var db = Db();
+            var team = db.Teams.AsNoTracking().Single(t => t.Id == teamId);
+            that(team.Name == "Nowa Nazwa" && team.Tag == newTag && team.City == "Gdańsk", "the edit must be saved");
+
+            // The id is what results reference, and it must never move.
+            that(team.Id == teamId, "renaming must not create a new team");
+            tag = newTag;
+        });
+
+        check("teams: DISBAND requires typing the tag, and does NOT delete the row", () =>
+        {
+            using (var db = Db())
+            {
+                var wrong = PostAsync(asPlayer, $"/pl/teams/{teamId}/edit?handler=Disband", new()
+                {
+                    ["ConfirmTag"] = "cokolwiek",
+                }, tokenPage: $"/pl/teams/{teamId}/edit").GetAwaiter().GetResult();
+
+                that(wrong.StatusCode == HttpStatusCode.OK, "a wrong confirmation must not disband anything");
+                that(db.Teams.AsNoTracking().Single(t => t.Id == teamId).DisbandedAt is null, "still active");
+            }
+
+            var res = PostAsync(asPlayer, $"/pl/teams/{teamId}/edit?handler=Disband", new()
+            {
+                ["ConfirmTag"] = tag,
+            }, tokenPage: $"/pl/teams/{teamId}/edit").GetAwaiter().GetResult();
+
+            that(res.StatusCode == HttpStatusCode.Redirect, $"expected a redirect, got {(int)res.StatusCode}");
+
+            using var after = Db();
+            var team = after.Teams.AsNoTracking().SingleOrDefault(t => t.Id == teamId);
+
+            // Matches and ratings point at this id. Deleting the row would leave
+            // finished tournaments referencing nothing — history rewritten by a
+            // captain clicking a button months later (045).
+            that(team is not null, "THE ROW MUST SURVIVE — deleting it would corrupt every match that referenced this team");
+            that(team!.DisbandedAt is not null, "the team must be marked disbanded");
+
+            that(!after.TeamMemberships.Any(m => m.TeamId == teamId && m.LeftAt == null),
+                "everyone leaves at the same moment, so nobody holds captain rights over a dissolved team");
+        });
+
+        check("teams: a disbanded team leaves the directory but keeps its page and its tag", () =>
+        {
+            using var anonymous = Client();
+
+            var directory = anonymous.GetAsync("/pl/teams").GetAwaiter().GetResult()
+                .Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            that(!directory.Contains(tag), "a disbanded team must not be listed");
+
+            // The link still resolves: it may be sitting in a Discord message
+            // from last season, and old brackets still name this team (018).
+            var page = anonymous.GetAsync($"/pl/teams/{teamId}").GetAwaiter().GetResult();
+            that(page.StatusCode == HttpStatusCode.OK, $"the page must still load, got {(int)page.StatusCode}");
+
+            // And the tag stays reserved, or an old bracket would read as if it
+            // belonged to whoever claimed the tag afterwards.
+            using var fresh = SignedInAs($"Nw{stamp}");
+            var stolen = PostAsync(fresh, "/pl/teams/create", new()
+            {
+                ["Input.Name"] = "Podszywacz",
+                ["Input.Tag"] = tag,
+            }).GetAwaiter().GetResult();
+
+            that(stolen.StatusCode == HttpStatusCode.OK, "a disbanded team's tag must stay reserved");
+        });
+
+        check("teams: a disbanded team accepts no more invites", () =>
+        {
+            var res = PostAsync(asPlayer, $"/pl/teams/{teamId}?handler=Invite", new()
+            {
+                ["InviteNickname"] = outsider,
+            }, tokenPage: $"/pl/teams/{teamId}").GetAwaiter().GetResult();
+
+            that((int)res.StatusCode is 403 or 404,
+                $"a dissolved team must not be able to recruit, got {(int)res.StatusCode}");
+        });
+
         // Clean up so repeated runs stay honest.
         using (var db = Db())
             db.Database.ExecuteSqlRaw(
                 "DELETE FROM notifications WHERE account_id IN (SELECT id FROM accounts WHERE email LIKE {0}); " +
                 "DELETE FROM team_memberships WHERE account_id IN (SELECT id FROM accounts WHERE email LIKE {0}); " +
-                "DELETE FROM teams WHERE tag = {1}; " +
+                "DELETE FROM teams WHERE tag = {1} OR name = 'Nowa Nazwa'; " +
                 "DELETE FROM sessions WHERE account_id IN (SELECT id FROM accounts WHERE email LIKE {0}); " +
                 "DELETE FROM accounts WHERE email LIKE {0};",
                 $"%{stamp}@nextskill.test", tag);

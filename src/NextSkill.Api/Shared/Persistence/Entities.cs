@@ -114,6 +114,17 @@ public class Team
     public required string Tag { get; set; }
     public string? City { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>
+    /// Set when the team is disbanded. <b>Never a row delete</b> (decision 045).
+    ///
+    /// Matches and ratings reference this team by id. Deleting the row would
+    /// leave finished tournaments pointing at nothing — history rewritten by a
+    /// captain clicking a button months later. So the team stops being usable
+    /// and stays readable, which is the same call
+    /// <see cref="TeamMembership.LeftAt"/> makes for people.
+    /// </summary>
+    public DateTimeOffset? DisbandedAt { get; set; }
 }
 
 /// <summary>A registered game server. Tenant-scoped: it belongs to an organiser (decision 007).</summary>

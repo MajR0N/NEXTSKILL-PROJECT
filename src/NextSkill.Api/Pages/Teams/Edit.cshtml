@@ -1,0 +1,71 @@
+@page "{id:guid}"
+@model NextSkill.Api.Pages.Teams.EditModel
+@using NextSkill.Api.Localisation
+@{
+    var team = Model.Team!;
+    ViewData["Title"] = $"Ustawienia — {team.Name}";
+    var locale = Locales.Current;
+}
+
+<div class="wrap-narrow section">
+
+    <p class="eyebrow">Drużyna · <b>@team.Tag</b></p>
+    <h1>Ustawienia drużyny</h1>
+
+    <form method="post" class="card" style="margin-top:var(--s6)">
+        @if (ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+        {
+            <div class="alert alert--error" role="alert" style="margin-bottom:var(--s4)">
+                @foreach (var error in ViewData.ModelState[string.Empty]!.Errors)
+                {
+                    <div>@error.ErrorMessage</div>
+                }
+            </div>
+        }
+
+        <div class="field">
+            <label asp-for="Input.Name">Nazwa</label>
+            <input class="input" asp-for="Input.Name" maxlength="60" required autocomplete="off" />
+            <span class="field__error" asp-validation-for="Input.Name"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.Tag">Tag</label>
+            <input class="input" asp-for="Input.Tag" maxlength="8" required autocomplete="off" />
+            @* Renaming is safe because results reference the team by id. *@
+            <span class="field__hint">Zmiana tagu nie zmienia historii meczów — wyniki są przypisane do drużyny, nie do nazwy.</span>
+            <span class="field__error" asp-validation-for="Input.Tag"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.City">Miasto <span class="dim">— opcjonalnie</span></label>
+            <input class="input" asp-for="Input.City" maxlength="60" autocomplete="off" />
+            <span class="field__error" asp-validation-for="Input.City"></span>
+        </div>
+
+        <div class="row">
+            <button class="btn btn--primary" type="submit">Zapisz</button>
+            <a class="btn btn--ghost" asp-page="/Teams/Details" asp-route-culture="@locale" asp-route-id="@team.Id">Anuluj</a>
+        </div>
+    </form>
+
+    @* ── the destructive one, separated and last ────────────────────────── *@
+    <div class="card" style="margin-top:var(--s7);border-color:color-mix(in srgb, var(--loss) 35%, transparent)">
+        <p class="label">Rozwiąż drużynę</p>
+        <p class="lede" style="margin-top:0">
+            Drużyna zniknie z listy i nie będzie mogła grać ani przyjmować zawodników.
+            <b>Historia meczów i wyniki zostają</b> — turnieje, w których graliście, się nie zmienią.
+            Tag pozostaje zarezerwowany.
+        </p>
+
+        <form method="post" asp-page-handler="Disband" asp-route-culture="@locale" asp-route-id="@team.Id"
+              style="margin-top:var(--s4)">
+            <div class="field">
+                <label asp-for="ConfirmTag">Wpisz <b>@team.Tag</b>, żeby potwierdzić</label>
+                <input class="input" asp-for="ConfirmTag" autocomplete="off" placeholder="@team.Tag" />
+                <span class="field__error" asp-validation-for="ConfirmTag"></span>
+            </div>
+            <button class="btn btn--danger" type="submit">Rozwiąż drużynę</button>
+        </form>
+    </div>
+</div>

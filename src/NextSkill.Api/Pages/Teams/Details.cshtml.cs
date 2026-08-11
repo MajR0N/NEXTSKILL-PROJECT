@@ -7,6 +7,7 @@ using NextSkill.Api.Shared.Auth;
 using NextSkill.Api.Shared.Persistence;
 using NextSkill.Domain.Access;
 using NextSkill.Domain.Ratings;
+using NextSkill.Domain.Teams;
 
 namespace NextSkill.Api.Pages.Teams;
 
@@ -31,6 +32,9 @@ public class DetailsModel(NextSkillDb db) : PageModel
     /// <summary>Whether the VIEWER may change the roster — drives the whole UI.</summary>
     public bool CanManage { get; private set; }
     public bool IsMember { get; private set; }
+
+    /// <summary>Places left, counting pending invites (045).</summary>
+    public int PlacesLeft => RosterRules.MaxActiveMembers - Roster.Count - Invited.Count;
 
     [BindProperty] public string? InviteNickname { get; set; }
 
@@ -68,6 +72,23 @@ public class DetailsModel(NextSkillDb db) : PageModel
 
         var team = await db.Teams.FirstOrDefaultAsync(t => t.Id == id);
         if (team is null) return NotFound();
+        if (team.DisbandedAt is not null) return NotFound();
+
+        // ponytail: the cap is enforced here, not by the database. Ceiling: two
+        // captains inviting at the same instant can put the roster one over.
+        // Upgrade path: a trigger or a serialisable transaction — neither worth
+        // it for a limit whose exact edge nobody can perceive.
+        var active = await db.TeamMemberships.CountAsync(m => m.TeamId == id && m.LeftAt == null && m.JoinedAt != null);
+        var pending = await db.TeamMemberships.CountAsync(m => m.TeamId == id && m.LeftAt == null && m.JoinedAt == null);
+
+        if (!RosterRules.CanInvite(active, pending))
+        {
+            ModelState.AddModelError(nameof(InviteNickname),
+                $"Skład jest pełny — maksymalnie {RosterRules.MaxActiveMembers} osób razem z zaproszeniami. " +
+                "Usuń kogoś albo cofnij zaproszenie.");
+            await LoadAsync(id);
+            return Page();
+        }
 
         db.TeamMemberships.Add(new TeamMembership
         {

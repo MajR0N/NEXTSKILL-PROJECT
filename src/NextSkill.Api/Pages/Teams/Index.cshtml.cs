@@ -33,6 +33,9 @@ public class IndexModel(NextSkillDb db) : PageModel
         // subquery per column and it reads like the sentence above; the
         // GroupJoin/SelectMany version could not be translated at all.
         All = await db.Teams
+            // Disbanded teams keep their page — links to them stay valid, and
+            // old brackets still name them — but they leave the directory (045).
+            .Where(t => t.DisbandedAt == null)
             // Ordering happens BEFORE the projection: sorting a positional
             // record leaves EF nothing to translate.
             .OrderBy(t => t.Name)
