@@ -202,9 +202,21 @@ settled.
 Vertical slices ([006](decisions/006-architecture.md)). Each slice is a folder containing
 endpoint, request, handler and validator together.
 
-- ☑ **Ranking** — index archetype, the workhorse page. Server-rendered on live data;
-  provisional teams listed separately, `±RD` and confidence bar shown openly
-- ◐ **Accounts** — register, login, logout done: Argon2id, session row + signed cookie, rate limiting, identical answers for unknown address and wrong password. **`setinfo` token rotation still open** ([011](decisions/011-accounts-and-login.md))
+- ◐ **Ranking** — *was marked done; it is not.* The team ranking works end to end
+  - ☑ Server-rendered on live data; provisional teams listed separately; `±RD` and confidence bar shown openly
+  - ☐ **"Sezon 1" is hardcoded in the page** — there is no season behind it, which makes it a claim the product cannot back ([021](decisions/021-site-structure.md))
+  - ☐ **Player ranking** — [025](decisions/025-rating-system.md) designed team *and* player rating; OpenSkill is built and tested but appears nowhere
+  - ☐ Movement arrows (▲▼) and form strips (W/L) — the CSS exists and is unused, because both need match history
+  - ☐ Pagination and search — fine at three teams, not at three hundred
+- ◐ **Accounts** — sign-up and sign-in are solid; everything *after* sign-in is missing
+  - ☑ Argon2id, session row + signed cookie, revocation, rate limiting, identical answers for unknown address and wrong password
+  - ☐ **Password reset** — [011](decisions/011-accounts-and-login.md) requires it and it does not exist. **The largest single gap in the product**: a user who forgets their password is locked out permanently
+  - ☐ Email sending at all, and its deliverability (SPF/DKIM/DMARC) ([043](decisions/043-page-contents.md))
+  - ☐ **Profile page** ([029](decisions/029-profile-login-footer.md)) — nothing exists
+  - ☐ `setinfo` token rotate ([011](decisions/011-accounts-and-login.md))
+  - ☐ Steam / Discord linking — Steam OpenID is the proof of ownership ([011](decisions/011-accounts-and-login.md))
+  - ☐ **Log out everywhere** — the `sessions` table exists precisely to make this possible, and nothing calls it
+  - ☐ Account deletion and IP retention — **GDPR, and the audience is in the EU** ([011](decisions/011-accounts-and-login.md), [012](decisions/012-security.md))
 - ◐ **Teams** — roster mechanics done, presentation not
   - ☑ Create (founder becomes captain in one transaction), invite by nickname, accept/decline, remove, leave, promote to captain
   - ☑ A pending invite grants nothing and is never counted as roster
@@ -213,6 +225,7 @@ endpoint, request, handler and validator together.
   - ☑ **Roster is 5 players + 3 substitutes + 2 coaches = 10 places**, capped *per slot*. Coaches are **never fieldable**; pending invites occupy a place; moving between slots respects the destination cap ([045](decisions/045-teams-and-rosters.md))
   - ☐ Team logos — a [044](decisions/044-visual-direction.md) question, and it brings image validation and moderation with it
   - ☐ **Team page needs grilling**: match history, rating trend, trophies, open slots
+  - ☐ Un-disbanding — currently impossible, so a captain who dissolves by mistake needs staff ([045](decisions/045-teams-and-rosters.md))
 - ◐ **Tournaments** — lifecycle, registration and seeding done ([046](decisions/046-tournament-lifecycle.md))
   - ☑ State machine as a pure function; **`Draft → Running` refused**, `Completed`/`Cancelled` terminal
   - ☑ **Drafts are private** — invisible to the list, to strangers and by direct id
@@ -221,6 +234,8 @@ endpoint, request, handler and validator together.
   - ☑ `PublicReads` — the one sanctioned cross-tenant read seam ([036](decisions/036-authorization.md))
   - ☐ Templates and post-creation editing ([015](decisions/015-admin-panel.md))
   - ☐ Check-in before start, and **forfeit** as the honest exit from a running event
+  - ☐ Season assignment — the column exists and nothing sets it ([021](decisions/021-site-structure.md))
+  - ☐ Discord announcement on registration open / match start / results ([014](decisions/014-discord.md))
 - ◐ **Brackets** — the engine now runs on live data ([023](decisions/023-bracket.md))
   - ☑ Schema: bracket position + routing as **real foreign keys**, so a dangling link is impossible
   - ☑ `winner_team_id` stored rather than derived from the score
@@ -230,20 +245,35 @@ endpoint, request, handler and validator together.
   - ☑ `/t/{id}/bracket` — wide canvas, its own horizontal scroll ([041](decisions/041-layout-system.md))
   - ☐ Advancing on a **reported result** — waits on the match slice
   - ☐ Bracket reset triggered live; mobile round-by-round view ([023](decisions/023-bracket.md))
-- ☐ **Matches** — detail, config endpoint, event ingest, bind, demo upload
+- ☐ **Matches** — detail, config endpoint, event ingest, bind, demo upload. *The ingest half already
+  works and is proven end to end; what is missing is the web surface and the join to
+  `BracketBuilder.AdvanceAsync`*
+- ☐ **Home `/`** — still the scaffold. [043](decisions/043-page-contents.md) decided its contents
+  (live matches, pinned announcements, upcoming, recent results, top teams) and none of it is built
+- ☐ **Notifications** — rows are written on every invite and roster change, and **there is no bell
+  to read them** ([043](decisions/043-page-contents.md)). Invites are only findable because the
+  teams page lists them as a stopgap
+- ☐ **LFT board**, **News/CMS**, **Seasons archive** — decided in [021](decisions/021-site-structure.md)/[043](decisions/043-page-contents.md), tables exist, no pages
+- ☐ **Search** — `pg_trgm` + `unaccent` decided in [043](decisions/043-page-contents.md); the extension is not even enabled
 - ☐ **Veto & lobby** — web veto over SSE ([028](decisions/028-veto-and-lobby.md))
 - ☐ **Organiser panel** — servers, disputes, staff
 - ☐ **Staff panel** — users, orgs, audit, maintenance mode
+- ☐ **Translations — every page is hardcoded Polish.** `/de/teams` returns 200 and serves Polish
+  text. Only the *routing* half of [018](decisions/018-frontend-architecture.md) is built: locale in
+  the URL, `hreflang`, `og:locale` and the switcher all work, and there is not one resource file
+  behind them. This is a bigger surface than it looks — it touches every string already written
 
 ### Security checks that ship with the slices ([040](decisions/040-threat-model.md))
 
-- ☐ Tenant isolation — B cannot see A's tournament; by-ID returns **404 not 403**
-- ☐ No tenant context → **throws**, returns nothing
+- ☑ Tenant isolation — B cannot see A's tournament; by-ID returns **404 not 403** *(proven against real PostgreSQL since Phase 1, and again for drafts in [046](decisions/046-tournament-lifecycle.md))*
+- ☑ No tenant context → **throws**, returns nothing
 - ☐ SSRF — `127.0.0.1`, `169.254.169.254`, and a hostname resolving to a private IP all rejected
 - ☑ Open redirect — `//evil.com`, absolute URLs, `javascript:` and `/\` all rejected
 - ☐ Sort allowlist — `?sort=id;DROP` rejected, never interpolated
 - ☐ Zip bomb aborted; archive filenames never trusted
 - ☐ No secret appears in any log
+- ☑ CSRF — an untokened POST is refused ([011](decisions/011-accounts-and-login.md))
+- ☑ Account enumeration — unknown address and wrong password are indistinguishable by **message and by timing**
 
 ## Phase 5 — Frontend: make it look like something
 
