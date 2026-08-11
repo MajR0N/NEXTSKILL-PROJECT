@@ -21,7 +21,7 @@ namespace NextSkill.Api.Pages.Teams;
 /// </summary>
 public class DetailsModel(NextSkillDb db) : PageModel
 {
-    public sealed record Member(Guid AccountId, string Nickname, TeamRole Role, bool Pending);
+    public sealed record Member(Guid AccountId, string Nickname, TeamRole Role, RosterSlot Slot, bool Pending);
 
     public Team? Team { get; private set; }
     public IReadOnlyList<Member> Roster { get; private set; } = [];
@@ -33,10 +33,17 @@ public class DetailsModel(NextSkillDb db) : PageModel
     public bool CanManage { get; private set; }
     public bool IsMember { get; private set; }
 
-    /// <summary>Places left, counting pending invites (045).</summary>
-    public int PlacesLeft => RosterRules.MaxActiveMembers - Roster.Count - Invited.Count;
+    /// <summary>
+    /// How many places each slot has left, counting pending invites (045).
+    /// Drives which options the invite form even offers.
+    /// </summary>
+    public int PlacesLeft(RosterSlot slot) =>
+        RosterRules.Capacity(slot) - Roster.Concat(Invited).Count(m => m.Slot == slot);
+
+    public bool AnyPlaceLeft => Enum.GetValues<RosterSlot>().Any(s => PlacesLeft(s) > 0);
 
     [BindProperty] public string? InviteNickname { get; set; }
+    [BindProperty] public RosterSlot InviteSlot { get; set; } = RosterSlot.Player;
 
     public async Task<IActionResult> OnGetAsync(Guid id)
     {
@@ -75,17 +82,20 @@ public class DetailsModel(NextSkillDb db) : PageModel
         if (team.DisbandedAt is not null) return NotFound();
 
         // ponytail: the cap is enforced here, not by the database. Ceiling: two
-        // captains inviting at the same instant can put the roster one over.
-        // Upgrade path: a trigger or a serialisable transaction — neither worth
-        // it for a limit whose exact edge nobody can perceive.
-        var active = await db.TeamMemberships.CountAsync(m => m.TeamId == id && m.LeftAt == null && m.JoinedAt != null);
-        var pending = await db.TeamMemberships.CountAsync(m => m.TeamId == id && m.LeftAt == null && m.JoinedAt == null);
+        // captains inviting at the same instant can put one slot over. Upgrade
+        // path: a trigger or a serialisable transaction — neither worth it for a
+        // limit whose exact edge nobody can perceive.
+        //
+        // Pending invites count. A cap that ignored them could not stop a full
+        // roster from sending two hundred invitations (040, 045).
+        var occupied = await db.TeamMemberships
+            .CountAsync(m => m.TeamId == id && m.LeftAt == null && m.Slot == InviteSlot);
 
-        if (!RosterRules.CanInvite(active, pending))
+        if (!RosterRules.CanAdd(InviteSlot, occupied))
         {
             ModelState.AddModelError(nameof(InviteNickname),
-                $"Skład jest pełny — maksymalnie {RosterRules.MaxActiveMembers} osób razem z zaproszeniami. " +
-                "Usuń kogoś albo cofnij zaproszenie.");
+                $"{SlotName(InviteSlot)}: brak wolnych miejsc ({RosterRules.Capacity(InviteSlot)}). " +
+                "Zwolnij miejsce albo wybierz inną rolę.");
             await LoadAsync(id);
             return Page();
         }
@@ -96,6 +106,7 @@ public class DetailsModel(NextSkillDb db) : PageModel
             TeamId = id,
             AccountId = invitee.Id,
             Role = TeamRole.Member,
+            Slot = InviteSlot,
             // JoinedAt stays NULL: an invite IS a pending membership, which is
             // why it grants nothing until accepted (see Actors.CurrentAsync).
             JoinedAt = null,
@@ -108,7 +119,7 @@ public class DetailsModel(NextSkillDb db) : PageModel
             AccountId = invitee.Id,
             Type = NotificationType.TeamInvite,
             // Rendering data only. Never a secret (012, 043).
-            Data = JsonSerializer.SerializeToDocument(new { teamId = id, team = team.Name, tag = team.Tag }),
+            Data = JsonSerializer.SerializeToDocument(new { teamId = id, team = team.Name, tag = team.Tag, slot = InviteSlot.ToString() }),
             CreatedAt = DateTimeOffset.UtcNow,
         });
 
@@ -216,6 +227,56 @@ public class DetailsModel(NextSkillDb db) : PageModel
         return Redirect($"/{Locales.Current}/teams/{id}");
     }
 
+    /// <summary>
+    /// Move somebody between slots — bench a starter, field a substitute,
+    /// make somebody a coach.
+    ///
+    /// This is what a bench is <i>for</i>. Without it, a team whose player is
+    /// unavailable would have to remove them and re-invite the substitute, which
+    /// loses the roster history and makes a one-week absence look like leaving
+    /// the team.
+    /// </summary>
+    public async Task<IActionResult> OnPostSlotAsync(Guid id, Guid accountId, RosterSlot slot)
+    {
+        var actor = await Actors.CurrentAsync(db, User);
+        if (actor is null) return Challenge();
+        if (!AccessPolicy.Can(actor, Operation.ManageRoster, new ResourceRef(TeamId: id)))
+            return Forbid();
+
+        var membership = await db.TeamMemberships.FirstOrDefaultAsync(m =>
+            m.TeamId == id && m.AccountId == accountId && m.LeftAt == null);
+
+        if (membership is null) return NotFound();
+        if (membership.Slot == slot) return Redirect($"/{Locales.Current}/teams/{id}");
+
+        // The destination cap applies to a move exactly as it does to an invite.
+        // Six starters arrived at by promotion is still six starters.
+        var occupied = await db.TeamMemberships
+            .CountAsync(m => m.TeamId == id && m.LeftAt == null && m.Slot == slot);
+
+        if (!RosterRules.CanAdd(slot, occupied))
+        {
+            ModelState.AddModelError(string.Empty,
+                $"{SlotName(slot)}: brak wolnych miejsc ({RosterRules.Capacity(slot)}). Zwolnij miejsce najpierw.");
+            await LoadAsync(id);
+            return Page();
+        }
+
+        membership.Slot = slot;
+
+        db.Notifications.Add(new Notification
+        {
+            Id = Guid.NewGuid(),
+            AccountId = accountId,
+            Type = NotificationType.RosterChanged,
+            Data = JsonSerializer.SerializeToDocument(new { teamId = id, slot = slot.ToString() }),
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+
+        await db.SaveChangesAsync();
+        return Redirect($"/{Locales.Current}/teams/{id}");
+    }
+
     public async Task<IActionResult> OnPostRemoveAsync(Guid id, Guid accountId)
     {
         var actor = await Actors.CurrentAsync(db, User);
@@ -278,11 +339,14 @@ public class DetailsModel(NextSkillDb db) : PageModel
         var rows = await db.TeamMemberships
             .Where(m => m.TeamId == id && m.LeftAt == null)
             .Join(db.Accounts, m => m.AccountId, a => a.Id,
-                (m, a) => new Member(a.Id, a.Nickname, m.Role, m.JoinedAt == null))
+                (m, a) => new Member(a.Id, a.Nickname, m.Role, m.Slot, m.JoinedAt == null))
             .AsNoTracking()
             .ToListAsync();
 
-        Roster = [.. rows.Where(m => !m.Pending).OrderByDescending(m => m.Role == TeamRole.Captain).ThenBy(m => m.Nickname)];
+        Roster = [.. rows.Where(m => !m.Pending)
+                         .OrderBy(m => m.Slot)
+                         .ThenByDescending(m => m.Role == TeamRole.Captain)
+                         .ThenBy(m => m.Nickname)];
         Invited = [.. rows.Where(m => m.Pending).OrderBy(m => m.Nickname)];
 
         var ratings = await db.Ratings.AsNoTracking().Where(r => r.TeamId == id).ToListAsync();
@@ -302,6 +366,14 @@ public class DetailsModel(NextSkillDb db) : PageModel
         name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(w => char.ToUpperInvariant(w[0])));
 
     public static int Palette(string tag) => Math.Abs(tag.GetHashCode(StringComparison.Ordinal)) % 5 + 1;
+
+    public static string SlotName(RosterSlot slot) => slot switch
+    {
+        RosterSlot.Player => "Skład podstawowy",
+        RosterSlot.Substitute => "Rezerwa",
+        RosterSlot.Coach => "Sztab",
+        _ => slot.ToString(),
+    };
 
     public static bool IsProvisional(Rating r) => new Glicko2Rating(r.Value, r.Deviation, r.Volatility).IsProvisional;
 }

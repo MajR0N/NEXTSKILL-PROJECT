@@ -7,45 +7,78 @@
 
 ---
 
-## Tournament formats decide the roster size
+## Roster shape: 5 + 3 + 2
 
-**Tournaments run 1v1, 2v2 or 5v5.** That is the input everything below follows from, and it
-was the missing piece: a roster cap argued in the abstract is arbitrary, but once the largest
-lineup any event can field is five, the cap picks itself.
+**Tournaments run 1v1, 2v2 or 5v5**, so five is the largest lineup any event can field. A
+bench and a coaching staff sit on top of that.
 
-| | |
-| --- | --- |
-| **Team roster** | **max 5 active places** |
-| Registered lineup | capped by the tournament, which may be lower (a 2v2 event does not want five names on a scoresheet) |
-| Match lineup | exactly the format size, enforced by the plugin from a locked list ([011](011-accounts-and-login.md)) |
+| Slot | Places | Plays? |
+| --- | --- | --- |
+| **Player** — the starting five | 5 | yes |
+| **Substitute** — the bench | 3 | **yes** — a bench that cannot be fielded is not a bench |
+| **Coach** — staff | 2 | **never** |
+| | **10 total** | |
 
-**Why not more than five.** There is no format that can field a sixth person. A sixth roster
-place would be a place that means nothing — it would appear on the team page, count in no
-lineup, and invite the question "why is this person here?" every time somebody reads it.
+`MaxTotal` is *derived*, not enforced separately: the per-slot caps sum to exactly ten, so a
+second total check could never fire and would be dead code wearing the costume of a safeguard.
 
-**The cost, stated plainly.** A five-cap means **no substitutes at the team level**. A team
-whose player has a shift at work has to remove them and invite a replacement, and forfeits are
-what kill community tournaments. The upgrade path is at the *tournament* level, not here: an
-event that wants a bench sets its own registered-roster size above its match size. That keeps
-substitutes an event rule, where they belong, instead of a permanent property of every team.
-
-### Pending invites occupy a place
-
-Non-obvious and load-bearing:
+### The slot is a second axis, not a wider role
 
 ```
-CanInvite(activeMembers, pendingInvites) => active + pending < 5
+TeamRole   Captain | Member        <- authority   (036)
+RosterSlot Player | Substitute | Coach  <- what place they occupy  (045)
 ```
 
-Counting accepted members alone would leave the cap unable to stop half of what it exists to
-stop. **Five members plus two hundred outstanding invites** would pass a members-only check
-while spamming two hundred people ([040](040-threat-model.md)). It also forces the honest
-order of events: a full team frees a place *before* inviting, and the person leaving finds out
-either way.
+**A coach may be the captain; a starting player may have no powers at all.** Folding these
+together would mean promoting somebody to captain silently put them in the lineup — a class of
+bug that only surfaces at map start, when the wrong five are on the server.
 
-> `ponytail:` the cap is enforced in the handler, not by the database. Ceiling: two captains
-> inviting at the same instant can put a roster one over. Upgrade path: a trigger or a
-> serialisable transaction — not worth it for a limit whose exact edge nobody can perceive.
+### What makes a coach real rather than decorative
+
+```csharp
+IsFieldable(slot) => slot is Player or Substitute;
+```
+
+Without this, "coach" is a label on a player. **A lineup that could include the coach would be
+a 5v5 played 4v5**, discovered when the match starts
+([011](011-accounts-and-login.md), [035](035-match-result-integrity.md)). The team page states
+it in words too — *nie gra w meczach* — because a name in a roster list reads as a player
+unless something says otherwise.
+
+Coaches are also **never rated**: a player rating is a claim about how somebody performs in a
+server they were never in ([025](025-rating-system.md)).
+
+### Caps are per slot, and pending invites occupy a place
+
+```csharp
+CanAdd(slot, occupied) => occupied < Capacity(slot);
+```
+
+Two consequences worth stating:
+
+- **"The roster is not full" is not the same question as "there is room for another starter".**
+  A team with five players, no substitutes and no coaches has five free places and cannot
+  accept a sixth player.
+- **An unanswered invite holds its place.** Counting accepted members alone would leave the cap
+  unable to stop half of what it exists to stop: a full roster plus two hundred outstanding
+  invitations would pass a members-only check while spamming two hundred people
+  ([040](040-threat-model.md)).
+
+The same cap applies to *moving* someone between slots. Six starters arrived at by promotion is
+still six starters.
+
+### Unknown slots get zero places
+
+`Capacity()` falls through to **0** and `IsFieldable()` to **false**. A member added to the enum
+later — Analyst, Manager — cannot be filled and cannot play until somebody decides, rather than
+inheriting whatever the last branch happened to return. The completeness check in
+[034](034-test-strategy.md) then fails the build until the decision is recorded.
+
+### Moving between slots is the point of a bench
+
+Benching a starter and fielding a substitute is a slot change, not a removal. Without it, a
+player unavailable for one week would have to be removed and re-invited — which loses the
+roster history and makes a one-week absence look like leaving the team.
 
 ---
 
@@ -125,7 +158,9 @@ so far.
 
 All in `tests/NextSkill.Checks/TeamChecks.cs`, against a real database and the real pipeline:
 
-- the roster caps at five, and **an unaccepted invite still occupies a place**
+- each slot caps separately (5 / 3 / 2), and **an unaccepted invite still occupies a place**
+- a member can be moved between slots, and **the destination cap applies to a move**
+- a coach is never fieldable, and the page says so in words
 - a stranger can neither open nor submit team settings
 - a captain can rename and re-tag, and the team **id does not move**
 - disbanding demands the exact tag, and **the row survives**

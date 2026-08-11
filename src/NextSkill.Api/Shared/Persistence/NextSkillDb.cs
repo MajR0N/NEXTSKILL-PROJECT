@@ -41,6 +41,7 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
         b.Entity<Rating>().Property(x => x.Game).HasConversion<string>();
         b.Entity<Account>().Property(x => x.PlatformRole).HasConversion<string>();
         b.Entity<TeamMembership>().Property(x => x.Role).HasConversion<string>();
+        b.Entity<TeamMembership>().Property(x => x.Slot).HasConversion<string>();
         b.Entity<OrganiserStaff>().Property(x => x.Role).HasConversion<string>();
         b.Entity<Notification>().Property(x => x.Type).HasConversion<string>();
         b.Entity<LftListing>().Property(x => x.Game).HasConversion<string>();

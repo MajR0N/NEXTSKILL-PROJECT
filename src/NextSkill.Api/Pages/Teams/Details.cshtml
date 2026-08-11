@@ -3,6 +3,7 @@
 @using NextSkill.Api.Localisation
 @using NextSkill.Api.Shared.Persistence
 @using NextSkill.Domain.Access
+@using NextSkill.Domain.Teams
 @using Model = NextSkill.Api.Pages.Teams.DetailsModel
 @{
     var team = Model.Team!;
@@ -37,7 +38,7 @@
     <div class="detail-grid" style="margin-top:var(--s7)">
         <div>
             <div class="row" style="justify-content:space-between;margin-bottom:var(--s3)">
-                <p class="label" style="margin:0">Skład · @Model.Roster.Count / @NextSkill.Domain.Teams.RosterRules.MaxActiveMembers</p>
+                <p class="label" style="margin:0">Skład · @Model.Roster.Count / @RosterRules.MaxTotal</p>
                 @if (Model.CanManage)
                 {
                     <a class="btn btn--ghost" asp-page="/Teams/Edit" asp-route-culture="@locale" asp-route-id="@team.Id"
@@ -55,10 +56,25 @@
             }
             else
             {
+                @* One section per slot. Grouping is not decoration: a reader has to
+                   be able to see who actually plays, and a coach listed among the
+                   five would read as a sixth player (045). *@
+                foreach (var slot in Enum.GetValues<RosterSlot>())
+                {
+                    var members = Model.Roster.Where(m => m.Slot == slot).ToList();
+                    if (members.Count == 0) { continue; }
+
+                    <p class="label" style="margin-top:var(--s5)">
+                        @Model.SlotName(slot) &middot; @members.Count / @RosterRules.Capacity(slot)
+                        @if (!RosterRules.IsFieldable(slot))
+                        {
+                            <span class="dim" style="text-transform:none;letter-spacing:0"> &mdash; nie gra w meczach</span>
+                        }
+                    </p>
                 <div class="table-scroll">
                     <table class="table table--dense">
                         <tbody>
-                            @foreach (var member in Model.Roster)
+                            @foreach (var member in members)
                             {
                                 <tr>
                                     <td>
@@ -72,6 +88,17 @@
                                         @if (Model.CanManage && member.Role != TeamRole.Captain)
                                         {
                                             <div class="row" style="justify-content:flex-end">
+                                                @* Moving between slots is what a bench is FOR. Without it a
+                                                   one-week absence would have to be a removal (045). *@
+                                                @foreach (var target in Enum.GetValues<RosterSlot>().Where(s => s != member.Slot && Model.PlacesLeft(s) > 0))
+                                                {
+                                                    <form method="post" asp-page-handler="Slot" asp-route-culture="@locale"
+                                                          asp-route-id="@team.Id" asp-route-accountId="@member.AccountId"
+                                                          asp-route-slot="@target">
+                                                        <button class="btn btn--ghost" type="submit"
+                                                                style="padding:5px 11px;font-size:12.5px">&rarr; @Model.SlotName(target)</button>
+                                                    </form>
+                                                }
                                                 @* Without this, the "hand over the captaincy first" message
                                                    the last captain sees points at nothing. *@
                                                 <form method="post" asp-page-handler="Promote" asp-route-culture="@locale"
@@ -93,6 +120,7 @@
                         </tbody>
                     </table>
                 </div>
+                }
             }
 
             @if (Model.Invited.Count > 0)
@@ -107,7 +135,7 @@
                         <div class="card row" style="justify-content:space-between;padding:var(--s3) var(--s4)">
                             <div class="team">
                                 <span class="avatar avatar--sm avatar--@Model.Palette(member.Nickname)" style="opacity:.55">@Model.Initials(member.Nickname)</span>
-                                <span class="dim">@member.Nickname</span>
+                                <span class="dim">@member.Nickname <span style="font-size:11px">&middot; @Model.SlotName(member.Slot)</span></span>
                             </div>
                             @if (Model.CanManage)
                             {
@@ -126,12 +154,10 @@
             {
                 <div class="card" style="margin-top:var(--s6)">
                     <p class="label">Zaproś gracza</p>
-                    @if (Model.PlacesLeft <= 0)
+                    @if (!Model.AnyPlaceLeft)
                     {
-                        @* Five is the largest lineup any format fields, so a sixth
-                           place would mean nothing (045). *@
                         <p class="lede" style="margin-top:0">
-                            Skład jest pełny. Zwolnij miejsce, zanim zaprosisz kogoś nowego.
+                            Wszystkie miejsca zajęte. Zwolnij miejsce, zanim zaprosisz kogoś nowego.
                         </p>
                     }
                     <form method="post" asp-page-handler="Invite" asp-route-culture="@locale" asp-route-id="@team.Id">
@@ -142,7 +168,19 @@
                             <span class="field__hint">Gracz musi mieć konto na NEXTSKILL i sam przyjąć zaproszenie.</span>
                             <span class="field__error" asp-validation-for="InviteNickname"></span>
                         </div>
-                        <button class="btn btn--primary" type="submit" disabled="@(Model.PlacesLeft <= 0)">Wyślij zaproszenie</button>
+                        <div class="field">
+                            <label asp-for="InviteSlot">Rola</label>
+                            @* Only slots with room are offered — an option that always
+                               fails is worse than no option (020). *@
+                            <select class="input" asp-for="InviteSlot">
+                                @foreach (var slot in Enum.GetValues<RosterSlot>().Where(s => Model.PlacesLeft(s) > 0))
+                                {
+                                    <option value="@slot">@Model.SlotName(slot) — @Model.PlacesLeft(slot) wolnych</option>
+                                }
+                            </select>
+                        </div>
+
+                        <button class="btn btn--primary" type="submit" disabled="@(!Model.AnyPlaceLeft)">Wyślij zaproszenie</button>
                     </form>
                 </div>
             }
@@ -184,7 +222,13 @@
                 {
                     <div><span>Miasto</span><span>@team.City</span></div>
                 }
-                <div><span>Zawodników</span><span>@Model.Roster.Count / @NextSkill.Domain.Teams.RosterRules.MaxActiveMembers</span></div>
+                @foreach (var slot in Enum.GetValues<RosterSlot>())
+                {
+                    <div>
+                        <span>@Model.SlotName(slot)</span>
+                        <span>@Model.Roster.Count(m => m.Slot == slot) / @RosterRules.Capacity(slot)</span>
+                    </div>
+                }
             </div>
 
             <p class="lede" style="font-size:13px">

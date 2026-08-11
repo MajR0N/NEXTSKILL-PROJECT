@@ -605,6 +605,11 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("role");
 
+                    b.Property<string>("Slot")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("slot");
+
                     b.Property<Guid>("TeamId")
                         .HasColumnType("uuid")
                         .HasColumnName("team_id");

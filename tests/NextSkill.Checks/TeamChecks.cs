@@ -327,65 +327,164 @@ public static class TeamChecks
         });
 
         // ── roster cap (045) ─────────────────────────────────────────────
-        check("teams: the roster caps at five, and PENDING INVITES occupy a place", () =>
+        check("teams: each slot caps separately, and PENDING INVITES occupy a place", () =>
         {
-            // Five is the largest lineup any format fields — 1v1, 2v2, 5v5 —
-            // so a sixth place would mean nothing.
-            //
-            // asPlayer, not asCaptain: the founder handed over and left in the
-            // check above, so they no longer hold ManageRoster here.
+            // 5 players + 3 substitutes + 2 coaches. The caps are per slot, so
+            // "the roster is not full" is not the same question as "there is
+            // room for another starter".
             var filler = new List<HttpClient>();
+            var n = 0;
+
+            HttpResponseMessage Invite(RosterSlot slot)
+            {
+                var nickname = $"Fil{stamp}x{n++}";
+                filler.Add(SignedInAs(nickname));
+                return PostAsync(asPlayer, $"/pl/teams/{teamId}?handler=Invite", new()
+                {
+                    ["InviteNickname"] = nickname,
+                    ["InviteSlot"] = slot.ToString(),
+                }, tokenPage: $"/pl/teams/{teamId}").GetAwaiter().GetResult();
+            }
+
             try
             {
-                using var db = Db();
-                var active = db.TeamMemberships.Count(m => m.TeamId == teamId && m.LeftAt == null && m.JoinedAt != null);
-                var pending = db.TeamMemberships.Count(m => m.TeamId == teamId && m.LeftAt == null && m.JoinedAt == null);
-                var free = RosterRules.MaxActiveMembers - active - pending;
-                that(free > 0, $"the fixture team should have room, had {active} active + {pending} pending");
-
-                // Fill every remaining place with invites that are never accepted.
-                for (var i = 0; i < free; i++)
+                foreach (var slot in Enum.GetValues<RosterSlot>())
                 {
-                    var nickname = $"Fil{stamp}x{i}";
-                    filler.Add(SignedInAs(nickname));
+                    int occupied;
+                    using (var db = Db())
+                        occupied = db.TeamMemberships.Count(m => m.TeamId == teamId && m.LeftAt == null && m.Slot == slot);
 
-                    var res = PostAsync(asPlayer, $"/pl/teams/{teamId}?handler=Invite", new()
-                    {
-                        ["InviteNickname"] = nickname,
-                    }, tokenPage: $"/pl/teams/{teamId}").GetAwaiter().GetResult();
+                    var free = RosterRules.Capacity(slot) - occupied;
+                    that(free >= 0, $"{slot} was already over capacity: {occupied}/{RosterRules.Capacity(slot)}");
 
-                    that(res.StatusCode == HttpStatusCode.Redirect,
-                        $"invite {i + 1} of {free} should be accepted, got {(int)res.StatusCode}");
+                    for (var i = 0; i < free; i++)
+                        that(Invite(slot).StatusCode == HttpStatusCode.Redirect,
+                            $"{slot}: invite {i + 1} of {free} should be accepted");
+
+                    // One past the cap. Every place here is held by an invite
+                    // nobody has answered — if the cap counted accepted members
+                    // only, this would sail through, and a full roster could
+                    // spam two hundred people (040).
+                    var overflow = Invite(slot);
+                    that(overflow.StatusCode == HttpStatusCode.OK,
+                        $"{slot}: place {RosterRules.Capacity(slot) + 1} must be refused, got {(int)overflow.StatusCode}");
+
+                    using var after = Db();
+                    var count = after.TeamMemberships.Count(m => m.TeamId == teamId && m.LeftAt == null && m.Slot == slot);
+                    that(count == RosterRules.Capacity(slot),
+                        $"{slot}: expected exactly {RosterRules.Capacity(slot)} places filled, found {count}");
                 }
 
-                // One more, with places filled ONLY by unanswered invites. If the
-                // cap counted accepted members alone, this would sail through —
-                // and five members plus two hundred invites would be a way to
-                // spam two hundred people (040).
-                var overflowNick = $"Fil{stamp}over";
-                filler.Add(SignedInAs(overflowNick));
-
-                var overflow = PostAsync(asPlayer, $"/pl/teams/{teamId}?handler=Invite", new()
-                {
-                    ["InviteNickname"] = overflowNick,
-                }, tokenPage: $"/pl/teams/{teamId}").GetAwaiter().GetResult();
-
-                that(overflow.StatusCode == HttpStatusCode.OK,
-                    $"the sixth place must be refused, got {(int)overflow.StatusCode}");
-
-                using var after = Db();
-                that(!after.TeamMemberships.Any(m => m.TeamId == teamId && m.AccountId != captainId
-                        && m.LeftAt == null && after.Accounts.Any(a => a.Id == m.AccountId && a.Nickname == overflowNick)),
-                    "no membership row may be created past the cap");
-
-                var total = after.TeamMemberships.Count(m => m.TeamId == teamId && m.LeftAt == null);
-                that(total <= RosterRules.MaxActiveMembers,
-                    $"active places must never exceed {RosterRules.MaxActiveMembers}, found {total}");
+                using var db2 = Db();
+                var total = db2.TeamMemberships.Count(m => m.TeamId == teamId && m.LeftAt == null);
+                that(total == RosterRules.MaxTotal,
+                    $"a full team is {RosterRules.MaxTotal} places (5 + 3 + 2), found {total}");
             }
             finally
             {
                 foreach (var c in filler) c.Dispose();
             }
+        });
+
+        check("teams: a member can be MOVED between slots, and the destination cap still applies", () =>
+        {
+            // Benching a starter and fielding a substitute is the whole point of
+            // having a bench. Without it a one-week absence would have to be a
+            // removal, which loses the roster history (045).
+            Guid starter, substitute;
+            using (var db = Db())
+            {
+                starter = db.TeamMemberships
+                    .First(m => m.TeamId == teamId && m.LeftAt == null && m.Slot == RosterSlot.Player && m.AccountId != playerId).AccountId;
+                substitute = db.TeamMemberships
+                    .First(m => m.TeamId == teamId && m.LeftAt == null && m.Slot == RosterSlot.Substitute).AccountId;
+            }
+
+            // Players are full, so promoting a substitute must be refused until
+            // a place is freed. Six starters arrived at by promotion is still
+            // six starters.
+            var blocked = PostAsync(asPlayer, $"/pl/teams/{teamId}?handler=Slot&accountId={substitute}&slot={RosterSlot.Player}",
+                new(), tokenPage: $"/pl/teams/{teamId}").GetAwaiter().GetResult();
+            that(blocked.StatusCode == HttpStatusCode.OK,
+                $"the destination cap must apply to a move, got {(int)blocked.StatusCode}");
+
+            // Bench the starter, then field the substitute.
+            var benched = PostAsync(asPlayer, $"/pl/teams/{teamId}?handler=Slot&accountId={starter}&slot={RosterSlot.Substitute}",
+                new(), tokenPage: $"/pl/teams/{teamId}").GetAwaiter().GetResult();
+            that(benched.StatusCode == HttpStatusCode.OK,
+                "substitutes are full too, so benching must also be refused while there is no room");
+
+            using (var db = Db())
+            {
+                // Free one substitute place by removing the person we intend to field.
+                that(db.TeamMemberships.Count(m => m.TeamId == teamId && m.LeftAt == null && m.Slot == RosterSlot.Substitute)
+                     == RosterRules.MaxSubstitutes, "substitutes should be full at this point");
+            }
+
+            PostAsync(asPlayer, $"/pl/teams/{teamId}?handler=Remove&accountId={substitute}", new(),
+                tokenPage: $"/pl/teams/{teamId}").GetAwaiter().GetResult();
+
+            var moved = PostAsync(asPlayer, $"/pl/teams/{teamId}?handler=Slot&accountId={starter}&slot={RosterSlot.Substitute}",
+                new(), tokenPage: $"/pl/teams/{teamId}").GetAwaiter().GetResult();
+            that(moved.StatusCode == HttpStatusCode.Redirect,
+                $"with a place free, benching a starter must work, got {(int)moved.StatusCode}");
+
+            using var after = Db();
+            that(after.TeamMemberships.Single(m => m.TeamId == teamId && m.AccountId == starter && m.LeftAt == null)
+                    .Slot == RosterSlot.Substitute,
+                "the moved member must actually be on the bench");
+            that(after.Notifications.Any(nn => nn.AccountId == starter && nn.Type == NotificationType.RosterChanged),
+                "being benched is news — the player should be told (043)");
+        });
+
+        check("teams: a COACH is never fieldable, and the page says so", () =>
+        {
+            // The rule that makes a coach a real thing rather than a label. A
+            // lineup that could include the coach would be a 5v5 played 4v5,
+            // discovered at map start (011, 035).
+            that(!RosterRules.IsFieldable(RosterSlot.Coach), "a coach must never take a place in a match");
+            that(RosterRules.IsFieldable(RosterSlot.Player), "starters play");
+            that(RosterRules.IsFieldable(RosterSlot.Substitute), "a bench that cannot be fielded is not a bench");
+
+            // Every staff place is currently held by an unanswered invite, so
+            // free one and put a real coach on the roster.
+            Guid pendingCoach;
+            using (var db = Db())
+                pendingCoach = db.TeamMemberships
+                    .First(m => m.TeamId == teamId && m.LeftAt == null && m.Slot == RosterSlot.Coach).AccountId;
+
+            PostAsync(asPlayer, $"/pl/teams/{teamId}?handler=Remove&accountId={pendingCoach}", new(),
+                tokenPage: $"/pl/teams/{teamId}").GetAwaiter().GetResult();
+
+            var coachNick = $"Coach{stamp}";
+            using var asCoach = SignedInAs(coachNick);
+
+            var invited = PostAsync(asPlayer, $"/pl/teams/{teamId}?handler=Invite", new()
+            {
+                ["InviteNickname"] = coachNick,
+                ["InviteSlot"] = RosterSlot.Coach.ToString(),
+            }, tokenPage: $"/pl/teams/{teamId}").GetAwaiter().GetResult();
+            that(invited.StatusCode == HttpStatusCode.Redirect,
+                $"a freed staff place should accept an invite, got {(int)invited.StatusCode}");
+
+            PostAsync(asCoach, $"/pl/teams/{teamId}?handler=Respond&accept=true", new(),
+                tokenPage: $"/pl/teams/{teamId}").GetAwaiter().GetResult();
+
+            using (var db = Db())
+            {
+                var coachId = db.Accounts.AsNoTracking().Single(a => a.Nickname == coachNick).Id;
+                that(db.TeamMemberships.Single(m => m.TeamId == teamId && m.AccountId == coachId && m.LeftAt == null)
+                        .Slot == RosterSlot.Coach,
+                    "accepting must not quietly change the slot the captain chose");
+            }
+
+            using var anonymous = Client();
+            var html = anonymous.GetAsync($"/pl/teams/{teamId}").GetAwaiter().GetResult()
+                .Content.ReadAsStringAsync().GetAwaiter().GetResult();
+
+            that(html.Contains(coachNick), "the coach should be listed on the team page");
+            that(html.Contains("nie gra w meczach"),
+                "the page must say plainly that the staff section does not play — otherwise a coach reads as a sixth player");
         });
 
         // ── edit and disband (045) ───────────────────────────────────────

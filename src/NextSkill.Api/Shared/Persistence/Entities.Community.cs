@@ -1,6 +1,7 @@
 using System.Text.Json;
 using NextSkill.Api.Shared.Tenancy;
 using NextSkill.Domain.Access;
+using NextSkill.Domain.Teams;
 
 namespace NextSkill.Api.Shared.Persistence;
 
@@ -35,7 +36,19 @@ public class TeamMembership
     public Guid Id { get; set; }
     public Guid TeamId { get; set; }
     public Guid AccountId { get; set; }
+
+    /// <summary>Authority: captain or member (036).</summary>
     public TeamRole Role { get; set; }
+
+    /// <summary>
+    /// What kind of place they occupy: starting player, substitute, or coach
+    /// (decision 045).
+    ///
+    /// <b>Deliberately a second axis, not a wider Role.</b> A coach can be the
+    /// captain and a starting player can have no powers — folding them together
+    /// would mean promoting somebody to captain silently put them in the lineup.
+    /// </summary>
+    public RosterSlot Slot { get; set; }
 
     /// <summary>Null until the invite is accepted — an invite is a pending membership.</summary>
     public DateTimeOffset? JoinedAt { get; set; }

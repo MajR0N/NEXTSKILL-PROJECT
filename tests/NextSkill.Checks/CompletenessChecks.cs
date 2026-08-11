@@ -3,6 +3,7 @@ using NextSkill.Domain.Access;
 using NextSkill.Domain.Brackets;
 using NextSkill.Domain.Matches;
 using NextSkill.Domain.Ratings;
+using NextSkill.Domain.Teams;
 using DbGame = NextSkill.Api.Shared.Persistence.Game;
 using DbFormat = NextSkill.Api.Shared.Persistence.TournamentFormat;
 
@@ -89,6 +90,41 @@ public static class CompletenessChecks
                 that(demoSupport.ContainsKey(game), $"{game}: nobody decided whether it has a demo pipeline (001, 024)");
                 that(needsTwoFactorBinding.ContainsKey(game), $"{game}: nobody decided whether SteamIDs can be trusted (010, 011)");
             }
+        });
+
+        // ── every roster slot must have a decided size and a decided answer
+        //    to "does this person play?" ─────────────────────────────────
+        check("every RosterSlot has a decided capacity and a decided fieldable answer", () =>
+        {
+            // Adding "Analyst" or "Manager" later must not silently inherit
+            // whatever the last switch branch returned. Capacity() falls through
+            // to zero and IsFieldable() to false, so a new slot is unusable
+            // until somebody decides — and this check says so out loud (045).
+            var decided = new Dictionary<RosterSlot, (int Capacity, bool Fieldable)>
+            {
+                [RosterSlot.Player] = (5, true),
+                [RosterSlot.Substitute] = (3, true),
+                [RosterSlot.Coach] = (2, false),
+            };
+
+            foreach (var slot in Enum.GetValues<RosterSlot>())
+            {
+                that(decided.ContainsKey(slot),
+                    $"{slot}: nobody decided how many places it has or whether they play (045)");
+
+                var (capacity, fieldable) = decided[slot];
+                that(RosterRules.Capacity(slot) == capacity,
+                    $"{slot}: capacity is {RosterRules.Capacity(slot)}, the decision says {capacity}");
+                that(RosterRules.IsFieldable(slot) == fieldable,
+                    $"{slot}: fieldable is {RosterRules.IsFieldable(slot)}, the decision says {fieldable}");
+            }
+
+            that(decided.Values.Sum(x => x.Capacity) == RosterRules.MaxTotal,
+                $"the per-slot caps must sum to MaxTotal ({RosterRules.MaxTotal})");
+
+            // The rule that gives a coach teeth: a lineup that could include the
+            // coach would be a 5v5 played 4v5, discovered at map start (011, 035).
+            that(!RosterRules.IsFieldable(RosterSlot.Coach), "a coach must never be fieldable");
         });
 
         // ── every format must be implemented or explicitly deferred ──────
