@@ -154,6 +154,47 @@ public class DetailsModel(NextSkillDb db) : PageModel
         return Redirect($"/{Locales.Current}/teams/{id}");
     }
 
+    /// <summary>
+    /// Make another accepted member a captain.
+    ///
+    /// <b>This is what makes leaving possible at all.</b> The last captain is
+    /// refused permission to leave, and the refusal tells them to hand the
+    /// captaincy over — so without this handler that message pointed at nothing
+    /// and the sole captain of a team was trapped in it permanently.
+    ///
+    /// A team may hold several captains, so handing over is promote-then-leave
+    /// rather than a bespoke atomic transfer. Two operations that already exist
+    /// beat a third that only serves one story.
+    /// </summary>
+    public async Task<IActionResult> OnPostPromoteAsync(Guid id, Guid accountId)
+    {
+        var actor = await Actors.CurrentAsync(db, User);
+        if (actor is null) return Challenge();
+        if (!AccessPolicy.Can(actor, Operation.ManageRoster, new ResourceRef(TeamId: id)))
+            return Forbid();
+
+        // JoinedAt != null: a pending invite must never be promotable, or an
+        // invite nobody accepted could take control of the team.
+        var membership = await db.TeamMemberships.FirstOrDefaultAsync(m =>
+            m.TeamId == id && m.AccountId == accountId && m.LeftAt == null && m.JoinedAt != null);
+
+        if (membership is null) return NotFound();
+
+        membership.Role = TeamRole.Captain;
+
+        db.Notifications.Add(new Notification
+        {
+            Id = Guid.NewGuid(),
+            AccountId = accountId,
+            Type = NotificationType.RosterChanged,
+            Data = JsonSerializer.SerializeToDocument(new { teamId = id, role = "captain" }),
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+
+        await db.SaveChangesAsync();
+        return Redirect($"/{Locales.Current}/teams/{id}");
+    }
+
     public async Task<IActionResult> OnPostRemoveAsync(Guid id, Guid accountId)
     {
         var actor = await Actors.CurrentAsync(db, User);

@@ -64,12 +64,21 @@
                                     <td class="r">
                                         @if (Model.CanManage && member.Role != TeamRole.Captain)
                                         {
-                                            @* Destructive, so it is a POST and it is signed (012, 020). *@
-                                            <form method="post" asp-page-handler="Remove" asp-route-culture="@locale"
-                                                  asp-route-id="@team.Id" asp-route-accountId="@member.AccountId">
-                                                <button class="btn btn--danger" type="submit"
-                                                        style="padding:5px 11px;font-size:12.5px">Usuń</button>
-                                            </form>
+                                            <div class="row" style="justify-content:flex-end">
+                                                @* Without this, the "hand over the captaincy first" message
+                                                   the last captain sees points at nothing. *@
+                                                <form method="post" asp-page-handler="Promote" asp-route-culture="@locale"
+                                                      asp-route-id="@team.Id" asp-route-accountId="@member.AccountId">
+                                                    <button class="btn btn--ghost" type="submit"
+                                                            style="padding:5px 11px;font-size:12.5px">Mianuj kapitanem</button>
+                                                </form>
+                                                @* Destructive, so it is a POST and it is signed (012, 020). *@
+                                                <form method="post" asp-page-handler="Remove" asp-route-culture="@locale"
+                                                      asp-route-id="@team.Id" asp-route-accountId="@member.AccountId">
+                                                    <button class="btn btn--danger" type="submit"
+                                                            style="padding:5px 11px;font-size:12.5px">Usuń</button>
+                                                </form>
+                                            </div>
                                         }
                                     </td>
                                 </tr>

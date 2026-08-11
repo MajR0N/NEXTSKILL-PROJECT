@@ -205,7 +205,13 @@ endpoint, request, handler and validator together.
 - ☑ **Ranking** — index archetype, the workhorse page. Server-rendered on live data;
   provisional teams listed separately, `±RD` and confidence bar shown openly
 - ◐ **Accounts** — register, login, logout done: Argon2id, session row + signed cookie, rate limiting, identical answers for unknown address and wrong password. **`setinfo` token rotation still open** ([011](decisions/011-accounts-and-login.md))
-- ◐ **Teams** — create (founder becomes captain in one transaction), invite by nickname, accept/decline, remove, leave. Pending invites grant nothing and are never counted as roster; the last captain cannot leave. **Team page not fully grilled** — match history, rating trend and trophies still open
+- ◐ **Teams** — roster mechanics done, presentation not
+  - ☑ Create (founder becomes captain in one transaction), invite by nickname, accept/decline, remove, leave, promote to captain
+  - ☑ A pending invite grants nothing and is never counted as roster
+  - ☑ The last captain cannot leave — **and can hand over**, which is what makes that rule a safeguard rather than a trap
+  - ☐ Edit team (name, tag, city, logo) and disband
+  - ☐ Roster size limit — undecided, and it interacts with tournament registration
+  - ☐ **Team page needs grilling**: match history, rating trend, trophies, open slots
 - ☐ **Tournaments** — create from template, register, seed ([015](decisions/015-admin-panel.md))
 - ☐ **Brackets** — render, advance (integrity-gated)
 - ☐ **Matches** — detail, config endpoint, event ingest, bind, demo upload

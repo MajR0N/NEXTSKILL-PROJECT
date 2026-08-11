@@ -279,6 +279,52 @@ public static class TeamChecks
             that(res.StatusCode == HttpStatusCode.NotFound, $"expected 404, got {(int)res.StatusCode}");
         });
 
+        // ── the trap the previous check only half-closed ─────────────────
+        check("teams: the last captain has a WAY OUT — promote, then leave", () =>
+        {
+            // "The last captain cannot leave" is only correct if handing the
+            // captaincy over is actually possible. Without a promote handler
+            // that rule is not a safeguard, it is a permanent trap, and the
+            // error message telling them to hand over points at nothing.
+
+            // A pending invite must not be promotable: an invite nobody accepted
+            // could otherwise be handed control of the team.
+            var tooEarly = PostAsync(asCaptain, $"/pl/teams/{teamId}?handler=Promote&accountId={playerId}", new(),
+                tokenPage: $"/pl/teams/{teamId}").GetAwaiter().GetResult();
+            that((int)tooEarly.StatusCode == 404,
+                $"a pending invite must not be promotable, got {(int)tooEarly.StatusCode}");
+
+            PostAsync(asPlayer, $"/pl/teams/{teamId}?handler=Respond&accept=true", new(),
+                tokenPage: $"/pl/teams/{teamId}").GetAwaiter().GetResult();
+
+            var promoted = PostAsync(asCaptain, $"/pl/teams/{teamId}?handler=Promote&accountId={playerId}", new(),
+                tokenPage: $"/pl/teams/{teamId}").GetAwaiter().GetResult();
+            that(promoted.StatusCode == HttpStatusCode.Redirect,
+                $"promoting an accepted member should succeed, got {(int)promoted.StatusCode}");
+
+            using (var db = Db())
+                that(db.TeamMemberships.AsNoTracking()
+                        .Single(m => m.TeamId == teamId && m.AccountId == playerId && m.LeftAt == null)
+                        .Role == TeamRole.Captain,
+                    "the promoted member must actually be a captain");
+
+            // And NOW the founder can go.
+            var left = PostAsync(asCaptain, $"/pl/teams/{teamId}?handler=Leave", new(),
+                tokenPage: $"/pl/teams/{teamId}").GetAwaiter().GetResult();
+            that(left.StatusCode == HttpStatusCode.Redirect,
+                $"with a second captain in place the founder may leave, got {(int)left.StatusCode}");
+
+            using (var db = Db())
+            {
+                that(!db.TeamMemberships.Any(m => m.TeamId == teamId && m.AccountId == captainId && m.LeftAt == null),
+                    "the founder should no longer have an active membership");
+
+                that(db.TeamMemberships.Any(m =>
+                        m.TeamId == teamId && m.Role == TeamRole.Captain && m.LeftAt == null && m.JoinedAt != null),
+                    "THE TEAM MUST NEVER END UP WITH NO CAPTAIN");
+            }
+        });
+
         // Clean up so repeated runs stay honest.
         using (var db = Db())
             db.Database.ExecuteSqlRaw(
