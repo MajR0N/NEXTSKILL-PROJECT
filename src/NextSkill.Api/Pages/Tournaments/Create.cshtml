@@ -16,6 +16,49 @@
         Zapisy otwierasz wtedy, kiedy strona jest gotowa.
     </p>
 
+    @if (Model.Templates.Count > 0)
+    {
+        <div class="card" style="margin-top:var(--s6)">
+            <p class="label">Szablony organizatora</p>
+            <p class="lede" style="font-size:13px">
+                Szablon kopiuje ustawienia do nowego szkicu. Późniejsze zmiany nie łączą obu rekordów.
+            </p>
+            <div class="stack">
+                @foreach (var template in Model.Templates)
+                {
+                    <div class="row" style="justify-content:space-between;align-items:center">
+                        <span>
+                            <span class="team__name">@template.Name</span>
+                            <span class="team__meta">
+                                @if (Model.Organisers.Count > 1) { <span>@template.Organiser</span> }
+                                <span>@L.FormatName(template.Format)</span>
+                                <span>@L.Size(template.TeamSize)</span>
+                                <span>do @template.MaxTeams drużyn</span>
+                            </span>
+                        </span>
+                        <span class="row">
+                            <a class="btn" asp-page="/Tournaments/Create" asp-route-culture="@NextSkill.Api.Localisation.Locales.Current"
+                               asp-route-templateId="@template.Id">Użyj</a>
+                            <form method="post" asp-page-handler="DeleteTemplate"
+                                  asp-route-culture="@NextSkill.Api.Localisation.Locales.Current"
+                                  asp-route-templateId="@template.Id">
+                                <button class="btn btn--danger" type="submit">Usuń</button>
+                            </form>
+                        </span>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @if (Model.AppliedTemplateName is not null)
+    {
+        <div class="alert" role="status" style="margin-top:var(--s5)">
+            Skopiowano ustawienia z szablonu <b>@Model.AppliedTemplateName</b>.
+            Nadaj turniejowi nazwę i termin, a potem możesz zmienić każde pole.
+        </div>
+    }
+
     <form method="post" class="card" style="margin-top:var(--s6)">
         @if (ViewData.ModelState[string.Empty]?.Errors.Count > 0)
         {
@@ -88,6 +131,24 @@
             <input class="input" asp-for="Input.MaxTeams" type="number" min="2" max="128" required />
             <span class="field__error" asp-validation-for="Input.MaxTeams"></span>
         </div>
+
+        @if (Model.Seasons.Count > 0)
+        {
+            <div class="field">
+                <label asp-for="Input.SeasonId">Sezon</label>
+                <select class="input" asp-for="Input.SeasonId">
+                    <option value="">Poza sezonem</option>
+                    @foreach (var season in Model.Seasons)
+                    {
+                        <option value="@season.Id">
+                            @season.Name · od @season.StartsAt.ToString("yyyy-MM-dd")@(season.EndsAt is { } end ? $" do {end:yyyy-MM-dd}" : "")
+                        </option>
+                    }
+                </select>
+                <span class="field__hint">Zamknięte sezony są zamrożonym archiwum i nie przyjmują nowych turniejów.</span>
+                <span class="field__error" asp-validation-for="Input.SeasonId"></span>
+            </div>
+        }
 
         <div class="field">
             <label asp-for="Input.StartsAt">Start <span class="dim">— opcjonalnie</span></label>

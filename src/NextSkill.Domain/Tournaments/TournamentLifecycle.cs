@@ -18,6 +18,23 @@ public enum TournamentStatus { Draft, RegistrationOpen, RegistrationClosed, Runn
 /// </summary>
 public enum TeamSize { Solo = 1, Duo = 2, Squad = 5 }
 
+public enum TournamentStartBlock
+{
+    None,
+    WrongStatus,
+    ClosedSeason,
+    TooFewTeams,
+    UncheckedTeams,
+    IncompleteRosters,
+}
+
+public readonly record struct TournamentStartEntry(bool CheckedIn, bool Fieldable);
+
+public readonly record struct TournamentStartDecision(TournamentStartBlock Block, int Count = 0)
+{
+    public bool Allowed => Block == TournamentStartBlock.None;
+}
+
 /// <summary>
 /// The tournament state machine (decision 046).
 ///
@@ -80,4 +97,52 @@ public static class TournamentLifecycle
     /// </summary>
     public static bool ParticipantsAreFrozen(TournamentStatus status) =>
         status is TournamentStatus.Running or TournamentStatus.Completed;
+
+    /// <summary>
+    /// Descriptive setup may change while the event is still being assembled.
+    /// Once it is running (or terminal), its published setup is history.
+    /// </summary>
+    public static bool MayEditDetails(TournamentStatus status) => status is
+        TournamentStatus.Draft or
+        TournamentStatus.RegistrationOpen or
+        TournamentStatus.RegistrationClosed;
+
+    /// <summary>
+    /// Game, format and team size define what a team is agreeing to enter.
+    /// Publishing registration freezes them even before the first entry.
+    /// </summary>
+    public static bool MayEditStructure(TournamentStatus status) =>
+        status == TournamentStatus.Draft;
+
+    /// <summary>
+    /// The database-dependent start handler projects its field into these two
+    /// facts, then this pure rule decides. Check-in is confirmation, not a
+    /// roster lock, so fieldability is checked again at the instant of start.
+    /// </summary>
+    public static TournamentStartDecision MayStart(
+        TournamentStatus status,
+        IReadOnlyCollection<TournamentStartEntry> entries,
+        bool assignedSeasonClosed = false)
+    {
+        if (status != TournamentStatus.RegistrationClosed)
+            return new(TournamentStartBlock.WrongStatus);
+
+        // Closed seasons are immutable archives (021). Starting a tournament
+        // inside one would add results to standings that promise not to move.
+        if (assignedSeasonClosed)
+            return new(TournamentStartBlock.ClosedSeason);
+
+        if (entries.Count < 2)
+            return new(TournamentStartBlock.TooFewTeams, 2 - entries.Count);
+
+        var uncheckedCount = entries.Count(e => !e.CheckedIn);
+        if (uncheckedCount > 0)
+            return new(TournamentStartBlock.UncheckedTeams, uncheckedCount);
+
+        var incompleteCount = entries.Count(e => !e.Fieldable);
+        if (incompleteCount > 0)
+            return new(TournamentStartBlock.IncompleteRosters, incompleteCount);
+
+        return new(TournamentStartBlock.None);
+    }
 }

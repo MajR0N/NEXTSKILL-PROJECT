@@ -587,6 +587,119 @@ public static class TeamChecks
                 $"a dissolved team must not be able to recruit, got {(int)res.StatusCode}");
         });
 
+        check("teams: only a captain present at disband sees the restoration path", () =>
+        {
+            var eligible = asPlayer.GetStringAsync($"/pl/teams/{teamId}").GetAwaiter().GetResult();
+            that(eligible.Contains($"/pl/teams/{teamId}/restore"),
+                "a captain who was closed out by disbanding must have a recovery path");
+            that(eligible.Contains("została rozwiązana") || eligible.Contains("zostaÅ‚a rozwiÄ…zana"),
+                "the historical page must state plainly that the team is dissolved");
+
+            var outsiderPage = asOutsider.GetStringAsync($"/pl/teams/{teamId}").GetAwaiter().GetResult();
+            that(!outsiderPage.Contains($"/pl/teams/{teamId}/restore"),
+                "a person who was not captain at disband must see no restoration action");
+        });
+
+        check("teams: a stranger cannot open or submit restoration", () =>
+        {
+            var get = asOutsider.GetAsync($"/pl/teams/{teamId}/restore").GetAwaiter().GetResult();
+            that(get.StatusCode == HttpStatusCode.Forbidden,
+                $"an outsider's restoration page should be 403, got {(int)get.StatusCode}");
+
+            var post = PostAsync(asOutsider, $"/pl/teams/{teamId}/restore", new()
+            {
+                ["ConfirmTag"] = tag,
+            }, tokenPage: "/pl").GetAwaiter().GetResult();
+            that(post.StatusCode == HttpStatusCode.Forbidden,
+                $"an outsider's restoration POST should be 403, got {(int)post.StatusCode}");
+
+            using var db = Db();
+            that(db.Teams.AsNoTracking().Single(t => t.Id == teamId).DisbandedAt is not null,
+                "an unauthorised request must leave the team dissolved");
+        });
+
+        check("teams: restoration requires retyping the reserved tag", () =>
+        {
+            var response = PostAsync(asPlayer, $"/pl/teams/{teamId}/restore", new()
+            {
+                ["ConfirmTag"] = "wrong-tag",
+            }).GetAwaiter().GetResult();
+
+            that(response.StatusCode == HttpStatusCode.OK,
+                "a wrong confirmation should re-render the restoration page");
+            using var db = Db();
+            that(db.Teams.AsNoTracking().Single(t => t.Id == teamId).DisbandedAt is not null,
+                "a wrong tag must not restore the team");
+            that(!db.TeamMemberships.Any(m => m.TeamId == teamId && m.LeftAt == null),
+                "a refused restoration must create no live roster membership");
+        });
+
+        check("teams: restoration keeps old tenure closed and starts with only the restoring captain", () =>
+        {
+            Dictionary<Guid, DateTimeOffset?> closedHistory;
+            int historyCount;
+            using (var before = Db())
+            {
+                closedHistory = before.TeamMemberships.AsNoTracking()
+                    .Where(m => m.TeamId == teamId)
+                    .ToDictionary(m => m.Id, m => m.LeftAt);
+                historyCount = closedHistory.Count;
+                that(closedHistory.Count > 1 && closedHistory.Values.All(left => left is not null),
+                    "the fixture must contain a closed multi-person roster before restoration");
+            }
+
+            var response = PostAsync(asPlayer, $"/pl/teams/{teamId}/restore", new()
+            {
+                ["ConfirmTag"] = tag,
+            }).GetAwaiter().GetResult();
+
+            that(response.StatusCode == HttpStatusCode.Redirect,
+                $"restoration should redirect, got {(int)response.StatusCode}");
+            that(response.Headers.Location?.OriginalString == $"/pl/teams/{teamId}?restored=true",
+                $"restoration should return to the team confirmation, went to {response.Headers.Location}");
+
+            using (var after = Db())
+            {
+                var team = after.Teams.AsNoTracking().Single(t => t.Id == teamId);
+                that(team.DisbandedAt is null && team.Id == teamId && team.Tag == tag,
+                    "restoration must revive the same row and reserved tag");
+
+                var allMemberships = after.TeamMemberships.AsNoTracking()
+                    .Where(m => m.TeamId == teamId).ToList();
+                that(allMemberships.Count == historyCount + 1,
+                    "restoration must append one tenure rather than reopening old rows");
+
+                foreach (var old in closedHistory)
+                    that(allMemberships.Single(m => m.Id == old.Key).LeftAt == old.Value,
+                        "OLD ROSTER HISTORY MUST NOT BE REWRITTEN");
+
+                var active = allMemberships.Where(m => m.LeftAt == null).ToList();
+                that(active.Count == 1 && active[0].AccountId == playerId &&
+                     active[0].Role == TeamRole.Captain && active[0].JoinedAt is not null,
+                    "only the consenting restorer returns, as captain; former players stay historical");
+            }
+
+            var page = asPlayer.GetStringAsync(response.Headers.Location!).GetAwaiter().GetResult();
+            that(page.Contains("została przywrócona") || page.Contains("zostaÅ‚a przywrÃ³cona"),
+                "the captain must receive an explicit restoration confirmation");
+
+            using var anonymous = Client();
+            var directory = anonymous.GetStringAsync("/pl/teams").GetAwaiter().GetResult();
+            that(directory.Contains(tag), "the restored team must return to the public directory");
+
+            // A stale double-submit lands on the already-live team and must not
+            // add a second captain membership.
+            var repeated = PostAsync(asPlayer, $"/pl/teams/{teamId}/restore", new()
+            {
+                ["ConfirmTag"] = tag,
+            }, tokenPage: "/pl").GetAwaiter().GetResult();
+            that(repeated.StatusCode == HttpStatusCode.Redirect,
+                "an already-restored retry should be an idempotent redirect");
+            using var final = Db();
+            that(final.TeamMemberships.Count(m => m.TeamId == teamId && m.LeftAt == null) == 1,
+                "a retry must not create another live membership");
+        });
+
         // Clean up so repeated runs stay honest.
         using (var db = Db())
             db.Database.ExecuteSqlRaw(

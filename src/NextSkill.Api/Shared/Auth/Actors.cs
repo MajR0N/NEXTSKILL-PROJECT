@@ -28,7 +28,7 @@ public static class Actors
         if (Sessions.AccountIdOf(user) is not { } accountId) return null;
 
         var platformRole = await db.Accounts
-            .Where(a => a.Id == accountId)
+            .Where(a => a.Id == accountId && a.DeletedAt == null)
             .Select(a => a.PlatformRole)
             .FirstOrDefaultAsync(ct);
 
@@ -37,6 +37,22 @@ public static class Actors
         var teams = await db.TeamMemberships
             .Where(m => m.AccountId == accountId && m.JoinedAt != null && m.LeftAt == null)
             .ToDictionaryAsync(m => m.TeamId, m => m.Role, ct);
+
+        // Restoration is earned from history, not from a current role. The
+        // exact timestamp join identifies captains whose active tenure was
+        // closed by this team's latest disband operation.
+        var restorableTeams = await db.TeamMemberships
+            .Where(m =>
+                m.AccountId == accountId &&
+                m.Role == TeamRole.Captain &&
+                m.JoinedAt != null &&
+                m.LeftAt != null)
+            .Join(
+                db.Teams.Where(t => t.DisbandedAt != null),
+                m => new { m.TeamId, At = m.LeftAt },
+                t => new { TeamId = t.Id, At = t.DisbandedAt },
+                (_, t) => t.Id)
+            .ToHashSetAsync(ct);
 
         // IgnoreQueryFilters is deliberate and named: we are asking "which
         // organisers does THIS PERSON work for", which is inherently a
@@ -48,6 +64,6 @@ public static class Actors
             .Where(s => s.AccountId == accountId)
             .ToDictionaryAsync(s => s.OrganiserId, s => s.Role, ct);
 
-        return new Actor(accountId, platformRole, organisers, teams);
+        return new Actor(accountId, platformRole, organisers, teams, restorableTeams);
     }
 }

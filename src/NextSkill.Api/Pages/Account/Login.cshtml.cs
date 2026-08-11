@@ -40,6 +40,12 @@ public class LoginModel(NextSkillDb db, TwoFactorLogin pending) : PageModel
     /// <summary>Set by the reset flow, which redirects here rather than signing anybody in.</summary>
     [BindProperty(SupportsGet = true)] public bool Reset { get; set; }
 
+    /// <summary>Confirms that the account-wide session revocation completed.</summary>
+    [BindProperty(SupportsGet = true)] public bool AllSessionsRevoked { get; set; }
+
+    /// <summary>Confirms that identifying account data was erased.</summary>
+    [BindProperty(SupportsGet = true)] public bool AccountDeleted { get; set; }
+
     public void OnGet() { }
 
     public async Task<IActionResult> OnPostAsync()
@@ -47,7 +53,7 @@ public class LoginModel(NextSkillDb db, TwoFactorLogin pending) : PageModel
         if (!ModelState.IsValid) return Page();
 
         var email = Input.Email.Trim().ToLowerInvariant();
-        var account = await db.Accounts.FirstOrDefaultAsync(a => a.Email == email);
+        var account = await db.Accounts.FirstOrDefaultAsync(a => a.DeletedAt == null && a.Email == email);
 
         // No account: still run a full Argon2 verification against a throwaway
         // hash and throw the answer away. The work is wasted on purpose — it is
@@ -74,7 +80,12 @@ public class LoginModel(NextSkillDb db, TwoFactorLogin pending) : PageModel
             return Redirect($"/{Locales.Current}/account/challenge?returnUrl={Uri.EscapeDataString(returnTo)}");
         }
 
-        await Sessions.SignInAsync(HttpContext, db, account);
+        if (!await Sessions.SignInAsync(HttpContext, db, account))
+        {
+            ModelState.AddModelError(string.Empty, "Nieprawidłowy e-mail lub hasło.");
+            return Page();
+        }
+
         return Redirect(Sessions.SafeReturnUrl(ReturnUrl, Locales.Current));
     }
 

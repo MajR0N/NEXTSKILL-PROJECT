@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using NextSkill.Api.Features.Discord;
 using NextSkill.Api.Shared.Persistence;
 using NextSkill.Domain.Brackets;
 using NextSkill.Domain.Matches;
@@ -50,6 +51,19 @@ public static class BracketBuilder
         // real foreign key instead of a number the application resolves later.
         var ids = bracket.Matches.ToDictionary(m => m.Id, _ => Guid.NewGuid());
 
+        var fedSlots = bracket.Matches
+            .SelectMany(m => new[]
+            {
+                m.WinnerToMatch is { } winner && m.WinnerToSlot is { } winnerSlot
+                    ? (Match: winner, Slot: winnerSlot)
+                    : default,
+                m.LoserToMatch is { } loser && m.LoserToSlot is { } loserSlot
+                    ? (Match: loser, Slot: loserSlot)
+                    : default,
+            })
+            .Where(x => x != default)
+            .ToHashSet();
+
         Guid? TeamOf(Slot slot) => slot.Seed is { } seed && seeds.TryGetValue(seed, out var team) ? team : null;
 
         var rows = bracket.Matches.Select(m => new Match
@@ -75,6 +89,12 @@ public static class BracketBuilder
 
             IsConditional = m.IsConditional,
             IsBye = m.IsBye,
+
+            // Null is ambiguous unless resolution is stored separately. A
+            // first-round phantom seed is known-empty; a later-round null is
+            // still waiting for an upstream result.
+            SlotAResolved = !m.IsConditional && !fedSlots.Contains((m.Id, SlotRef.A)),
+            SlotBResolved = !m.IsConditional && !fedSlots.Contains((m.Id, SlotRef.B)),
 
             Status = MatchStatus.Scheduled,
 
@@ -137,29 +157,155 @@ public static class BracketBuilder
         if (winnerTeamId != match.TeamAId && winnerTeamId != match.TeamBId)
             throw new InvalidOperationException("The winner must be one of the two teams in the match.");
 
+        if (match.WinnerTeamId is not null || match.Status is MatchStatus.Forfeited or MatchStatus.Cancelled)
+            throw new InvalidOperationException("A terminal match cannot advance twice.");
+
         match.WinnerTeamId = winnerTeamId;
-        match.Status = match.IsBye ? MatchStatus.Completed : MatchStatus.Completed;
+        match.Status = MatchStatus.Completed;
         match.EndedAt = DateTimeOffset.UtcNow;
 
         var loserTeamId = winnerTeamId == match.TeamAId ? match.TeamBId : match.TeamAId;
 
-        await PlaceAsync(db, match.WinnerToMatchId, match.WinnerToSlot, winnerTeamId, ct);
+        await PlaceAsync(db, match.WinnerToMatchId, match.WinnerToSlot, winnerTeamId, 0, ct);
 
-        // A bye has no loser to send anywhere, and a loser slot fed by an empty
-        // side would put a null into the lower bracket.
-        if (loserTeamId is { } loser)
-            await PlaceAsync(db, match.LoserToMatchId, match.LoserToSlot, loser, ct);
+        // A resolved empty loser is real information. In double elimination it
+        // becomes a vacancy in the lower bracket rather than a slot that waits
+        // forever for a team that cannot arrive.
+        await PlaceAsync(db, match.LoserToMatchId, match.LoserToSlot, loserTeamId, 0, ct);
 
         await db.SaveChangesAsync(ct);
     }
 
-    private static async Task PlaceAsync(NextSkillDb db, Guid? matchId, SlotRef? slot, Guid teamId, CancellationToken ct)
+    /// <summary>
+    /// Records an event-level exit. The opponent advances, while the loser path
+    /// receives a resolved vacancy so the forfeiting team cannot reappear in a
+    /// double-elimination lower bracket.
+    /// </summary>
+    public static async Task ForfeitAsync(
+        NextSkillDb db,
+        Match match,
+        Guid forfeitedTeamId,
+        Guid decidedByAccountId,
+        string reason,
+        CancellationToken ct = default)
+    {
+        if (match.TeamAId is null || match.TeamBId is null)
+            throw new InvalidOperationException("A forfeit needs a scheduled opponent.");
+
+        if (forfeitedTeamId != match.TeamAId && forfeitedTeamId != match.TeamBId)
+            throw new InvalidOperationException("The forfeiting team must be in the match.");
+
+        if (match.WinnerTeamId is not null || match.Status is MatchStatus.Completed or MatchStatus.Forfeited or MatchStatus.Cancelled)
+            throw new InvalidOperationException("A terminal match cannot be forfeited.");
+
+        var registration = await db.Registrations.SingleOrDefaultAsync(r =>
+            r.TournamentId == match.TournamentId &&
+            r.TeamId == forfeitedTeamId &&
+            r.WithdrawnAt == null,
+            ct);
+
+        if (registration is null)
+            throw new InvalidOperationException("The forfeiting team is not an active tournament entrant.");
+
+        if (registration.ForfeitedAt is not null)
+            throw new InvalidOperationException("The team has already forfeited this event.");
+
+        var now = DateTimeOffset.UtcNow;
+        registration.ForfeitedAt = now;
+        registration.ForfeitedByAccountId = decidedByAccountId;
+        registration.ForfeitReason = reason;
+
+        var winnerTeamId = forfeitedTeamId == match.TeamAId
+            ? match.TeamBId.Value
+            : match.TeamAId.Value;
+
+        match.WinnerTeamId = winnerTeamId;
+        match.ForfeitedTeamId = forfeitedTeamId;
+        match.ForfeitedByAccountId = decidedByAccountId;
+        match.ForfeitReason = reason;
+        match.Status = MatchStatus.Forfeited;
+        match.Integrity = MatchIntegrity.Confirmed;
+        match.ScoreA = null;
+        match.ScoreB = null;
+        match.EndedAt = now;
+
+        await PlaceAsync(db, match.WinnerToMatchId, match.WinnerToSlot, winnerTeamId, 0, ct);
+        await PlaceAsync(db, match.LoserToMatchId, match.LoserToSlot, null, 0, ct);
+
+        await DiscordAnnouncements.EnqueueResultConfirmedAsync(db, match, ct);
+
+        await db.SaveChangesAsync(ct);
+    }
+
+    private static async Task PlaceAsync(
+        NextSkillDb db,
+        Guid? matchId,
+        SlotRef? slot,
+        Guid? teamId,
+        int depth,
+        CancellationToken ct)
     {
         if (matchId is not { } id || slot is not { } which) return;
+        if (depth > 64)
+            throw new InvalidOperationException("Vacancy propagation did not terminate — routing is probably cyclic.");
 
         var target = await db.Matches.FirstAsync(m => m.Id == id, ct);
 
-        if (which == SlotRef.A) target.TeamAId = teamId;
-        else target.TeamBId = teamId;
+        if (which == SlotRef.A)
+        {
+            target.TeamAId = teamId;
+            target.SlotAResolved = true;
+        }
+        else
+        {
+            target.TeamBId = teamId;
+            target.SlotBResolved = true;
+        }
+
+        await ResolveVacancyAsync(db, target, depth + 1, ct);
+    }
+
+    /// <summary>
+    /// Once both inputs are resolved, zero or one occupant is an administrative
+    /// result, not an unfinished match. Propagate it immediately and unrated.
+    /// </summary>
+    private static async Task ResolveVacancyAsync(
+        NextSkillDb db,
+        Match match,
+        int depth,
+        CancellationToken ct)
+    {
+        if (!match.SlotAResolved || !match.SlotBResolved || match.IsConditional)
+            return;
+
+        if (match.WinnerTeamId is not null || match.Status is MatchStatus.Completed or MatchStatus.Forfeited or MatchStatus.Cancelled)
+            return;
+
+        var occupants = new[] { match.TeamAId, match.TeamBId }.Where(x => x is not null).ToArray();
+        var now = DateTimeOffset.UtcNow;
+
+        if (occupants.Length == 2)
+            return;
+
+        if (occupants.Length == 1)
+        {
+            var winner = occupants[0]!.Value;
+            match.IsBye = true;
+            match.WinnerTeamId = winner;
+            match.Status = MatchStatus.Completed;
+            match.Integrity = MatchIntegrity.Confirmed;
+            match.EndedAt = now;
+
+            await PlaceAsync(db, match.WinnerToMatchId, match.WinnerToSlot, winner, depth, ct);
+            await PlaceAsync(db, match.LoserToMatchId, match.LoserToSlot, null, depth, ct);
+            return;
+        }
+
+        // Two event exits can empty both sides of a later match. Nobody is
+        // invented as a winner; the vacancy itself moves through both routes.
+        match.Status = MatchStatus.Cancelled;
+        match.EndedAt = now;
+        await PlaceAsync(db, match.WinnerToMatchId, match.WinnerToSlot, null, depth, ct);
+        await PlaceAsync(db, match.LoserToMatchId, match.LoserToSlot, null, depth, ct);
     }
 }

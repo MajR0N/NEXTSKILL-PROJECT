@@ -49,7 +49,12 @@ public class ChallengeModel(NextSkillDb db, TwoFactorLogin pending, ISmsSender s
         if (!ModelState.IsValid) return Page();
 
         var accountId = pending.PendingAccountId(HttpContext)!.Value;
-        var account = await db.Accounts.FirstAsync(a => a.Id == accountId);
+        var account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == accountId && a.DeletedAt == null);
+        if (account is null)
+        {
+            pending.End(HttpContext);
+            return Redirect($"/{Locales.Current}/account/login");
+        }
 
         var ok = Recovery
             ? await RecoveryCodes.RedeemAsync(db, accountId, Code)
@@ -75,7 +80,8 @@ public class ChallengeModel(NextSkillDb db, TwoFactorLogin pending, ISmsSender s
         // The pending state is consumed whether or not the code was reused, so
         // a correct code cannot be replayed against a second browser.
         pending.End(HttpContext);
-        await Sessions.SignInAsync(HttpContext, db, account);
+        if (!await Sessions.SignInAsync(HttpContext, db, account))
+            return Redirect($"/{Locales.Current}/account/login");
 
         return Redirect(Sessions.SafeReturnUrl(ReturnUrl, Locales.Current));
     }
@@ -91,7 +97,12 @@ public class ChallengeModel(NextSkillDb db, TwoFactorLogin pending, ISmsSender s
     private async Task SendSmsAsync()
     {
         var accountId = pending.PendingAccountId(HttpContext)!.Value;
-        var account = await db.Accounts.FirstAsync(a => a.Id == accountId);
+        var account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == accountId && a.DeletedAt == null);
+        if (account is null)
+        {
+            pending.End(HttpContext);
+            return;
+        }
         if (account.PhoneNumber is null) return;
 
         var code = await OneTimeCodes.IssueAsync(db, accountId, OneTimeCodePurpose.SmsSignIn);
@@ -106,7 +117,8 @@ public class ChallengeModel(NextSkillDb db, TwoFactorLogin pending, ISmsSender s
             // here directly. Back to the start, with nothing revealed.
             return Redirect($"/{Locales.Current}/account/login");
 
-        var account = await db.Accounts.AsNoTracking().FirstOrDefaultAsync(a => a.Id == accountId);
+        var account = await db.Accounts.AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == accountId && a.DeletedAt == null);
         if (account?.TwoFactorMethod is not { } method)
         {
             pending.End(HttpContext);

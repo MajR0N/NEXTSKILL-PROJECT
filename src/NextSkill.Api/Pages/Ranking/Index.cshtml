@@ -1,48 +1,109 @@
 @page
 @model NextSkill.Api.Pages.Ranking.IndexModel
 @using NextSkill.Api.Shared.Persistence
+@using NextSkill.Api.Pages.Ranking
+@using NextSkill.Api.Localisation
 @{
-    ViewData["Title"] = "Ranking drużyn";
-    ViewData["Description"] = "Ranking drużyn CS 1.6 i CS2 — rating z zakresem pewności.";
+    var players = Model.Scope == RankingScope.Players;
+    var locale = Locales.Current;
+    ViewData["Title"] = players ? "Ranking graczy" : "Ranking drużyn";
+    ViewData["Description"] = players
+        ? "Ranking graczy CS 1.6 i CS2 — konserwatywny wynik OpenSkill z jawną niepewnością."
+        : "Ranking drużyn CS 1.6 i CS2 — rating z zakresem pewności.";
 }
 
 <div class="wrap section">
 
-    <p class="eyebrow">Sezon 1 · <b>@(Model.Game == Game.Cs2 ? "CS2" : "CS 1.6")</b></p>
-    <h1>Ranking drużyn</h1>
-    <p class="lede">
-        Liczba po prawej to rating, a <b>±</b> pokazuje, jak pewny jest wynik.
-        Drużyny z małą liczbą meczów pozostają wstępne, dopóki zakres się nie zawęzi.
+    <p class="eyebrow">
+        @if (Model.ActiveSeasonName is not null)
+        {
+            <span>@Model.ActiveSeasonName · </span>
+        }
+        <b>@(Model.Game == Game.Cs2 ? "CS2" : "CS 1.6")</b>
     </p>
+    <h1>@(players ? "Ranking graczy" : "Ranking drużyn")</h1>
+    @if (players)
+    {
+        <p class="lede">
+            Pozycję wyznacza ostrożny wynik OpenSkill: oszacowanie umiejętności pomniejszone
+            o niepewność. Dzięki temu nowy gracz nie trafia na szczyt po jednym meczu.
+        </p>
+    }
+    else
+    {
+        <p class="lede">
+            Liczba po prawej to rating, a <b>±</b> pokazuje, jak pewny jest wynik.
+            Drużyny z małą liczbą meczów pozostają wstępne, dopóki zakres się nie zawęzi.
+        </p>
+    }
 
     @* Filters are stateful in the URL, so a filtered ranking is shareable (041). *@
+    <nav class="tabs" aria-label="Zakres rankingu" style="margin-top:var(--s5)">
+        <a asp-route-scope="@RankingScope.Teams" asp-route-game="@Model.Game" asp-route-q="@Model.Q"
+           aria-current="@(players ? null : "page")">Drużyny</a>
+        <a asp-route-scope="@RankingScope.Players" asp-route-game="@Model.Game" asp-route-q="@Model.Q"
+           aria-current="@(players ? "page" : null)">Gracze</a>
+    </nav>
     <div class="row" style="margin:var(--s5) 0 var(--s4)">
-        <a class="chip @(Model.Game == Game.Cs2 ? "chip--on" : "")" asp-route-game="@Game.Cs2">CS2</a>
-        <a class="chip @(Model.Game == Game.Cs16 ? "chip--on" : "")" asp-route-game="@Game.Cs16">CS 1.6</a>
+        <a class="chip @(Model.Game == Game.Cs2 ? "chip--on" : "")"
+           asp-route-game="@Game.Cs2" asp-route-scope="@Model.Scope" asp-route-q="@Model.Q">CS2</a>
+        <a class="chip @(Model.Game == Game.Cs16 ? "chip--on" : "")"
+           asp-route-game="@Game.Cs16" asp-route-scope="@Model.Scope" asp-route-q="@Model.Q">CS 1.6</a>
     </div>
+
+    <form method="get" class="row" role="search" style="margin-bottom:var(--s5)">
+        <input type="hidden" name="scope" value="@Model.Scope" />
+        <input type="hidden" name="game" value="@Model.Game" />
+        <label class="visually-hidden" for="ranking-search">Szukaj w rankingu</label>
+        <input class="input" id="ranking-search" type="search" name="q" value="@Model.Q"
+               maxlength="@IndexModel.MaxQueryLength"
+               placeholder="@(players ? "Nick gracza" : "Nazwa lub tag drużyny")"
+               style="width:auto;flex:1 1 240px" />
+        <button class="btn btn--primary" type="submit">Szukaj</button>
+        @if (Model.Q is not null)
+        {
+            <a class="btn btn--ghost" asp-route-scope="@Model.Scope" asp-route-game="@Model.Game">Wyczyść</a>
+        }
+    </form>
 
     @if (Model.Ranked.Count == 0 && Model.Provisional.Count == 0)
     {
         @* Never a blank panel: say what this is and offer the next action (020). *@
         <div class="empty">
             <div class="empty__icon">◍</div>
-            <h4>Ranking jeszcze pusty</h4>
-            <p>
-                Żadna drużyna nie rozegrała jeszcze meczu w tej grze.
-                Rating pojawia się po pierwszym rozstrzygniętym meczu.
-            </p>
-            <a class="btn btn--primary" href="#">Przeglądaj turnieje</a>
+            @if (Model.Q is not null)
+            {
+                <h4>Brak wyników dla „@Model.Q”</h4>
+                <p>Spróbuj krótszej nazwy, tagu albo sprawdź drugi ranking.</p>
+                <a class="btn btn--primary" asp-route-scope="@Model.Scope" asp-route-game="@Model.Game">Wyczyść wyszukiwanie</a>
+            }
+            else if (Model.IsAfterFirstPage)
+            {
+                <h4>To już koniec rankingu</h4>
+                <p>Wróć na początek, żeby zobaczyć aktualną kolejność.</p>
+                <a class="btn btn--primary" asp-route-scope="@Model.Scope" asp-route-game="@Model.Game">Wróć na początek</a>
+            }
+            else
+            {
+                <h4>@(players ? "Ranking graczy jeszcze pusty" : "Ranking drużyn jeszcze pusty")</h4>
+                <p>
+                    @(players ? "Żaden gracz" : "Żadna drużyna") nie ma jeszcze ratingu w tej grze.
+                    Rating pojawia się po pierwszym rozstrzygniętym meczu.
+                </p>
+                <a class="btn btn--primary" asp-page="/Tournaments/Index">Przeglądaj turnieje</a>
+            }
         </div>
     }
     else
     {
         <div class="table-scroll">
             <table class="table">
+                <caption class="visually-hidden">@(players ? "Ranking graczy" : "Ranking drużyn")</caption>
                 <thead>
                     <tr>
                         <th scope="col">#</th>
-                        <th scope="col">Drużyna</th>
-                        <th scope="col" class="r">Rating</th>
+                        <th scope="col">@(players ? "Gracz" : "Drużyna")</th>
+                        <th scope="col" class="r">@(players ? "Wynik" : "Rating")</th>
                         <th scope="col" class="r">Mecze</th>
                     </tr>
                 </thead>
@@ -52,20 +113,25 @@
                         <tr>
                             <td class="num" style="width:56px;color:var(--text-mid);font-weight:600">@row.Rank</td>
                             <td>
-                                <div class="team">
+                                <a class="team" asp-page="@(players ? "/Players/Details" : "/Teams/Details")"
+                                   asp-route-culture="@locale" asp-route-id="@row.Id"
+                                   style="text-decoration:none;color:inherit">
                                     <span class="avatar avatar--@row.Palette">@row.Initials</span>
                                     <span>
                                         <span class="team__name">@row.Name</span>
-                                        <span class="team__meta">
-                                            <span class="team__tag">@row.Tag</span>
-                                            @if (!string.IsNullOrWhiteSpace(row.City)) { <span>@row.City</span> }
-                                        </span>
+                                        @if (!players)
+                                        {
+                                            <span class="team__meta">
+                                                <span class="team__tag">@row.Tag</span>
+                                                @if (!string.IsNullOrWhiteSpace(row.City)) { <span>@row.City</span> }
+                                            </span>
+                                        }
                                     </span>
-                                </div>
+                                </a>
                             </td>
                             <td class="r num">
-                                <span class="rating">@row.Rating.ToString("F0")</span>
-                                <span class="rating__rd">±@row.Deviation.ToString("F0")</span>
+                                <span class="rating">@row.Rating.ToString(players ? "F1" : "F0")</span>
+                                <span class="rating__rd">±@row.Deviation.ToString(players ? "F1" : "F0")</span>
                                 @* The bar makes uncertainty visible instead of hidden (025). *@
                                 <div class="confidence" title="Pewność ratingu">
                                     <i style="width:@(row.ConfidencePercent)%"></i>
@@ -82,7 +148,8 @@
         {
             <p class="label" style="margin-top:var(--s7)">Wstępne</p>
             <p class="lede" style="margin-top:0">
-                Za mało meczów, żeby uczciwie ustalić pozycję. Te drużyny mają rating,
+                Za mało meczów, żeby uczciwie ustalić pozycję.
+                @(players ? "Ci gracze" : "Te drużyny") mają rating,
                 ale nie mają jeszcze miejsca w rankingu.
             </p>
 
@@ -94,17 +161,22 @@
                             <tr>
                                 <td class="num" style="width:56px;color:var(--text-dim)">—</td>
                                 <td>
-                                    <div class="team">
+                                    <a class="team" asp-page="@(players ? "/Players/Details" : "/Teams/Details")"
+                                       asp-route-culture="@locale" asp-route-id="@row.Id"
+                                       style="text-decoration:none;color:inherit">
                                         <span class="avatar avatar--@row.Palette">@row.Initials</span>
                                         <span>
                                             <span class="team__name">@row.Name</span>
-                                            <span class="team__meta"><span class="team__tag">@row.Tag</span></span>
+                                            @if (!players)
+                                            {
+                                                <span class="team__meta"><span class="team__tag">@row.Tag</span></span>
+                                            }
                                         </span>
-                                    </div>
+                                    </a>
                                 </td>
                                 <td class="r num">
-                                    <span class="rating" style="color:var(--text-dim)">@row.Rating.ToString("F0")</span>
-                                    <span class="rating__rd">±@row.Deviation.ToString("F0")</span>
+                                    <span class="rating" style="color:var(--text-dim)">@row.Rating.ToString(players ? "F1" : "F0")</span>
+                                    <span class="rating__rd">±@row.Deviation.ToString(players ? "F1" : "F0")</span>
                                     <div class="confidence confidence--wide">
                                         <i style="width:@(row.ConfidencePercent)%"></i>
                                     </div>
@@ -115,6 +187,22 @@
                     </tbody>
                 </table>
             </div>
+        }
+
+        @if (Model.IsAfterFirstPage || Model.NextCursor is not null)
+        {
+            <nav class="pager" aria-label="Strony rankingu">
+                @if (Model.IsAfterFirstPage)
+                {
+                    <a class="btn btn--ghost" asp-route-scope="@Model.Scope" asp-route-game="@Model.Game"
+                       asp-route-q="@Model.Q">Początek</a>
+                }
+                @if (Model.NextCursor is not null)
+                {
+                    <a class="btn btn--primary" asp-route-scope="@Model.Scope" asp-route-game="@Model.Game"
+                       asp-route-q="@Model.Q" asp-route-cursor="@Model.NextCursor">Dalej</a>
+                }
+            </nav>
         }
     }
 </div>

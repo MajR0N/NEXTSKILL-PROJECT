@@ -70,7 +70,7 @@
 
             @if (User.Identity?.IsAuthenticated == true)
             {
-                <span class="dim" style="font-size:13.5px">@User.Identity.Name</span>
+                <a asp-page="/Account/Profile" asp-route-culture="@locale">@User.Identity.Name</a>
                 @* Logout is a POST, so it cannot be triggered by an <img src> on
                    someone else's page — and Razor Pages signs the form for us. *@
                 <form method="post" asp-page="/Account/Logout" asp-route-culture="@locale" style="display:inline">

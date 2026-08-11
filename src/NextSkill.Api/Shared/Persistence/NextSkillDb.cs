@@ -21,6 +21,9 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
     public DbSet<Team> Teams => Set<Team>();
     public DbSet<GameServer> Servers => Set<GameServer>();
     public DbSet<Tournament> Tournaments => Set<Tournament>();
+    public DbSet<TournamentTemplate> TournamentTemplates => Set<TournamentTemplate>();
+    public DbSet<TournamentDiscordWebhook> TournamentDiscordWebhooks => Set<TournamentDiscordWebhook>();
+    public DbSet<DiscordAnnouncement> DiscordAnnouncements => Set<DiscordAnnouncement>();
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<TournamentRegistration> Registrations => Set<TournamentRegistration>();
     public DbSet<Rating> Ratings => Set<Rating>();
@@ -40,6 +43,10 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
         b.Entity<Tournament>().Property(x => x.Format).HasConversion<string>();
         b.Entity<Tournament>().Property(x => x.Status).HasConversion<string>();
         b.Entity<Tournament>().Property(x => x.TeamSize).HasConversion<string>();
+        b.Entity<TournamentTemplate>().Property(x => x.Game).HasConversion<string>();
+        b.Entity<TournamentTemplate>().Property(x => x.Format).HasConversion<string>();
+        b.Entity<TournamentTemplate>().Property(x => x.TeamSize).HasConversion<string>();
+        b.Entity<DiscordAnnouncement>().Property(x => x.Type).HasConversion<string>();
         b.Entity<Match>().Property(x => x.Game).HasConversion<string>();
         b.Entity<Match>().Property(x => x.Status).HasConversion<string>();
         b.Entity<Match>().Property(x => x.Integrity).HasConversion<string>();
@@ -67,6 +74,9 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
         // organiser's rows (036).
         b.Entity<GameServer>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
         b.Entity<Tournament>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
+        b.Entity<TournamentTemplate>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
+        b.Entity<TournamentDiscordWebhook>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
+        b.Entity<DiscordAnnouncement>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
         b.Entity<Match>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
         b.Entity<TournamentRegistration>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
         b.Entity<OrganiserStaff>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
@@ -97,9 +107,14 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
             // impersonation vector, not a cosmetic issue.
             e.Property(x => x.Email).HasMaxLength(254);
             e.Property(x => x.Nickname).HasMaxLength(32);
-            // Native inet, not a string: validates on write and supports subnet
-            // operators for abuse detection (008).
-            e.Property(x => x.LastSeenIp).HasColumnType("inet");
+            e.Property(x => x.SteamId).HasMaxLength(20);
+            e.Property(x => x.DiscordId).HasMaxLength(20);
+
+            // An external identity can prove ownership of ONE NEXTSKILL
+            // account, never two. Application checks give a friendly answer;
+            // these indexes close the simultaneous-callback race (011).
+            e.HasIndex(x => x.SteamId).IsUnique().HasFilter("steam_id IS NOT NULL");
+            e.HasIndex(x => x.DiscordId).IsUnique().HasFilter("discord_id IS NOT NULL");
         });
 
         // Sessions are global like the accounts they belong to. The index is the
@@ -141,9 +156,60 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
             e.Property(x => x.Host).HasMaxLength(253);
         });
 
+        b.Entity<Tournament>(e =>
+        {
+            // Season is global, tournament is tenant-owned. The foreign key
+            // makes an assignment real rather than an unchecked Guid, while
+            // Restrict preserves permanent archive membership (021).
+            e.HasIndex(x => x.SeasonId);
+            e.HasOne<Season>().WithMany()
+                .HasForeignKey(x => x.SeasonId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<TournamentDiscordWebhook>(e =>
+        {
+            e.HasIndex(x => x.TournamentId)
+                .IsUnique()
+                .HasDatabaseName("ix_one_discord_webhook_per_tournament");
+            e.Property(x => x.LastError).HasMaxLength(64);
+            e.HasOne<Tournament>().WithMany()
+                .HasForeignKey(x => x.TournamentId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<DiscordAnnouncement>(e =>
+        {
+            e.Property(x => x.Payload).HasColumnType("jsonb");
+            e.Property(x => x.DeduplicationKey).HasMaxLength(160);
+            e.Property(x => x.LastError).HasMaxLength(64);
+            e.HasIndex(x => x.DeduplicationKey)
+                .IsUnique()
+                .HasDatabaseName("ix_one_discord_announcement_per_event");
+            e.HasIndex(x => x.NextAttemptAt)
+                .HasFilter("sent_at IS NULL AND abandoned_at IS NULL")
+                .HasDatabaseName("ix_due_discord_announcements");
+            e.HasOne<Tournament>().WithMany()
+                .HasForeignKey(x => x.TournamentId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Match>().WithMany()
+                .HasForeignKey(x => x.MatchId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        b.Entity<TournamentTemplate>(e =>
+        {
+            e.Property(x => x.Name).HasMaxLength(80);
+            e.Property(x => x.NameKey).HasMaxLength(80);
+            e.HasIndex(x => new { x.OrganiserId, x.NameKey })
+                .IsUnique()
+                .HasDatabaseName("ix_one_tournament_template_name_per_organiser");
+        });
+
         b.Entity<Match>(e =>
         {
             e.Property(x => x.Payload).HasColumnType("jsonb");
+            e.Property(x => x.ForfeitReason).HasMaxLength(500);
 
             // GIN over the whole payload: ANY key inside becomes searchable,
             // including keys we haven't thought of yet. This is the concrete
@@ -204,6 +270,7 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
 
         b.Entity<TournamentRegistration>(e =>
         {
+            e.Property(x => x.ForfeitReason).HasMaxLength(500);
             // One ACTIVE entry per team per tournament. Partial, so a team that
             // withdrew and re-entered does not collide with its own history —
             // the same technique as one-live-match-per-server (007) and

@@ -23,7 +23,11 @@ public class BracketModel(NextSkillDb db) : PageModel
 
     public sealed record Node(
         Guid Id, BracketSide Side, int Round, int Position,
-        Slot A, Slot B, bool IsBye, bool IsConditional, bool Decided, bool Live);
+        Slot A, Slot B, bool IsBye, bool IsConditional, bool Decided, bool Live,
+        bool Forfeited, string? ForfeitReason, bool CanForfeit);
+
+    [BindProperty(SupportsGet = true)]
+    public bool Forfeited { get; set; }
 
     public Tournament? Tournament { get; private set; }
     public string OrganiserName { get; private set; } = "";
@@ -76,13 +80,30 @@ public class BracketModel(NextSkillDb db) : PageModel
                 : new Slot(team.Name, team.Tag, seeds.GetValueOrDefault(tid),
                     score, winner == tid, winner is not null && winner != tid);
 
+        var canAdminister = actor is not null &&
+            AccessPolicy.Can(actor, Operation.AdvanceBracket, new ResourceRef(tournament.OrganiserId));
+
+        bool CanForfeit(Match match) =>
+            actor is not null &&
+            tournament.Status == TournamentStatus.Running &&
+            match.TeamAId is not null && match.TeamBId is not null &&
+            match.SlotAResolved && match.SlotBResolved &&
+            !match.IsBye && match.WinnerTeamId is null &&
+            match.Status is not (MatchStatus.Completed or MatchStatus.Forfeited or MatchStatus.Cancelled) &&
+            (canAdminister ||
+             AccessPolicy.Can(actor, Operation.ManageRoster, new ResourceRef(TeamId: match.TeamAId)) ||
+             AccessPolicy.Can(actor, Operation.ManageRoster, new ResourceRef(TeamId: match.TeamBId)));
+
         var nodes = matches.Select(m => new Node(
             m.Id, m.Side, m.Round, m.Position,
             ToSlot(m.TeamAId, m.ScoreA, m.WinnerTeamId),
             ToSlot(m.TeamBId, m.ScoreB, m.WinnerTeamId),
             m.IsBye, m.IsConditional,
             m.WinnerTeamId is not null,
-            m.Status == MatchStatus.Live)).ToList();
+            m.Status == MatchStatus.Live,
+            m.Status == MatchStatus.Forfeited,
+            m.ForfeitReason,
+            CanForfeit(m))).ToList();
 
         var columns = new List<(string, IReadOnlyList<Node>)>();
 

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using NextSkill.Api.Features.Discord;
 using NextSkill.Api.Features.Tournaments;
 using NextSkill.Api.Localisation;
 using NextSkill.Api.Shared.Auth;
@@ -23,16 +24,24 @@ namespace NextSkill.Api.Pages.Tournaments;
 /// </summary>
 public class DetailsModel(NextSkillDb db, TenantContext tenant) : PageModel
 {
-    public sealed record Entry(Guid TeamId, string Name, string Tag, int? Seed, int Fieldable, bool Ready);
+    public sealed record Entry(
+        Guid TeamId, string Name, string Tag, int? Seed, int Fieldable,
+        bool Ready, bool CheckedIn, bool Forfeited);
+
+    public sealed record MyTeam(Guid Id, string Name, int Fieldable, bool Entered, bool CheckedIn);
 
     public Tournament? Tournament { get; private set; }
     public string OrganiserName { get; private set; } = "";
+    public string? SeasonName { get; private set; }
     public IReadOnlyList<Entry> Entries { get; private set; } = [];
 
     /// <summary>Teams the visitor captains, and whether each may enter.</summary>
-    public IReadOnlyList<(Guid Id, string Name, int Fieldable, bool Entered)> MyTeams { get; private set; } = [];
+    public IReadOnlyList<MyTeam> MyTeams { get; private set; } = [];
 
     public bool CanManage { get; private set; }
+    public TournamentStartDecision StartDecision { get; private set; } =
+        new(TournamentStartBlock.WrongStatus);
+    public bool CanStart => StartDecision.Allowed;
 
     public int PlayersRequired => (int)(Tournament?.TeamSize ?? TeamSize.Squad);
     public int PlacesLeft => (Tournament?.MaxTeams ?? 0) - Entries.Count;
@@ -45,7 +54,10 @@ public class DetailsModel(NextSkillDb db, TenantContext tenant) : PageModel
 
     // ── entering and leaving ─────────────────────────────────────────────
 
-    public async Task<IActionResult> OnPostEnterAsync(Guid id, Guid teamId)
+    public async Task<IActionResult> OnPostEnterAsync(
+        Guid id,
+        Guid teamId,
+        CancellationToken cancellationToken)
     {
         var actor = await Actors.CurrentAsync(db, User);
         if (actor is null) return Challenge();
@@ -55,8 +67,15 @@ public class DetailsModel(NextSkillDb db, TenantContext tenant) : PageModel
         if (!AccessPolicy.Can(actor, Operation.ManageRoster, new ResourceRef(TeamId: teamId)))
             return Forbid();
 
-        var tournament = await db.FindPublicTournamentAsync(id);
-        if (tournament is null) return NotFound();
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+
+        // Every state-dependent tournament mutation takes this lock. Capacity,
+        // lifecycle and participant checks therefore describe the same instant.
+        var tournament = await db.Tournaments
+            .FromSqlInterpolated($"SELECT * FROM tournaments WHERE id = {id} FOR UPDATE")
+            .IgnoreQueryFilters()
+            .SingleOrDefaultAsync(cancellationToken);
+        if (tournament is null || !TournamentLifecycle.IsPublic(tournament.Status)) return NotFound();
 
         if (!TournamentLifecycle.AcceptsRegistrations(tournament.Status))
         {
@@ -102,29 +121,40 @@ public class DetailsModel(NextSkillDb db, TenantContext tenant) : PageModel
 
         try
         {
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateException)
         {
             // The partial unique index is the real guard against a double
             // submit, exactly as it is for roster invites (008).
+            await transaction.RollbackAsync(cancellationToken);
             ModelState.AddModelError(string.Empty, "Ta drużyna jest już zapisana.");
             await LoadAsync(id);
             return Page();
         }
 
+        await transaction.CommitAsync(cancellationToken);
+
         return Redirect($"/{Locales.Current}/t/{id}");
     }
 
-    public async Task<IActionResult> OnPostWithdrawAsync(Guid id, Guid teamId)
+    public async Task<IActionResult> OnPostWithdrawAsync(
+        Guid id,
+        Guid teamId,
+        CancellationToken cancellationToken)
     {
         var actor = await Actors.CurrentAsync(db, User);
         if (actor is null) return Challenge();
         if (!AccessPolicy.Can(actor, Operation.ManageRoster, new ResourceRef(TeamId: teamId)))
             return Forbid();
 
-        var tournament = await db.FindPublicTournamentAsync(id);
-        if (tournament is null) return NotFound();
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+
+        var tournament = await db.Tournaments
+            .FromSqlInterpolated($"SELECT * FROM tournaments WHERE id = {id} FOR UPDATE")
+            .IgnoreQueryFilters()
+            .SingleOrDefaultAsync(cancellationToken);
+        if (tournament is null || !TournamentLifecycle.IsPublic(tournament.Status)) return NotFound();
 
         // Once a bracket exists, a team vanishing would leave matches pointing
         // at a team that is not in the event (023). Withdrawing from a running
@@ -154,18 +184,85 @@ public class DetailsModel(NextSkillDb db, TenantContext tenant) : PageModel
         await db.Registrations.Where(r => r.TournamentId == id && r.WithdrawnAt == null)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.Seed, (int?)null));
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return Redirect($"/{Locales.Current}/t/{id}");
+    }
+
+    /// <summary>
+    /// A captain confirms that the team still intends to play after the field
+    /// has closed. This is deliberately later than registration: it turns a
+    /// stale entry into an explicit, recent commitment.
+    /// </summary>
+    public async Task<IActionResult> OnPostCheckInAsync(
+        Guid id,
+        Guid teamId,
+        CancellationToken cancellationToken)
+    {
+        var actor = await Actors.CurrentAsync(db, User, cancellationToken);
+        if (actor is null) return Challenge();
+        if (!AccessPolicy.Can(actor, Operation.ManageRoster, new ResourceRef(TeamId: teamId)))
+            return Forbid();
+
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+
+        var tournament = await db.Tournaments
+            .FromSqlInterpolated($"SELECT * FROM tournaments WHERE id = {id} FOR UPDATE")
+            .IgnoreQueryFilters()
+            .SingleOrDefaultAsync(cancellationToken);
+        if (tournament is null || !TournamentLifecycle.IsPublic(tournament.Status)) return NotFound();
+
+        if (tournament.Status != TournamentStatus.RegistrationClosed)
+        {
+            ModelState.AddModelError(string.Empty,
+                "Udział można potwierdzić dopiero po zamknięciu zapisów.");
+            await LoadAsync(id);
+            return Page();
+        }
+
+        tenant.Set(tournament.OrganiserId);
+
+        var entry = await db.Registrations.FirstOrDefaultAsync(r =>
+            r.TournamentId == id && r.TeamId == teamId && r.WithdrawnAt == null,
+            cancellationToken);
+        if (entry is null) return NotFound();
+
+        if (entry.CheckedInAt is not null)
+            return Redirect($"/{Locales.Current}/t/{id}");
+
+        var fieldable = await FieldableCountAsync(teamId);
+        if (fieldable < (int)tournament.TeamSize)
+        {
+            ModelState.AddModelError(string.Empty,
+                $"Nie można potwierdzić udziału: drużyna ma {fieldable}/{(int)tournament.TeamSize} zawodników mogących grać.");
+            await LoadAsync(id);
+            return Page();
+        }
+
+        entry.CheckedInAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return Redirect($"/{Locales.Current}/t/{id}");
     }
 
     // ── organiser controls ───────────────────────────────────────────────
 
-    public async Task<IActionResult> OnPostStatusAsync(Guid id, TournamentStatus to)
+    public async Task<IActionResult> OnPostStatusAsync(
+        Guid id,
+        TournamentStatus to,
+        CancellationToken cancellationToken)
     {
-        var tournament = await db.FindForManagementAsync(id);
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+
+        // Shared with the editor. A status transition and a setup edit cannot
+        // both validate against stale lifecycle state and land afterwards.
+        var tournament = await db.Tournaments
+            .FromSqlInterpolated($"SELECT * FROM tournaments WHERE id = {id} FOR UPDATE")
+            .IgnoreQueryFilters()
+            .SingleOrDefaultAsync(cancellationToken);
         if (tournament is null) return NotFound();
 
-        var actor = await Actors.CurrentAsync(db, User);
+        var actor = await Actors.CurrentAsync(db, User, cancellationToken);
         if (actor is null) return Challenge();
         if (!AccessPolicy.Can(actor, Operation.RunTournament, new ResourceRef(tournament.OrganiserId)))
             return Forbid();
@@ -191,15 +288,34 @@ public class DetailsModel(NextSkillDb db, TenantContext tenant) : PageModel
         // Doing it here, in the same transaction as the status change, means a
         // tournament can never be Running without one (023, 046).
         if (to == TournamentStatus.Running)
-            await BracketBuilder.BuildAsync(db, tournament);
+        {
+            var decision = await EvaluateStartAsync(tournament);
+            if (!decision.Allowed)
+            {
+                ModelState.AddModelError(string.Empty, StartBlockMessage(decision));
+                await LoadAsync(id);
+                return Page();
+            }
+
+            await BracketBuilder.BuildAsync(db, tournament, cancellationToken);
+        }
 
         if (to == TournamentStatus.RegistrationOpen)
-            // Reopening invalidates seeds: the field is about to change again.
+        {
+            // Reopening invalidates seeds and confirmations: the field is about
+            // to change again, so the next close requires a fresh commitment.
             await db.Registrations.Where(r => r.TournamentId == id)
-                .ExecuteUpdateAsync(s => s.SetProperty(r => r.Seed, (int?)null));
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(r => r.Seed, (int?)null)
+                    .SetProperty(r => r.CheckedInAt, (DateTimeOffset?)null));
+
+            await DiscordAnnouncements.EnqueueRegistrationOpenedAsync(
+                db, tournament, cancellationToken);
+        }
 
         tournament.Status = to;
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return Redirect($"/{Locales.Current}/t/{id}");
     }
@@ -237,7 +353,13 @@ public class DetailsModel(NextSkillDb db, TenantContext tenant) : PageModel
         }));
 
         for (var i = 0; i < order.Count; i++)
-            entries.First(e => e.TeamId == order[i]).Seed = i + 1;
+        {
+            var entry = entries.First(e => e.TeamId == order[i]);
+            entry.Seed = i + 1;
+            // Every close begins a new check-in window. A confirmation from an
+            // earlier field must never silently carry across a reopen.
+            entry.CheckedInAt = null;
+        }
     }
 
     // ── loading ──────────────────────────────────────────────────────────
@@ -257,9 +379,24 @@ public class DetailsModel(NextSkillDb db, TenantContext tenant) : PageModel
         Tournament = tournament;
         OrganiserName = await db.Organisers.Where(o => o.Id == tournament.OrganiserId)
             .Select(o => o.Name).FirstAsync();
+        var assignedSeason = tournament.SeasonId is { } seasonId
+            ? await db.Seasons.AsNoTracking()
+                .Where(s => s.Id == seasonId)
+                .Select(s => new { s.Name, s.Closed })
+                .FirstOrDefaultAsync()
+            : null;
+        SeasonName = assignedSeason?.Name;
 
         var rows = await db.PublicRegistrations(id)
-            .Join(db.Teams, r => r.TeamId, t => t.Id, (r, t) => new { r.TeamId, t.Name, t.Tag, r.Seed })
+            .Join(db.Teams, r => r.TeamId, t => t.Id, (r, t) => new
+            {
+                r.TeamId,
+                t.Name,
+                t.Tag,
+                r.Seed,
+                r.CheckedInAt,
+                r.ForfeitedAt,
+            })
             .AsNoTracking()
             .ToListAsync();
 
@@ -268,12 +405,18 @@ public class DetailsModel(NextSkillDb db, TenantContext tenant) : PageModel
         foreach (var row in rows)
         {
             var fieldable = await FieldableCountAsync(row.TeamId);
-            entries.Add(new Entry(row.TeamId, row.Name, row.Tag, row.Seed, fieldable, fieldable >= required));
+            entries.Add(new Entry(
+                row.TeamId, row.Name, row.Tag, row.Seed, fieldable,
+                fieldable >= required, row.CheckedInAt is not null, row.ForfeitedAt is not null));
         }
 
         // Seeded order once seeds exist, alphabetical before that — never a
         // random-looking order that changes between refreshes.
         Entries = [.. entries.OrderBy(e => e.Seed ?? int.MaxValue).ThenBy(e => e.Name)];
+        StartDecision = TournamentLifecycle.MayStart(
+            tournament.Status,
+            Entries.Select(e => new TournamentStartEntry(e.CheckedIn, e.Ready)).ToList(),
+            assignedSeason?.Closed == true);
 
         if (Sessions.AccountIdOf(User) is not { } accountId) return;
 
@@ -285,10 +428,17 @@ public class DetailsModel(NextSkillDb db, TenantContext tenant) : PageModel
             .AsNoTracking()
             .ToListAsync();
 
-        var mine = new List<(Guid, string, int, bool)>();
+        var mine = new List<MyTeam>();
         foreach (var team in captained)
-            mine.Add((team.Id, team.Name, await FieldableCountAsync(team.Id),
-                Entries.Any(e => e.TeamId == team.Id)));
+        {
+            var entry = Entries.FirstOrDefault(e => e.TeamId == team.Id);
+            mine.Add(new MyTeam(
+                team.Id,
+                team.Name,
+                await FieldableCountAsync(team.Id),
+                entry is not null,
+                entry?.CheckedIn ?? false));
+        }
 
         MyTeams = mine;
     }
@@ -306,6 +456,39 @@ public class DetailsModel(NextSkillDb db, TenantContext tenant) : PageModel
 
         return slots.Count(RosterRules.IsFieldable);
     }
+
+    private async Task<TournamentStartDecision> EvaluateStartAsync(Tournament tournament)
+    {
+        var registrations = await db.Registrations
+            .Where(r => r.TournamentId == tournament.Id && r.WithdrawnAt == null)
+            .Select(r => new { r.TeamId, r.CheckedInAt })
+            .AsNoTracking()
+            .ToListAsync();
+
+        var entries = new List<TournamentStartEntry>(registrations.Count);
+        foreach (var registration in registrations)
+            entries.Add(new TournamentStartEntry(
+                registration.CheckedInAt is not null,
+                await FieldableCountAsync(registration.TeamId) >= (int)tournament.TeamSize));
+
+        var assignedSeasonClosed = tournament.SeasonId is { } seasonId &&
+            await db.Seasons.AsNoTracking().AnyAsync(s => s.Id == seasonId && s.Closed);
+
+        return TournamentLifecycle.MayStart(tournament.Status, entries, assignedSeasonClosed);
+    }
+
+    public static string StartBlockMessage(TournamentStartDecision decision) => decision.Block switch
+    {
+        TournamentStartBlock.TooFewTeams => "Do startu potrzeba co najmniej dwóch drużyn.",
+        TournamentStartBlock.ClosedSeason =>
+            "Nie można rozpocząć turnieju przypisanego do zamkniętego sezonu.",
+        TournamentStartBlock.UncheckedTeams =>
+            $"Nie można rozpocząć: {decision.Count} drużyn nie potwierdziło udziału.",
+        TournamentStartBlock.IncompleteRosters =>
+            $"Nie można rozpocząć: {decision.Count} drużyn nie ma pełnego składu.",
+        TournamentStartBlock.WrongStatus => "Turniej można rozpocząć dopiero po zamknięciu zapisów.",
+        _ => string.Empty,
+    };
 
     public static string Initials(string name) => Teams.DetailsModel.Initials(name);
     public static int Palette(string tag) => Teams.DetailsModel.Palette(tag);

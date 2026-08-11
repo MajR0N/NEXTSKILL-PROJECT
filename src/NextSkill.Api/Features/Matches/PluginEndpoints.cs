@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using NextSkill.Api.Features.Discord;
 using NextSkill.Api.Shared.Auth;
 using NextSkill.Api.Shared.Persistence;
 using NextSkill.Contracts;
@@ -70,8 +71,18 @@ public static class PluginEndpoints
             if (evt.MatchId != matchId.ToString())
                 return Results.Problem(title: "match mismatch", detail: "Envelope match_id does not match the route.", statusCode: 400);
 
-            var match = await db.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
+            await using var transaction = await db.Database.BeginTransactionAsync(http.RequestAborted);
+
+            // Serialise server events with human administrative results. A
+            // plugin event read just before a forfeit must not wake up later
+            // and overwrite the walkover with a score.
+            var match = await db.Matches
+                .FromSqlInterpolated($"SELECT * FROM matches WHERE id = {matchId} FOR UPDATE")
+                .FirstOrDefaultAsync(http.RequestAborted);
             if (match is null) return Results.NotFound();
+
+            if (match.Status is MatchStatus.Forfeited or MatchStatus.Cancelled)
+                return Results.Ok(new { status = "terminal_ignored", last_seq = match.LastEventSeq });
 
             var outcome = MatchIntegrityRules.CheckSequence(match.LastEventSeq, evt.Seq);
 
@@ -90,7 +101,16 @@ public static class PluginEndpoints
 
             match.LastEventSeq = evt.Seq;
 
-            if (evt.Type == MatchEventType.MapEnd)
+            if (evt.Type == MatchEventType.MatchLoaded)
+            {
+                if (match.Status == MatchStatus.Scheduled)
+                    match.Status = MatchStatus.AwaitingPlayers;
+                match.StartedAt ??= DateTimeOffset.UtcNow;
+
+                await DiscordAnnouncements.EnqueueMatchStartedAsync(
+                    db, match, http.RequestAborted);
+            }
+            else if (evt.Type == MatchEventType.MapEnd)
             {
                 var payload = evt.PayloadAs<MapEndPayload>();
 
@@ -108,6 +128,9 @@ public static class PluginEndpoints
                 match.ScoreB = payload.FinalScoreB;
                 match.Status = MatchStatus.Completed;
                 match.EndedAt = DateTimeOffset.UtcNow;
+
+                await DiscordAnnouncements.EnqueueResultConfirmedAsync(
+                    db, match, http.RequestAborted);
             }
             else if (evt.Type == MatchEventType.RoundEnd)
             {
@@ -117,7 +140,8 @@ public static class PluginEndpoints
                 match.Status = MatchStatus.Live;
             }
 
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(http.RequestAborted);
+            await transaction.CommitAsync(http.RequestAborted);
 
             return Results.Ok(new
             {

@@ -90,6 +90,68 @@ public static class TournamentChecks
         });
 
         // ── seeding ──────────────────────────────────────────────────────
+        check("editing: competitive structure freezes on publish and all setup freezes on start", () =>
+        {
+            var decided = new Dictionary<TournamentStatus, (bool Details, bool Structure)>
+            {
+                [TournamentStatus.Draft] = (true, true),
+                [TournamentStatus.RegistrationOpen] = (true, false),
+                [TournamentStatus.RegistrationClosed] = (true, false),
+                [TournamentStatus.Running] = (false, false),
+                [TournamentStatus.Completed] = (false, false),
+                [TournamentStatus.Cancelled] = (false, false),
+            };
+
+            foreach (var status in Enum.GetValues<TournamentStatus>())
+            {
+                that(decided.ContainsKey(status), $"{status}: editing policy was not decided");
+                var expected = decided[status];
+                that(TournamentLifecycle.MayEditDetails(status) == expected.Details,
+                    $"{status}: detail editing should be {expected.Details}");
+                that(TournamentLifecycle.MayEditStructure(status) == expected.Structure,
+                    $"{status}: structure editing should be {expected.Structure}");
+            }
+        });
+
+        check("start: every entrant must check in and still have a fieldable roster", () =>
+        {
+            static TournamentStartEntry Entry(bool checkedIn, bool fieldable) =>
+                new(checkedIn, fieldable);
+
+            that(TournamentLifecycle.MayStart(
+                    TournamentStatus.RegistrationOpen,
+                    [Entry(true, true), Entry(true, true)]).Block == TournamentStartBlock.WrongStatus,
+                "start is only meaningful after registration closes");
+
+            that(TournamentLifecycle.MayStart(
+                    TournamentStatus.RegistrationClosed,
+                    [Entry(true, true)]).Block == TournamentStartBlock.TooFewTeams,
+                "one team is not a tournament");
+
+            that(TournamentLifecycle.MayStart(
+                    TournamentStatus.RegistrationClosed,
+                    [Entry(true, true), Entry(true, true)],
+                    assignedSeasonClosed: true).Block == TournamentStartBlock.ClosedSeason,
+                "a closed season is immutable archive history and cannot receive new results");
+
+            var uncheckedField = TournamentLifecycle.MayStart(
+                TournamentStatus.RegistrationClosed,
+                [Entry(true, true), Entry(false, true), Entry(false, true)]);
+            that(uncheckedField.Block == TournamentStartBlock.UncheckedTeams && uncheckedField.Count == 2,
+                "every current entrant must make a fresh commitment");
+
+            var incomplete = TournamentLifecycle.MayStart(
+                TournamentStatus.RegistrationClosed,
+                [Entry(true, true), Entry(true, false)]);
+            that(incomplete.Block == TournamentStartBlock.IncompleteRosters && incomplete.Count == 1,
+                "check-in is not a roster lock; fieldability is revalidated at start");
+
+            that(TournamentLifecycle.MayStart(
+                    TournamentStatus.RegistrationClosed,
+                    [Entry(true, true), Entry(true, true)]).Allowed,
+                "two checked-in, fieldable teams may start");
+        });
+
         check("seeding: strongest first, and a PROVISIONAL team never takes a top seed", () =>
         {
             var now = DateTimeOffset.UtcNow;

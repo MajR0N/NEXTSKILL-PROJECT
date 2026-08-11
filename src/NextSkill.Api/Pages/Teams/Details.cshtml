@@ -25,6 +25,25 @@
         </div>
     </div>
 
+    @if (Model.Restored)
+    {
+        <div class="alert alert--ok" role="status" style="margin-top:var(--s5)">
+            Drużyna została przywrócona. Poprzedni skład pozostał historią.
+        </div>
+    }
+
+    @if (team.DisbandedAt is not null)
+    {
+        <div class="alert" role="status" style="margin-top:var(--s5)">
+            <b>Ta drużyna została rozwiązana.</b> Strona i tag pozostają dla historii rozgrywek.
+            @if (Model.CanRestore)
+            {
+                <a class="btn" asp-page="/Teams/Restore" asp-route-culture="@locale" asp-route-id="@team.Id"
+                   style="margin-left:var(--s3)">Przywróć drużynę</a>
+            }
+        </div>
+    }
+
     @if (!ViewData.ModelState.IsValid)
     {
         <div class="alert alert--error" role="alert" style="margin-top:var(--s5)">
@@ -80,7 +99,8 @@
                                     <td>
                                         <div class="team">
                                             <span class="avatar avatar--sm avatar--@Model.Palette(member.Nickname)">@Model.Initials(member.Nickname)</span>
-                                            <span class="team__name">@member.Nickname</span>
+                                            <a class="team__name" asp-page="/Players/Details" asp-route-culture="@locale"
+                                               asp-route-id="@member.AccountId" style="color:inherit">@member.Nickname</a>
                                         </div>
                                     </td>
                                     <td class="dim">@(member.Role == TeamRole.Captain ? "Kapitan" : "Zawodnik")</td>

@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Globalization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -5,6 +6,7 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Localization.Routing;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using NextSkill.Api.Features.Discord;
 using NextSkill.Api.Features.Matches;
 using NextSkill.Api.Localisation;
 using NextSkill.Api.Shared.Auth;
@@ -100,6 +102,31 @@ else
 // The pending-login state between password and second factor (047).
 builder.Services.AddScoped<TwoFactorLogin>();
 
+// Optional external identities remain LINKS to the native account (011), never
+// alternate login methods. Steam OpenID needs no secret; Discord activates when
+// its application credentials are supplied through configuration.
+builder.Services.Configure<ExternalLinkOptions>(builder.Configuration.GetSection("ExternalAccounts"));
+builder.Services.AddHttpClient(SteamOpenIdProvider.ClientName);
+builder.Services.AddHttpClient(DiscordOAuthProvider.ClientName, client =>
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(
+        "NEXTSKILL/0.1 (+https://github.com/MajR0N/NEXTSKILL-PROJECT)"));
+builder.Services.AddScoped<IExternalIdentityProvider, SteamOpenIdProvider>();
+builder.Services.AddScoped<IExternalIdentityProvider, DiscordOAuthProvider>();
+builder.Services.AddScoped<ExternalLinkState>();
+builder.Services.AddScoped<ExternalAccountLinks>();
+builder.Services.AddScoped<AccountDeletion>();
+
+// Tournament announcements use a transactional outbox. The request that
+// opens registration or records a result only writes a durable row; this
+// worker delivers it independently so Discord cannot roll back tournament
+// state (decision 014).
+builder.Services.Configure<DiscordAnnouncementOptions>(
+    builder.Configuration.GetSection("DiscordAnnouncements"));
+builder.Services.AddSingleton<DiscordWebhookProtector>();
+builder.Services.AddSingleton<IDiscordWebhookTransport, DiscordWebhookTransport>();
+builder.Services.AddScoped<DiscordAnnouncementDispatcher>();
+builder.Services.AddHostedService<DiscordAnnouncementWorker>();
+
 // OpenAPI 3.1, generated from the real endpoint signatures rather than
 // hand-written (009, 039). .NET 10 emits 3.1 by default, and NSwag turns the
 // document into the TypeScript client 004 planned for.
@@ -123,6 +150,7 @@ builder.Services.AddHsts(o =>
 
 // Rate limiting on login and registration (011). Built into ASP.NET Core, so
 // this is configuration rather than a hand-rolled bucket that gets it wrong.
+var ipPartitionKey = RandomNumberGenerator.GetBytes(32);
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -154,7 +182,7 @@ builder.Services.AddRateLimiter(o =>
         // real client IP from CF-Connecting-IP with Cloudflare's ranges as known
         // proxies — required BEFORE this goes near production.
         return RateLimitPartition.GetTokenBucketLimiter(
-            ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            IpAbuseKeys.For(ctx.Connection.RemoteIpAddress, ipPartitionKey),
             _ => new TokenBucketRateLimiterOptions
             {
                 TokenLimit = 10,
@@ -183,9 +211,14 @@ builder.Services.AddRazorPages(o =>
     // order, and the locale prefix has to apply to this route too.
     o.Conventions.AddPageRoute("/Teams/Details", "teams/{id:guid}");
     o.Conventions.AddPageRoute("/Teams/Edit", "teams/{id:guid}/edit");
+    o.Conventions.AddPageRoute("/Teams/Restore", "teams/{id:guid}/restore");
+    o.Conventions.AddPageRoute("/Players/Details", "players/{id:guid}");
+    o.Conventions.AddPageRoute("/Account/Profile", "me");
     o.Conventions.AddPageRoute("/Account/TwoFactor", "account/two-factor");
     o.Conventions.AddPageRoute("/Tournaments/Details", "t/{id:guid}");          // 043: the link pasted mid-event
+    o.Conventions.AddPageRoute("/Tournaments/Edit", "t/{id:guid}/edit");
     o.Conventions.AddPageRoute("/Tournaments/Bracket", "t/{id:guid}/bracket");  // 041: a different page SHAPE, not a tab
+    o.Conventions.AddPageRoute("/Tournaments/Forfeit", "t/{id:guid}/matches/{matchId:guid}/forfeit");
 
     o.Conventions.Add(new LocaleRouteConvention());
 });

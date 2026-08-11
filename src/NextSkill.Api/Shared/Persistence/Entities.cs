@@ -1,4 +1,3 @@
-using System.Net;
 using System.Text.Json;
 using NextSkill.Api.Shared.Tenancy;
 using NextSkill.Domain.Access;
@@ -25,6 +24,8 @@ public enum Game { Cs2, Cs16 }
 public enum OneTimeCodePurpose { PhoneVerification, SmsSignIn }
 
 public enum MatchStatus { Scheduled, VetoInProgress, AwaitingPlayers, Live, Completed, Forfeited, Cancelled }
+
+public enum DiscordAnnouncementType { RegistrationOpened, MatchStarted, ResultConfirmed }
 
 // TournamentFormat, TournamentStatus and TeamSize are DEFINED ONCE, in
 // NextSkill.Domain.Tournaments, and reused here — the same call already made for
@@ -114,13 +115,14 @@ public class Account
     public string? SteamId { get; set; }
     public string? DiscordId { get; set; }
 
-    /// <summary>
-    /// Native <c>inet</c>. GDPR: personal data, used for abuse detection only,
-    /// never displayed (decision 012).
-    /// </summary>
-    public IPAddress? LastSeenIp { get; set; }
-
     public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>
+    /// An erased account remains as a non-identifying tombstone because ratings,
+    /// memberships and future match-participant history refer to its stable id.
+    /// Every identifying or authenticating field is destroyed at this point.
+    /// </summary>
+    public DateTimeOffset? DeletedAt { get; set; }
 }
 
 /// <summary>
@@ -287,6 +289,77 @@ public class Tournament : ITenantOwned
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? StartsAt { get; set; }
+
+    /// <summary>
+    /// Monotonic occurrence number for registration-open announcements. A
+    /// reopened tournament is a new event, while an HTTP retry is not.
+    /// </summary>
+    public int RegistrationOpenRevision { get; set; }
+}
+
+/// <summary>
+/// A tournament's outgoing Discord credential (decision 014). The URL is
+/// protected with an application key outside PostgreSQL and is never projected
+/// back into a page or API response.
+/// </summary>
+public class TournamentDiscordWebhook : ITenantOwned
+{
+    public Guid Id { get; set; }
+    public Guid OrganiserId { get; set; }
+    public Guid TournamentId { get; set; }
+    public string? ProtectedUrl { get; set; }
+    public DateTimeOffset ConfiguredAt { get; set; }
+    public DateTimeOffset? DisabledAt { get; set; }
+    public DateTimeOffset? LastSucceededAt { get; set; }
+    public DateTimeOffset? LastFailedAt { get; set; }
+    public string? LastError { get; set; }
+}
+
+/// <summary>
+/// Durable transactional outbox for Discord. Event facts are stored without
+/// the webhook credential, so a database reader cannot post to the channel and
+/// a process crash cannot lose an announcement committed with the event.
+/// </summary>
+public class DiscordAnnouncement : ITenantOwned
+{
+    public Guid Id { get; set; }
+    public Guid OrganiserId { get; set; }
+    public Guid TournamentId { get; set; }
+    public Guid? MatchId { get; set; }
+    public DiscordAnnouncementType Type { get; set; }
+    public required string DeduplicationKey { get; set; }
+    public required JsonDocument Payload { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public int AttemptCount { get; set; }
+    public DateTimeOffset NextAttemptAt { get; set; }
+    public DateTimeOffset? SentAt { get; set; }
+    public DateTimeOffset? AbandonedAt { get; set; }
+    public string? LastError { get; set; }
+}
+
+/// <summary>
+/// A named, organiser-owned snapshot of repeatable tournament setup (decision
+/// 015). Cloning copies values into a new draft; the draft never retains a
+/// live link to this row, so later template changes cannot rewrite an event.
+/// </summary>
+public class TournamentTemplate : ITenantOwned
+{
+    public Guid Id { get; set; }
+    public Guid OrganiserId { get; set; }
+
+    public required string Name { get; set; }
+
+    /// <summary>Lowercase name used for case-insensitive uniqueness.</summary>
+    public required string NameKey { get; set; }
+
+    public Game Game { get; set; }
+    public TournamentFormat Format { get; set; }
+    public TeamSize TeamSize { get; set; }
+    public int MaxTeams { get; set; }
+    public string? Description { get; set; }
+
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
 }
 
 /// <summary>
@@ -368,6 +441,20 @@ public class Match : ITenantOwned
     public bool IsBye { get; set; }
 
     /// <summary>
+    /// A slot can be resolved without containing a team: a bye or an event
+    /// forfeit propagates a real vacancy. Without this bit, null means both
+    /// "not known yet" and "known empty", and double-elimination cannot safely
+    /// remove a forfeiting team from every later round.
+    /// </summary>
+    public bool SlotAResolved { get; set; }
+    public bool SlotBResolved { get; set; }
+
+    /// <summary>An event forfeit is a human result with an audit trail.</summary>
+    public Guid? ForfeitedTeamId { get; set; }
+    public Guid? ForfeitedByAccountId { get; set; }
+    public string? ForfeitReason { get; set; }
+
+    /// <summary>
     /// Highest <c>seq</c> accepted for this match. Gaps mark the match
     /// <see cref="MatchIntegrity.Suspect"/>; repeats are idempotent no-ops
     /// (decision 035).
@@ -437,6 +524,20 @@ public class TournamentRegistration : ITenantOwned
     public int? Seed { get; set; }
 
     public DateTimeOffset RegisteredAt { get; set; }
+
+    /// <summary>
+    /// Captain confirmation after registration closes. Reopening registration
+    /// clears it, because the field and schedule are changing again.
+    /// </summary>
+    public DateTimeOffset? CheckedInAt { get; set; }
+
+    /// <summary>
+    /// Exit after the bracket exists. Distinct from pre-start withdrawal: this
+    /// one creates a match result and is never rated.
+    /// </summary>
+    public DateTimeOffset? ForfeitedAt { get; set; }
+    public Guid? ForfeitedByAccountId { get; set; }
+    public string? ForfeitReason { get; set; }
 
     /// <summary>
     /// Soft, like every other departure in this schema. A team that withdrew

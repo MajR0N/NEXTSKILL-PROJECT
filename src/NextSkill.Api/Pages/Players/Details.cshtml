@@ -1,0 +1,183 @@
+@page "{id:guid}"
+@model NextSkill.Api.Pages.Players.DetailsModel
+@using NextSkill.Api.Localisation
+@{
+    var player = Model.Player!;
+    var locale = Locales.Current;
+    ViewData["Title"] = player.Nickname;
+    ViewData["Description"] = $"Profil gracza {player.Nickname}: ratingi i historia drużyn na NEXTSKILL.";
+}
+
+@if (player.Deleted)
+{
+    ViewData["Title"] = "Usunięty gracz";
+    ViewData["Description"] = "Anonimowy rekord historyczny NEXTSKILL.";
+
+    <div class="wrap-narrow section">
+        <p class="eyebrow">Historia rozgrywek</p>
+        <h1>Usunięty gracz</h1>
+        <div class="card" style="margin-top:var(--s5)">
+            <p style="margin:0">
+                Dane identyfikacyjne tego konta zostały usunięte. Anonimowy rekord pozostaje
+                wyłącznie po to, aby historyczne mecze i ratingi innych graczy zachowały poprawność.
+            </p>
+        </div>
+    </div>
+}
+else
+{
+<div class="wrap section">
+    <div class="row" style="gap:var(--s4)">
+        <span class="avatar avatar--lg avatar--@DetailsModel.Palette(player.Nickname)">@DetailsModel.Initials(player.Nickname)</span>
+        <div>
+            <p class="eyebrow">Gracz · od @player.CreatedAt.ToString("yyyy")</p>
+            <h1 style="margin-top:var(--s1)">@player.Nickname</h1>
+            <div class="row" style="margin-top:var(--s3)">
+                @if (player.SteamLinked)
+                {
+                    <span class="pill pill--ok"><span class="pill__dot"></span> Steam połączony</span>
+                }
+                @if (player.DiscordLinked)
+                {
+                    <span class="pill pill--ok"><span class="pill__dot"></span> Discord połączony</span>
+                }
+                @if (Model.IsOwnProfile)
+                {
+                    <a class="btn btn--ghost" asp-page="/Account/Profile" asp-route-culture="@locale"
+                       style="padding:5px 11px;font-size:12.5px">Ustawienia konta</a>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="detail-grid" style="margin-top:var(--s7)">
+        <div class="stack" style="gap:var(--s6)">
+            <section aria-labelledby="ratings-heading">
+                <p class="label" id="ratings-heading">Ratingi</p>
+                @if (Model.Ratings.Count == 0)
+                {
+                    <div class="empty">
+                        <div class="empty__icon">◍</div>
+                        <h4>Jeszcze bez ratingu</h4>
+                        <p>Rating pojawi się po pierwszym rozstrzygniętym meczu.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="stack">
+                        @foreach (var rating in Model.Ratings)
+                        {
+                            <div class="card row" style="justify-content:space-between">
+                                <div>
+                                    <strong>@DetailsModel.GameName(rating.Game)</strong>
+                                    <div class="dim" style="font-size:12.5px;margin-top:var(--s1)">
+                                        @rating.MatchesPlayed @(rating.MatchesPlayed == 1 ? "mecz" : "meczów")
+                                        @if (rating.Provisional)
+                                        {
+                                            <span> · rating wstępny, bez pozycji</span>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="r num">
+                                    <span class="rating">@rating.Score.ToString("F1")</span>
+                                    <span class="rating__rd">±@rating.Deviation.ToString("F1")</span>
+                                    <div class="confidence @(rating.Provisional ? "confidence--wide" : "")"
+                                         title="Pewność ratingu">
+                                        <i style="width:@(rating.ConfidencePercent)%"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+
+            <section aria-labelledby="teams-heading">
+                <p class="label" id="teams-heading">Drużyny</p>
+                @if (Model.CurrentTeams.Count == 0 && Model.PastTeams.Count == 0)
+                {
+                    <div class="empty">
+                        <div class="empty__icon">◇</div>
+                        <h4>Brak historii drużyn</h4>
+                        <p>Zaakceptowane członkostwa pojawią się tutaj automatycznie.</p>
+                    </div>
+                }
+                else
+                {
+                    @if (Model.CurrentTeams.Count > 0)
+                    {
+                        <div class="stack">
+                            @foreach (var team in Model.CurrentTeams)
+                            {
+                                <a class="card team" asp-page="/Teams/Details" asp-route-culture="@locale" asp-route-id="@team.Id"
+                                   style="text-decoration:none;color:inherit">
+                                    <span class="avatar avatar--@DetailsModel.Palette(team.Tag)">@DetailsModel.Initials(team.Name)</span>
+                                    <span>
+                                        <span class="team__name">@team.Name</span>
+                                        <span class="team__meta"><span class="team__tag">@team.Tag</span> od @team.JoinedAt.ToString("dd.MM.yyyy")</span>
+                                    </span>
+                                </a>
+                            }
+                        </div>
+                    }
+                    @if (Model.PastTeams.Count > 0)
+                    {
+                        <p class="label" style="margin-top:var(--s5)">Poprzednie</p>
+                        <div class="stack">
+                            @foreach (var team in Model.PastTeams)
+                            {
+                                <a class="card team" asp-page="/Teams/Details" asp-route-culture="@locale" asp-route-id="@team.Id"
+                                   style="text-decoration:none;color:inherit">
+                                    <span class="avatar avatar--@DetailsModel.Palette(team.Tag)">@DetailsModel.Initials(team.Name)</span>
+                                    <span>
+                                        <span class="team__name">@team.Name</span>
+                                        <span class="team__meta"><span class="team__tag">@team.Tag</span> @team.JoinedAt.ToString("dd.MM.yyyy")–@team.LeftAt!.Value.ToString("dd.MM.yyyy")</span>
+                                    </span>
+                                </a>
+                            }
+                        </div>
+                    }
+                }
+            </section>
+        </div>
+
+        <aside>
+            <p class="label">Status</p>
+            <div class="rail">
+                <div><span>Na NEXTSKILL od</span><span>@player.CreatedAt.ToString("dd.MM.yyyy")</span></div>
+                <div><span>Ratingi</span><span>@Model.Ratings.Count / 2</span></div>
+                <div><span>Aktywne drużyny</span><span>@Model.CurrentTeams.Count</span></div>
+            </div>
+
+            @if (Model.LftListings.Count > 0)
+            {
+                <p class="label" style="margin-top:var(--s6)">Szuka drużyny</p>
+                <div class="stack">
+                    @foreach (var listing in Model.LftListings)
+                    {
+                        <div class="card" style="padding:var(--s4)">
+                            <div class="row" style="justify-content:space-between">
+                                <strong>@DetailsModel.GameName(listing.Game)</strong>
+                                <span class="pill pill--ok"><span class="pill__dot"></span> Aktywne</span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(listing.Role))
+                            {
+                                <p style="margin:var(--s3) 0 0"><b>Rola:</b> @listing.Role</p>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(listing.Availability))
+                            {
+                                <p class="dim" style="font-size:13px;margin:var(--s2) 0 0">@listing.Availability</p>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(listing.Note))
+                            {
+                                <p class="dim" style="font-size:13px;margin:var(--s2) 0 0">@listing.Note</p>
+                            }
+                            <p class="dim" style="font-size:11.5px;margin:var(--s3) 0 0">Wygasa @listing.ExpiresAt.ToString("dd.MM.yyyy")</p>
+                        </div>
+                    }
+                </div>
+            }
+        </aside>
+    </div>
+</div>
+}

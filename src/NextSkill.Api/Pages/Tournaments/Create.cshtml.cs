@@ -1,7 +1,7 @@
-using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using NextSkill.Api.Features.Tournaments;
 using NextSkill.Api.Localisation;
 using NextSkill.Api.Shared.Auth;
 using NextSkill.Api.Shared.Persistence;
@@ -12,91 +12,85 @@ using NextSkill.Domain.Tournaments;
 namespace NextSkill.Api.Pages.Tournaments;
 
 /// <summary>
-/// Create a tournament (decisions 015, 046).
-///
-/// Organiser staff only. A tournament belongs to exactly one organiser and that
-/// is its tenant boundary ([037]) — so the very first thing this page does is
-/// work out which organisers the visitor may act for, and refuse if the answer
-/// is none.
+/// Creates an organiser-owned private draft, optionally from an independent
+/// snapshot of one of that organiser's templates (decisions 015, 046).
 /// </summary>
 public class CreateModel(NextSkillDb db, TenantContext tenant) : PageModel
 {
-    public sealed class Form
-    {
-        [Required(ErrorMessage = "Podaj nazwę turnieju.")]
-        [StringLength(120, MinimumLength = 3, ErrorMessage = "Nazwa musi mieć od 3 do 120 znaków.")]
-        public string Name { get; set; } = "";
+    public sealed record TemplateChoice(
+        Guid Id,
+        Guid OrganiserId,
+        string Organiser,
+        string Name,
+        Game Game,
+        TeamSize TeamSize,
+        TournamentFormat Format,
+        int MaxTeams);
 
-        public Guid OrganiserId { get; set; }
-        public Game Game { get; set; } = Game.Cs2;
-        public TeamSize TeamSize { get; set; } = TeamSize.Squad;
-        public TournamentFormat Format { get; set; } = TournamentFormat.SingleElimination;
+    [BindProperty]
+    public TournamentSetupForm Input { get; set; } = new();
 
-        [Range(2, 128, ErrorMessage = "Liczba drużyn musi być między 2 a 128.")]
-        public int MaxTeams { get; set; } = 16;
-
-        [StringLength(4000)]
-        public string? Description { get; set; }
-
-        public DateTimeOffset? StartsAt { get; set; }
-    }
-
-    [BindProperty] public Form Input { get; set; } = new();
-
-    /// <summary>Organisers this visitor may create for. Empty means no page.</summary>
     public IReadOnlyList<(Guid Id, string Name)> Organisers { get; private set; } = [];
+    public IReadOnlyList<TemplateChoice> Templates { get; private set; } = [];
+    public IReadOnlyList<SeasonChoice> Seasons { get; private set; } = [];
+    public string? AppliedTemplateName { get; private set; }
 
-    /// <summary>Only the two formats that actually generate today (022).</summary>
-    public static readonly TournamentFormat[] BuildableFormats =
-        [TournamentFormat.SingleElimination, TournamentFormat.DoubleElimination];
+    public static IReadOnlyList<TournamentFormat> BuildableFormats => TournamentSetup.BuildableFormats;
 
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnGetAsync(Guid? templateId)
     {
         if (await LoadOrganisersAsync() is { } denied) return denied;
+        await LoadTemplatesAsync();
+        await LoadSeasonsAsync();
+
+        if (templateId is { } id)
+        {
+            var template = await db.TemplatesForManagement(Organisers.Select(o => o.Id).ToArray())
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (template is null) return NotFound();
+
+            Input = TournamentSetup.From(template);
+            Input.SeasonId = TournamentSetup.DefaultSeasonId(Seasons, DateTimeOffset.UtcNow);
+            AppliedTemplateName = template.Name;
+            return Page();
+        }
 
         Input.OrganiserId = Organisers[0].Id;
+        Input.SeasonId = TournamentSetup.DefaultSeasonId(Seasons, DateTimeOffset.UtcNow);
         return Page();
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
         if (await LoadOrganisersAsync() is { } denied) return denied;
+        await LoadTemplatesAsync();
+        await LoadSeasonsAsync();
 
-        // The submitted organiser must be one of theirs. Without this, the id is
-        // just a number in a form and anyone could create a tournament inside
-        // somebody else's organisation (036, 040).
+        // A form id is not authority. The policy is checked against the fresh
+        // organiser roles before the tenant-scoped write is enabled (036).
         var actor = await Actors.CurrentAsync(db, User);
         if (actor is null ||
             !AccessPolicy.Can(actor, Operation.ManageTournament, new ResourceRef(Input.OrganiserId)))
             return Forbid();
 
-        if (!BuildableFormats.Contains(Input.Format))
-            ModelState.AddModelError("Input.Format", "Ten format nie jest jeszcze dostępny.");
-
+        TournamentSetup.Validate(Input, ModelState);
+        await TournamentSetup.ValidateSeasonAsync(db, Input, existing: null, state: ModelState);
         if (!ModelState.IsValid) return Page();
 
         var tournament = new Tournament
         {
             Id = Guid.NewGuid(),
             OrganiserId = Input.OrganiserId,
-            Name = Input.Name.Trim(),
-            Game = Input.Game,
-            Format = Input.Format,
-            TeamSize = Input.TeamSize,
-            MaxTeams = Input.MaxTeams,
-            Description = string.IsNullOrWhiteSpace(Input.Description) ? null : Input.Description.Trim(),
-            StartsAt = Input.StartsAt,
-
-            // Draft, never open. An organiser needs to read their own page back
-            // before the world does, and 046 keeps drafts private for exactly
-            // that reason.
+            Name = "",
             Status = TournamentStatus.Draft,
             CreatedAt = DateTimeOffset.UtcNow,
         };
 
-        // The tenant is established from the organiser we just authorised
-        // against, so the tenant-scoped write is scoped by the same fact the
-        // policy checked — not by anything the form said.
+        TournamentSetup.ApplyDetails(Input, tournament);
+        TournamentSetup.ApplyStructure(Input, tournament);
+
         tenant.Set(Input.OrganiserId);
         db.Tournaments.Add(tournament);
         await db.SaveChangesAsync();
@@ -104,10 +98,23 @@ public class CreateModel(NextSkillDb db, TenantContext tenant) : PageModel
         return Redirect($"/{Locales.Current}/t/{tournament.Id}");
     }
 
-    /// <summary>
-    /// Loads the organisers this visitor may create tournaments for, or returns
-    /// the response to send instead.
-    /// </summary>
+    public async Task<IActionResult> OnPostDeleteTemplateAsync(Guid templateId)
+    {
+        var template = await db.FindTemplateForManagementAsync(templateId);
+        if (template is null) return NotFound();
+
+        var actor = await Actors.CurrentAsync(db, User);
+        if (actor is null) return Challenge();
+        if (!AccessPolicy.Can(actor, Operation.ManageTournament, new ResourceRef(template.OrganiserId)))
+            return Forbid();
+
+        tenant.Set(template.OrganiserId);
+        db.TournamentTemplates.Remove(template);
+        await db.SaveChangesAsync();
+
+        return Redirect($"/{Locales.Current}/tournaments/create");
+    }
+
     private async Task<IActionResult?> LoadOrganisersAsync()
     {
         var actor = await Actors.CurrentAsync(db, User);
@@ -118,22 +125,42 @@ public class CreateModel(NextSkillDb db, TenantContext tenant) : PageModel
             .Select(kv => kv.Key)
             .ToList();
 
-        // The platform owner may act inside any organiser (036), so they get the
-        // full list rather than an empty one.
         var query = actor.Platform == PlatformRole.Owner
             ? db.Organisers
             : db.Organisers.Where(o => allowed.Contains(o.Id));
 
-        // AsNoTracking before the projection: a value tuple is not an entity,
-        // and EF has nothing to track once the query has produced one.
         Organisers = [.. await query.AsNoTracking()
             .OrderBy(o => o.Name)
             .Select(o => new ValueTuple<Guid, string>(o.Id, o.Name))
             .ToListAsync()];
 
-        // Not 404: they are logged in and this page exists, they simply may not
-        // use it. 403 is the honest answer and it is what 036 asks for when the
-        // resource is not secret.
         return Organisers.Count == 0 ? Forbid() : null;
     }
+
+    private async Task LoadTemplatesAsync()
+    {
+        var organiserIds = Organisers.Select(o => o.Id).ToArray();
+
+        Templates = await db.TemplatesForManagement(organiserIds)
+            .Join(db.Organisers,
+                template => template.OrganiserId,
+                organiser => organiser.Id,
+                (template, organiser) => new { Template = template, Organiser = organiser.Name })
+            .AsNoTracking()
+            .OrderBy(x => x.Organiser)
+            .ThenBy(x => x.Template.Name)
+            .Select(x => new TemplateChoice(
+                x.Template.Id,
+                x.Template.OrganiserId,
+                x.Organiser,
+                x.Template.Name,
+                x.Template.Game,
+                x.Template.TeamSize,
+                x.Template.Format,
+                x.Template.MaxTeams))
+            .ToListAsync();
+    }
+
+    private async Task LoadSeasonsAsync() =>
+        Seasons = await TournamentSetup.AssignableSeasonsAsync(db);
 }

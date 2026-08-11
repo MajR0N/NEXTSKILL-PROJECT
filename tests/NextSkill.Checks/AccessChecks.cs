@@ -20,6 +20,7 @@ public static class AccessChecks
 
         Actor Player() => new(Guid.NewGuid());
         Actor Captain(Guid team) => new(Guid.NewGuid(), Teams: new Dictionary<Guid, TeamRole> { [team] = TeamRole.Captain });
+        Actor FormerCaptain(Guid team) => new(Guid.NewGuid(), RestorableTeams: new HashSet<Guid> { team });
         Actor Member(Guid team) => new(Guid.NewGuid(), Teams: new Dictionary<Guid, TeamRole> { [team] = TeamRole.Member });
         Actor OrgOwner(Guid org) => new(Guid.NewGuid(), Organisers: new Dictionary<Guid, OrganiserRole> { [org] = OrganiserRole.Owner });
         Actor OrgAdmin(Guid org) => new(Guid.NewGuid(), Organisers: new Dictionary<Guid, OrganiserRole> { [org] = OrganiserRole.Admin });
@@ -114,6 +115,19 @@ public static class AccessChecks
             // game for them. Bans and removals are ModerateUsers instead.
             that(!AccessPolicy.Can(Owner(), Operation.ManageRoster, new ResourceRef(TeamId: teamA)),
                 "roster management is not a moderation power");
+        });
+
+        check("only a captain present at disband may restore that exact team", () =>
+        {
+            var former = FormerCaptain(teamA);
+            that(AccessPolicy.Can(former, Operation.RestoreTeam, new ResourceRef(TeamId: teamA)),
+                "a captain whose tenure ended at disband may restore that team");
+            that(!AccessPolicy.Can(former, Operation.RestoreTeam, new ResourceRef(TeamId: teamB)),
+                "the historical entitlement must not carry across teams");
+            that(!AccessPolicy.Can(Captain(teamA), Operation.RestoreTeam, new ResourceRef(TeamId: teamA)),
+                "a current captain role alone is not proof of presence at disband");
+            that(!AccessPolicy.Can(Owner(), Operation.RestoreTeam, new ResourceRef(TeamId: teamA)),
+                "the platform owner must not revive someone else's team");
         });
 
         check("confirming and disputing a result belong to the captain who played", () =>

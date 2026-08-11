@@ -34,8 +34,21 @@ public static class Sessions
     /// known session id in someone's browser before they log in ends up holding
     /// an id that is no longer the one in use.
     /// </summary>
-    public static async Task SignInAsync(HttpContext http, NextSkillDb db, Account account)
+    public static async Task<bool> SignInAsync(HttpContext http, NextSkillDb db, Account account)
     {
+        await using var transaction = await db.Database.BeginTransactionAsync();
+
+        // Coordinate with account erasure, which takes FOR UPDATE on the same
+        // row. Whichever operation wins is decisive: either this session is
+        // created first and then erased, or deletion commits first and this
+        // sign-in is refused. A half-finished 2FA login cannot resurrect access.
+        var canSignIn = await db.Accounts
+            .FromSqlInterpolated($"SELECT * FROM accounts WHERE id = {account.Id} FOR KEY SHARE")
+            .AsNoTracking()
+            .AnyAsync(a => a.DeletedAt == null);
+
+        if (!canSignIn) return false;
+
         var session = new Session
         {
             Id = Guid.NewGuid(),
@@ -45,6 +58,7 @@ public static class Sessions
         };
         db.Sessions.Add(session);
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         // Only the ids and the nickname go in the cookie. Roles are deliberately
         // NOT baked in: a promotion or a ban has to take effect on the next
@@ -59,6 +73,8 @@ public static class Sessions
         await http.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(identity));
+
+        return true;
     }
 
     /// <summary>Deletes the session row, then clears the cookie. Order matters.</summary>
@@ -66,6 +82,20 @@ public static class Sessions
     {
         if (SessionIdOf(http.User) is { } id)
             await db.Sessions.Where(s => s.Id == id).ExecuteDeleteAsync();
+
+        await http.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    }
+
+    /// <summary>
+    /// Revokes every browser session for the signed-in account and clears the
+    /// initiating browser's cookie. The account-wide delete is one database
+    /// statement, so another device cannot remain signed in because a loop was
+    /// interrupted halfway through.
+    /// </summary>
+    public static async Task SignOutEverywhereAsync(HttpContext http, NextSkillDb db)
+    {
+        if (AccountIdOf(http.User) is { } accountId)
+            await db.Sessions.Where(s => s.AccountId == accountId).ExecuteDeleteAsync();
 
         await http.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
     }

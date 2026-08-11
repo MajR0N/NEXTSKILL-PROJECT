@@ -63,6 +63,7 @@
                                     <span class="team__meta">
                                         <span>@(row.Game == Game.Cs2 ? "CS2" : "CS 1.6")</span>
                                         <span>@M.Size(row.TeamSize)</span>
+                                        @if (row.Season is not null) { <span>@row.Season</span> }
                                         <span>@NextSkill.Api.Pages.Tournaments.DetailsModel.StatusName(row.Status)</span>
                                     </span>
                                 </a>

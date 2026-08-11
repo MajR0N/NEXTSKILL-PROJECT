@@ -90,6 +90,10 @@
                                             {
                                                 <span class="pill">niepełny skład · @entry.Fieldable/@Model.PlayersRequired</span>
                                             }
+                                            @if (t.Status == TournamentStatus.RegistrationClosed)
+                                            {
+                                                <span class="pill">@(entry.CheckedIn ? "udział potwierdzony" : "czeka na potwierdzenie")</span>
+                                            }
                                         </td>
                                     </tr>
                                 }
@@ -124,10 +128,30 @@
                                 </span>
                                 @if (team.Entered)
                                 {
-                                    <form method="post" asp-page-handler="Withdraw" asp-route-culture="@locale"
-                                          asp-route-id="@t.Id" asp-route-teamId="@team.Id">
-                                        <button class="btn btn--danger" type="submit">Wycofaj</button>
-                                    </form>
+                                    <span class="row">
+                                        @if (t.Status == TournamentStatus.RegistrationClosed)
+                                        {
+                                            @if (team.CheckedIn)
+                                            {
+                                                <span class="pill">udział potwierdzony</span>
+                                            }
+                                            else if (team.Fieldable >= Model.PlayersRequired)
+                                            {
+                                                <form method="post" asp-page-handler="CheckIn" asp-route-culture="@locale"
+                                                      asp-route-id="@t.Id" asp-route-teamId="@team.Id">
+                                                    <button class="btn btn--primary" type="submit">Potwierdź udział</button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <span class="dim" style="font-size:13px">uzupełnij skład przed potwierdzeniem</span>
+                                            }
+                                        }
+                                        <form method="post" asp-page-handler="Withdraw" asp-route-culture="@locale"
+                                              asp-route-id="@t.Id" asp-route-teamId="@team.Id">
+                                            <button class="btn btn--danger" type="submit">Wycofaj</button>
+                                        </form>
+                                    </span>
                                 }
                                 else if (registering && team.Fieldable >= Model.PlayersRequired && Model.PlacesLeft > 0)
                                 {
@@ -157,11 +181,17 @@
                 <div class="card" style="margin-top:var(--s6)">
                     <p class="label">Organizator</p>
                     <div class="row">
+                        <a class="btn" asp-page="/Tournaments/Edit" asp-route-culture="@locale"
+                           asp-route-id="@t.Id">Edytuj ustawienia</a>
                         @* Only legal transitions get a button. The state machine
                            refuses the rest anyway, but an option that always fails
                            is worse than no option (020, 046). *@
                         @foreach (var to in Enum.GetValues<TournamentStatus>().Where(s => TournamentLifecycle.CanTransition(t.Status, s)))
                         {
+                            if (to == TournamentStatus.Running && !Model.CanStart)
+                            {
+                                continue;
+                            }
                             <form method="post" asp-page-handler="Status" asp-route-culture="@locale"
                                   asp-route-id="@t.Id" asp-route-to="@to">
                                 <button class="btn @(to == TournamentStatus.Cancelled ? "btn--danger" : "")" type="submit">
@@ -177,6 +207,13 @@
                             Drużyny wstępne trafiają na koniec, nawet jeśli mają wysoki rating.
                         </p>
                     }
+                    else if (t.Status == TournamentStatus.RegistrationClosed && !Model.CanStart)
+                    {
+                        <p class="lede" style="font-size:13px">
+                            @M.StartBlockMessage(Model.StartDecision)
+                            Każdy kapitan potwierdza udział po zamknięciu zapisów; przy starcie skład jest sprawdzany ponownie.
+                        </p>
+                    }
                 </div>
             }
         </div>
@@ -189,6 +226,10 @@
                 <div><span>Skład</span><span>@L.Size(t.TeamSize)</span></div>
                 <div><span>Drużyny</span><span>@Model.Entries.Count / @t.MaxTeams</span></div>
                 <div><span>Start</span><span>@(t.StartsAt?.ToString("yyyy-MM-dd") ?? "—")</span></div>
+                @if (Model.SeasonName is not null)
+                {
+                    <div><span>Sezon</span><span>@Model.SeasonName</span></div>
+                }
                 <div><span>Organizator</span><span>@Model.OrganiserName</span></div>
             </div>
         </aside>

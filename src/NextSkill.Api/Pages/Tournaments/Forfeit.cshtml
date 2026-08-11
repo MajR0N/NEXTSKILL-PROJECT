@@ -1,0 +1,64 @@
+@page "{id:guid}/matches/{matchId:guid}/forfeit"
+@model NextSkill.Api.Pages.Tournaments.ForfeitModel
+@using NextSkill.Api.Localisation
+@{
+    var tournament = Model.Tournament!;
+    var teamA = Model.TeamA!;
+    var teamB = Model.TeamB!;
+    var locale = Locales.Current;
+    ViewData["Title"] = $"Walkower — {tournament.Name}";
+}
+
+<div class="wrap-narrow section">
+    <p class="eyebrow">@tournament.Name · wynik administracyjny</p>
+    <h1>Zgłoś walkower</h1>
+
+    <div class="card" style="margin-top:var(--s6)">
+        <p class="lede" style="margin-top:0">
+            Walkower usuwa drużynę z całego turnieju. Przeciwnik awansuje,
+            drużyna nie spada do dolnej drabinki, a wynik nie wpływa na rating.
+        </p>
+
+        <form method="post" asp-route-culture="@locale" asp-route-id="@tournament.Id"
+              asp-route-matchId="@Model.TournamentMatch!.Id" style="margin-top:var(--s4)">
+            @if (Model.CanChooseTeam)
+            {
+                <div class="field">
+                    <label asp-for="LosingTeamId">Drużyna oddająca walkower</label>
+                    <select class="input" asp-for="LosingTeamId" required>
+                        <option value="">Wybierz drużynę</option>
+                        <option value="@teamA.Id">@teamA.Name · @teamA.Tag</option>
+                        <option value="@teamB.Id">@teamB.Name · @teamB.Tag</option>
+                    </select>
+                    <span class="field__error" asp-validation-for="LosingTeamId"></span>
+                </div>
+            }
+            else
+            {
+                var selected = Model.LosingTeamId == teamA.Id ? teamA : teamB;
+                <input type="hidden" asp-for="LosingTeamId" />
+                <p class="label">@selected.Name · @selected.Tag</p>
+            }
+
+            <div class="field">
+                <label asp-for="Reason">Powód</label>
+                <textarea class="input" asp-for="Reason" rows="4" maxlength="500" required></textarea>
+                <span class="field__error" asp-validation-for="Reason"></span>
+            </div>
+
+            <div class="field">
+                <label asp-for="ConfirmTag">
+                    Wpisz tag wybranej drużyny, żeby potwierdzić
+                </label>
+                <input class="input" asp-for="ConfirmTag" autocomplete="off" required />
+                <span class="field__error" asp-validation-for="ConfirmTag"></span>
+            </div>
+
+            <div class="row">
+                <button class="btn btn--danger" type="submit">Potwierdź walkower</button>
+                <a class="btn btn--ghost" asp-page="/Tournaments/Bracket" asp-route-culture="@locale"
+                   asp-route-id="@tournament.Id">Anuluj</a>
+            </div>
+        </form>
+    </div>
+</div>

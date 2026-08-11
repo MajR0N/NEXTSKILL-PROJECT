@@ -189,6 +189,32 @@ public static class EndToEndChecks
             that((int)res.StatusCode is 400 or 401, $"garbage must not be accepted, got {(int)res.StatusCode}");
         });
 
+        check("E2E: a late plugin event cannot overwrite a FORFEIT", () =>
+        {
+            using (var db = Db())
+            {
+                var match = db.Matches.Single(m => m.Id == matchId);
+                match.Status = MatchStatus.Forfeited;
+                match.LastEventSeq = 7;
+                match.ScoreA = null;
+                match.ScoreB = null;
+                match.ForfeitReason = "Administrative exit";
+                db.SaveChanges();
+            }
+
+            var res = sim.RoundEnd(matchId, 8, 1, 1, 0).GetAwaiter().GetResult();
+            that(res.IsSuccessStatusCode,
+                "the plugin must receive an acknowledgement so it does not retry forever");
+            var body = res.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            that(body.Contains("terminal_ignored"), $"expected terminal_ignored, got {body}");
+
+            using var after = Db();
+            var unchanged = after.Matches.AsNoTracking().Single(m => m.Id == matchId);
+            that(unchanged.Status == MatchStatus.Forfeited && unchanged.LastEventSeq == 7 &&
+                 unchanged.ScoreA is null && unchanged.ScoreB is null,
+                "the terminal administrative result and its sequence boundary must remain untouched");
+        });
+
         // Clean up so repeated runs stay honest.
         using (var db = Db())
         {

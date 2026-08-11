@@ -53,6 +53,10 @@ public sealed class PluginSimulator(HttpClient http, Guid serverId, string secre
     public Task<HttpResponseMessage> GetConfig(Guid matchId, Misbehaviour bad = Misbehaviour.None) =>
         Send(HttpMethod.Get, $"/api/v1/servers/{serverId}/matches/{matchId}/config", "", bad);
 
+    public Task<HttpResponseMessage> MatchLoaded(Guid matchId, long seq,
+        Misbehaviour bad = Misbehaviour.None) =>
+        SendEvent(matchId, seq, MatchEventType.MatchLoaded, new { }, bad);
+
     public Task<HttpResponseMessage> RoundEnd(Guid matchId, long seq, int round, int scoreA, int scoreB,
         Misbehaviour bad = Misbehaviour.None)
     {

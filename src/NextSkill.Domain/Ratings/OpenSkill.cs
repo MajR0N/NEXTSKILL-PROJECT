@@ -7,6 +7,8 @@ namespace NextSkill.Domain.Ratings;
 /// <param name="Sigma">Uncertainty. Shrinks with games played.</param>
 public readonly record struct PlayerRating(double Mu, double Sigma)
 {
+    public const double ProvisionalSigma = OpenSkill.DefaultSigma * 0.6;
+
     public static readonly PlayerRating Unrated = new(OpenSkill.DefaultMu, OpenSkill.DefaultSigma);
 
     /// <summary>
@@ -19,7 +21,7 @@ public readonly record struct PlayerRating(double Mu, double Sigma)
     /// </summary>
     public double Ordinal => Mu - 3 * Sigma;
 
-    public bool IsProvisional => Sigma > OpenSkill.DefaultSigma * 0.6;
+    public bool IsProvisional => Sigma > ProvisionalSigma;
 }
 
 /// <summary>

@@ -67,4 +67,25 @@ public static class PublicReads
     /// </summary>
     public static Task<Tournament?> FindForManagementAsync(this NextSkillDb db, Guid id) =>
         db.Tournaments.IgnoreQueryFilters().FirstOrDefaultAsync(t => t.Id == id);
+
+    /// <summary>
+    /// Private template library for organisers the caller has already been
+    /// authorised to manage. The required id set keeps this cross-tenant query
+    /// from ever becoming an unbounded template dump.
+    /// </summary>
+    public static IQueryable<TournamentTemplate> TemplatesForManagement(
+        this NextSkillDb db,
+        IReadOnlyCollection<Guid> organiserIds) =>
+        db.TournamentTemplates
+            .IgnoreQueryFilters()
+            .Where(t => organiserIds.Contains(t.OrganiserId));
+
+    /// <summary>
+    /// One private template for a handler that immediately checks its organiser
+    /// with <see cref="NextSkill.Domain.Access.AccessPolicy"/>.
+    /// </summary>
+    public static Task<TournamentTemplate?> FindTemplateForManagementAsync(
+        this NextSkillDb db,
+        Guid id) =>
+        db.TournamentTemplates.IgnoreQueryFilters().FirstOrDefaultAsync(t => t.Id == id);
 }

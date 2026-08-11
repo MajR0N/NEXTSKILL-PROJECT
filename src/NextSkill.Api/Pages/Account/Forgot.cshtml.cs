@@ -41,7 +41,7 @@ public class ForgotModel(NextSkillDb db, IEmailSender email) : PageModel
         if (!ModelState.IsValid) return Page();
 
         var address = Input.Email.Trim().ToLowerInvariant();
-        var account = await db.Accounts.FirstOrDefaultAsync(a => a.Email == address);
+        var account = await db.Accounts.FirstOrDefaultAsync(a => a.DeletedAt == null && a.Email == address);
 
         if (account is not null)
         {

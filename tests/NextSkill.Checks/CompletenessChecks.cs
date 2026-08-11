@@ -43,6 +43,7 @@ public static class CompletenessChecks
                 new(Guid.NewGuid(), Organisers: new Dictionary<Guid, OrganiserRole> { [org] = OrganiserRole.Admin }),
                 new(Guid.NewGuid(), Organisers: new Dictionary<Guid, OrganiserRole> { [org] = OrganiserRole.Referee }),
                 new(Guid.NewGuid(), Teams: new Dictionary<Guid, TeamRole> { [team] = TeamRole.Captain }),
+                new(Guid.NewGuid(), RestorableTeams: new HashSet<Guid> { team }),
             };
 
             // ReadSecret is the one deliberate exception: it exists precisely so

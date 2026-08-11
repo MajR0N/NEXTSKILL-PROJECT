@@ -32,6 +32,7 @@ public enum Operation
     // team scope
     ManageRoster,           // invite, remove, change roles
     ManageTeam,             // rename, re-tag, disband — the team, not its people
+    RestoreTeam,            // captain whose tenure ended at the disband moment
     ConfirmResult,          // captain agrees the score
     DisputeResult,          // captain contests the score
 
@@ -63,13 +64,17 @@ public sealed record Actor(
     Guid AccountId,
     PlatformRole? Platform = null,
     IReadOnlyDictionary<Guid, OrganiserRole>? Organisers = null,
-    IReadOnlyDictionary<Guid, TeamRole>? Teams = null)
+    IReadOnlyDictionary<Guid, TeamRole>? Teams = null,
+    IReadOnlySet<Guid>? RestorableTeams = null)
 {
     public OrganiserRole? RoleIn(Guid? organiserId) =>
         organiserId is { } id && Organisers?.TryGetValue(id, out var r) == true ? r : null;
 
     public TeamRole? RoleInTeam(Guid? teamId) =>
         teamId is { } id && Teams?.TryGetValue(id, out var r) == true ? r : null;
+
+    public bool MayRestoreTeam(Guid? teamId) =>
+        teamId is { } id && RestorableTeams?.Contains(id) == true;
 }
 
 /// <summary>
@@ -157,6 +162,11 @@ public static class AccessPolicy
             // split is already where it needs to be. One enum value now beats
             // untangling a merged rule later.
             Operation.ManageTeam => teamRole == TeamRole.Captain,
+
+            // Restoration is a historical entitlement, not a current team
+            // role: only a captain whose tenure ended at this team's latest
+            // disband moment may make it live again.
+            Operation.RestoreTeam => actor.MayRestoreTeam(on.TeamId),
 
             // Confirming and disputing a result are the corroboration that
             // anti-match-fixing rests on (007), so they belong to the captain

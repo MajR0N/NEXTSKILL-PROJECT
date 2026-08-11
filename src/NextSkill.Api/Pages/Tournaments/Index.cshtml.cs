@@ -17,7 +17,7 @@ public class IndexModel(NextSkillDb db) : PageModel
     public sealed record Row(
         Guid Id, string Name, string Organiser, Game Game, TeamSize TeamSize,
         TournamentFormat Format, TournamentStatus Status, int Teams, int MaxTeams,
-        DateTimeOffset? StartsAt);
+        DateTimeOffset? StartsAt, string? Season);
 
     /// <summary>Open first: the only group a visitor can act on (043).</summary>
     public IReadOnlyList<Row> Open { get; private set; } = [];
@@ -32,7 +32,8 @@ public class IndexModel(NextSkillDb db) : PageModel
                 x.t.Id, x.t.Name, x.Name, x.t.Game, x.t.TeamSize, x.t.Format, x.t.Status,
                 db.Registrations.IgnoreQueryFilters()
                     .Count(r => r.TournamentId == x.t.Id && r.WithdrawnAt == null),
-                x.t.MaxTeams, x.t.StartsAt))
+                x.t.MaxTeams, x.t.StartsAt,
+                db.Seasons.Where(s => s.Id == x.t.SeasonId).Select(s => s.Name).FirstOrDefault()))
             .AsNoTracking()
             .ToListAsync();
 

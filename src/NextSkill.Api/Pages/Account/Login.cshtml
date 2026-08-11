@@ -17,6 +17,20 @@
         </div>
     }
 
+    @if (Model.AllSessionsRevoked)
+    {
+        <div class="alert alert--ok" role="status" style="margin-top:var(--s5)">
+            Wylogowano ze wszystkich urządzeń. Zaloguj się ponownie.
+        </div>
+    }
+
+    @if (Model.AccountDeleted)
+    {
+        <div class="alert alert--ok" role="status" style="margin-top:var(--s5)">
+            Konto zostało usunięte, a dane identyfikacyjne zanonimizowane.
+        </div>
+    }
+
     <form method="post" class="card" style="margin-top:var(--s6)">
         <input type="hidden" asp-for="ReturnUrl" />
 

@@ -32,6 +32,10 @@ public class DetailsModel(NextSkillDb db) : PageModel
     /// <summary>Whether the VIEWER may change the roster — drives the whole UI.</summary>
     public bool CanManage { get; private set; }
     public bool IsMember { get; private set; }
+    public bool CanRestore { get; private set; }
+
+    [BindProperty(SupportsGet = true)]
+    public bool Restored { get; set; }
 
     /// <summary>
     /// How many places each slot has left, counting pending invites (045).
@@ -66,7 +70,8 @@ public class DetailsModel(NextSkillDb db) : PageModel
             return Forbid();
 
         var nickname = (InviteNickname ?? "").Trim();
-        var invitee = await db.Accounts.FirstOrDefaultAsync(a => a.Nickname.ToLower() == nickname.ToLower());
+        var invitee = await db.Accounts.FirstOrDefaultAsync(a =>
+            a.DeletedAt == null && a.Nickname.ToLower() == nickname.ToLower());
 
         if (invitee is null)
         {
@@ -359,6 +364,9 @@ public class DetailsModel(NextSkillDb db) : PageModel
 
         var me = Sessions.AccountIdOf(User);
         IsMember = me is not null && Roster.Any(m => m.AccountId == me);
+
+        CanRestore = actor is not null &&
+            AccessPolicy.Can(actor, Operation.RestoreTeam, new ResourceRef(TeamId: id));
     }
 
     /// <summary>Same generated monogram as the ranking page, so a team looks identical everywhere (019).</summary>

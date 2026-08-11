@@ -278,6 +278,63 @@ public static class BracketPersistenceChecks
             that(threw, "the winner must be one of the two teams in the match");
         });
 
+        check("bracket: an event FORFEIT advances the opponent and propagates a vacancy", () =>
+        {
+            var forfeitId = BuildFor(4, TournamentFormat.DoubleElimination);
+            var actorId = Guid.NewGuid();
+
+            using var db = Db();
+            var upper = db.Matches
+                .Where(m => m.TournamentId == forfeitId && m.Side == BracketSide.Upper && m.Round == 1)
+                .OrderBy(m => m.Position)
+                .ToList();
+            var forfeitedMatch = upper[0];
+            var otherMatch = upper[1];
+            var exitingTeam = forfeitedMatch.TeamAId!.Value;
+            var opponent = forfeitedMatch.TeamBId!.Value;
+            var lowerMatchId = forfeitedMatch.LoserToMatchId!.Value;
+
+            that(otherMatch.LoserToMatchId == lowerMatchId,
+                "the two upper semi-final losers should feed the same first lower match");
+
+            BracketBuilder.ForfeitAsync(
+                db, forfeitedMatch, exitingTeam, actorId, "Captain confirmed the event exit.")
+                .GetAwaiter().GetResult();
+
+            db.ChangeTracker.Clear();
+            var decided = db.Matches.AsNoTracking().Single(m => m.Id == forfeitedMatch.Id);
+            var registration = db.Registrations.AsNoTracking()
+                .Single(r => r.TournamentId == forfeitId && r.TeamId == exitingTeam);
+            var lowerWaiting = db.Matches.AsNoTracking().Single(m => m.Id == lowerMatchId);
+
+            that(decided.Status == MatchStatus.Forfeited && decided.WinnerTeamId == opponent,
+                "the opponent wins the administrative result");
+            that(decided.ScoreA is null && decided.ScoreB is null,
+                "a forfeit has no invented score and cannot be rated");
+            that(decided.ForfeitedTeamId == exitingTeam && decided.ForfeitedByAccountId == actorId,
+                "the match keeps who exited and who recorded it");
+            that(registration.ForfeitedAt is not null && registration.ForfeitedByAccountId == actorId,
+                "the registration records the event-level exit, not merely one lost match");
+            that((forfeitedMatch.LoserToSlot == SlotRef.A && lowerWaiting.SlotAResolved && lowerWaiting.TeamAId is null) ||
+                 (forfeitedMatch.LoserToSlot == SlotRef.B && lowerWaiting.SlotBResolved && lowerWaiting.TeamBId is null),
+                "the lower path receives a resolved vacancy instead of the exiting team");
+
+            var normalWinner = otherMatch.TeamAId!.Value;
+            var survivingLoser = otherMatch.TeamBId!.Value;
+            var trackedOther = db.Matches.Single(m => m.Id == otherMatch.Id);
+            BracketBuilder.AdvanceAsync(db, trackedOther, normalWinner).GetAwaiter().GetResult();
+
+            db.ChangeTracker.Clear();
+            var lowerResolved = db.Matches.AsNoTracking().Single(m => m.Id == lowerMatchId);
+            that(lowerResolved.IsBye && lowerResolved.Status == MatchStatus.Completed &&
+                 lowerResolved.WinnerTeamId == survivingLoser,
+                "when the other loser arrives, the vacancy becomes an immediate unrated bye");
+            that(!db.Matches.AsNoTracking().Any(m =>
+                    m.TournamentId == forfeitId && m.Id != forfeitedMatch.Id &&
+                    (m.TeamAId == exitingTeam || m.TeamBId == exitingTeam)),
+                "an event forfeit must never drop the team into the lower bracket");
+        });
+
         check("bracket: generating twice is refused by the DATABASE, not by luck", () =>
         {
             using var db = Db();

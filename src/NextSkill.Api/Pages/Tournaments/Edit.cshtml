@@ -1,0 +1,228 @@
+@page
+@model NextSkill.Api.Pages.Tournaments.EditModel
+@using NextSkill.Api.Localisation
+@using NextSkill.Api.Shared.Persistence
+@using NextSkill.Domain.Tournaments
+@using L = NextSkill.Api.Pages.Tournaments.IndexModel
+@{
+    var tournament = Model.Tournament!;
+    var locale = Locales.Current;
+    ViewData["Title"] = $"Edytuj — {tournament.Name}";
+}
+
+<div class="wrap-narrow section">
+    <p class="eyebrow">Organizator · @NextSkill.Api.Pages.Tournaments.DetailsModel.StatusName(tournament.Status)</p>
+    <h1>Edytuj turniej</h1>
+    <p class="lede">
+        Ustawienia są zapisywane w tym samym turnieju — jego adres i historia pozostają bez zmian.
+    </p>
+
+    @if (Model.Updated)
+    {
+        <div class="alert alert--success" role="status" style="margin-top:var(--s5)">Zapisano ustawienia turnieju.</div>
+    }
+    @if (Model.TemplateSaved)
+    {
+        <div class="alert alert--success" role="status" style="margin-top:var(--s5)">Zapisano nowy szablon.</div>
+    }
+    @if (Model.DiscordUpdated)
+    {
+        <div class="alert alert--success" role="status" style="margin-top:var(--s5)">Webhook Discord został zapisany.</div>
+    }
+    @if (Model.DiscordRemoved)
+    {
+        <div class="alert alert--success" role="status" style="margin-top:var(--s5)">Ogłoszenia Discord zostały wyłączone.</div>
+    }
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert--error" role="alert" style="margin-top:var(--s5)">
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <div>@error.ErrorMessage</div>
+            }
+        </div>
+    }
+
+    @if (Model.MayEditDetails)
+    {
+        <form method="post" class="card" style="margin-top:var(--s6)">
+            <input type="hidden" asp-for="Input.OrganiserId" />
+
+            <div class="field">
+                <label asp-for="Input.Name">Nazwa</label>
+                <input class="input" asp-for="Input.Name" maxlength="120" required autofocus autocomplete="off" />
+                <span class="field__error" asp-validation-for="Input.Name"></span>
+            </div>
+
+            @if (Model.MayEditStructure)
+            {
+                <div class="field">
+                    <label asp-for="Input.Game">Gra</label>
+                    <select class="input" asp-for="Input.Game">
+                        <option value="@Game.Cs2">CS2</option>
+                        <option value="@Game.Cs16">CS 1.6</option>
+                    </select>
+                    <span class="field__error" asp-validation-for="Input.Game"></span>
+                </div>
+
+                <div class="field">
+                    <label asp-for="Input.TeamSize">Skład</label>
+                    <select class="input" asp-for="Input.TeamSize">
+                        @foreach (var size in Enum.GetValues<TeamSize>())
+                        {
+                            <option value="@size">@L.Size(size)</option>
+                        }
+                    </select>
+                    <span class="field__error" asp-validation-for="Input.TeamSize"></span>
+                </div>
+
+                <div class="field">
+                    <label asp-for="Input.Format">Format</label>
+                    <select class="input" asp-for="Input.Format">
+                        @foreach (var format in NextSkill.Api.Pages.Tournaments.EditModel.BuildableFormats)
+                        {
+                            <option value="@format">@L.FormatName(format)</option>
+                        }
+                    </select>
+                    <span class="field__error" asp-validation-for="Input.Format"></span>
+                </div>
+            }
+            else
+            {
+                @* Disabled controls explain the state; hidden canonical values
+                   keep the form complete. POST still rejects hand-written changes. *@
+                <input type="hidden" asp-for="Input.Game" />
+                <input type="hidden" asp-for="Input.TeamSize" />
+                <input type="hidden" asp-for="Input.Format" />
+                <div class="alert" role="note">
+                    Gra, format i rozmiar składu są zamrożone od chwili otwarcia zapisów.
+                    Drużyny zapisały się na właśnie takie zawody.
+                </div>
+                <div class="rail" style="margin-bottom:var(--s5)">
+                    <div><span>Gra</span><span>@(tournament.Game == Game.Cs2 ? "CS2" : "CS 1.6")</span></div>
+                    <div><span>Format</span><span>@L.FormatName(tournament.Format)</span></div>
+                    <div><span>Skład</span><span>@L.Size(tournament.TeamSize)</span></div>
+                </div>
+            }
+
+            <div class="field">
+                <label asp-for="Input.MaxTeams">Limit drużyn</label>
+                <input class="input" asp-for="Input.MaxTeams" type="number"
+                       min="@Math.Max(2, Model.ActiveEntries)" max="128" required />
+                <span class="field__hint">Obecnie zapisanych: @Model.ActiveEntries. Limit nie może ich usunąć.</span>
+                <span class="field__error" asp-validation-for="Input.MaxTeams"></span>
+            </div>
+
+            @if (Model.SeasonAssignmentLocked)
+            {
+                <input type="hidden" asp-for="Input.SeasonId" />
+                <div class="alert" role="note">
+                    Sezon <b>@Model.AssignedSeasonName</b> jest zamknięty. Przypisanie należy do
+                    zamrożonego archiwum i nie można go zmienić.
+                </div>
+            }
+            else if (Model.Seasons.Count > 0)
+            {
+                <div class="field">
+                    <label asp-for="Input.SeasonId">Sezon</label>
+                    <select class="input" asp-for="Input.SeasonId">
+                        <option value="">Poza sezonem</option>
+                        @foreach (var season in Model.Seasons)
+                        {
+                            <option value="@season.Id">
+                                @season.Name · od @season.StartsAt.ToString("yyyy-MM-dd")@(season.EndsAt is { } end ? $" do {end:yyyy-MM-dd}" : "")
+                            </option>
+                        }
+                    </select>
+                    <span class="field__hint">Przypisanie można zmieniać do startu turnieju.</span>
+                    <span class="field__error" asp-validation-for="Input.SeasonId"></span>
+                </div>
+            }
+
+            <div class="field">
+                <label asp-for="Input.StartsAt">Start <span class="dim">— opcjonalnie</span></label>
+                <input class="input" asp-for="Input.StartsAt" type="date" />
+            </div>
+
+            <div class="field">
+                <label asp-for="Input.Description">Opis <span class="dim">— zasady, nagrody, kontakt</span></label>
+                <textarea class="input" asp-for="Input.Description" rows="5" maxlength="4000"></textarea>
+                <span class="field__error" asp-validation-for="Input.Description"></span>
+            </div>
+
+            <div class="row" style="justify-content:flex-end">
+                <a class="btn" asp-page="/Tournaments/Details" asp-route-culture="@locale" asp-route-id="@tournament.Id">Anuluj</a>
+                <button class="btn btn--primary" type="submit">Zapisz zmiany</button>
+            </div>
+        </form>
+    }
+    else
+    {
+        <div class="alert" role="note" style="margin-top:var(--s6)">
+            Ten turniej już trwa albo jest historią. Jego opublikowanych ustawień nie można zmieniać.
+        </div>
+    }
+
+    <section class="card" style="margin-top:var(--s6)" aria-labelledby="discord-heading">
+        <p class="eyebrow">Integracja wychodząca</p>
+        <h2 id="discord-heading">Ogłoszenia Discord</h2>
+        <p class="lede" style="font-size:13px">
+            NEXTSKILL wyśle ogłoszenie, gdy ruszą zapisy, rozpocznie się mecz albo zostanie
+            potwierdzony wynik. Adres webhooka jest szyfrowany i nigdy nie jest ponownie wyświetlany.
+        </p>
+
+        @if (Model.DiscordConfigured)
+        {
+            <div class="alert alert--success" role="status">Webhook jest skonfigurowany.</div>
+            <div class="rail" style="margin-top:var(--s4)">
+                <div>
+                    <span>Ostatnia udana wysyłka</span>
+                    <span>@(Model.DiscordLastSucceededAt?.ToString("yyyy-MM-dd HH:mm 'UTC'") ?? "jeszcze nie wysłano")</span>
+                </div>
+                @if (Model.DiscordLastFailedAt is { } failedAt)
+                {
+                    <div><span>Ostatni błąd</span><span>@failedAt.ToString("yyyy-MM-dd HH:mm 'UTC'") · @Model.DiscordLastError</span></div>
+                }
+                @if (Model.DiscordAbandonedAnnouncements > 0)
+                {
+                    <div><span>Niedostarczone ogłoszenia</span><span>@Model.DiscordAbandonedAnnouncements</span></div>
+                }
+            </div>
+        }
+
+        <form method="post" asp-page-handler="SaveDiscord" style="margin-top:var(--s5)">
+            <div class="field">
+                <label asp-for="DiscordWebhookUrl">Nowy adres webhooka</label>
+                <input class="input" asp-for="DiscordWebhookUrl" type="password"
+                       required maxlength="2048" autocomplete="off"
+                       placeholder="https://discord.com/api/webhooks/…" />
+                <span class="field__hint">Akceptujemy wyłącznie adresy https://discord.com/api/webhooks/…</span>
+                <span class="field__error" asp-validation-for="DiscordWebhookUrl"></span>
+            </div>
+            <div class="row">
+                <button class="btn btn--primary" type="submit">@(Model.DiscordConfigured ? "Zmień webhook" : "Włącz ogłoszenia")</button>
+            </div>
+        </form>
+
+        @if (Model.DiscordConfigured)
+        {
+            <form method="post" asp-page-handler="RemoveDiscord" style="margin-top:var(--s4)">
+                <button class="btn" type="submit">Wyłącz i usuń webhook</button>
+            </form>
+        }
+    </section>
+
+    <form method="post" asp-page-handler="SaveTemplate" class="card" style="margin-top:var(--s6)">
+        <p class="label">Zapisz jako szablon</p>
+        <p class="lede" style="font-size:13px">
+            Kopiuje grę, format, skład, limit i opis. Nazwa turnieju, data oraz sezon nie są kopiowane.
+        </p>
+        <div class="field">
+            <label asp-for="TemplateName">Nazwa szablonu</label>
+            <input class="input" asp-for="TemplateName" minlength="3" maxlength="80" required autocomplete="off" />
+            <span class="field__error" asp-validation-for="TemplateName"></span>
+        </div>
+        <button class="btn" type="submit">Zapisz szablon</button>
+    </form>
+</div>

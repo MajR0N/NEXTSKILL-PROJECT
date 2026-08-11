@@ -99,18 +99,22 @@ public class EditModel(NextSkillDb db) : PageModel
             return Page();
         }
 
+        await using var transaction = await db.Database.BeginTransactionAsync();
+
         // Soft, always. Matches and ratings point at this id; deleting the row
         // would leave finished tournaments referencing nothing (045).
-        Team.DisbandedAt = DateTimeOffset.UtcNow;
+        var disbandedAt = DateTimeOffset.UtcNow;
+        Team.DisbandedAt = disbandedAt;
 
         // Everyone leaves at the same moment, so nobody keeps captain rights
         // over a team that no longer accepts anything — and so the roster stops
         // claiming players who are free to join elsewhere.
         await db.TeamMemberships
             .Where(m => m.TeamId == id && m.LeftAt == null)
-            .ExecuteUpdateAsync(s => s.SetProperty(m => m.LeftAt, DateTimeOffset.UtcNow));
+            .ExecuteUpdateAsync(s => s.SetProperty(m => m.LeftAt, disbandedAt));
 
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
         return Redirect($"/{Locales.Current}/teams");
     }
 

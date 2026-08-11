@@ -68,10 +68,10 @@ public class RegisterModel(NextSkillDb db) : PageModel
         // submission silently and send "you already have an account" by email,
         // which needs the email pipeline 043 has not built yet. Choosing a
         // usable form now over a security posture we cannot yet complete.
-        if (await db.Accounts.AnyAsync(a => a.Email == email))
+        if (await db.Accounts.AnyAsync(a => a.DeletedAt == null && a.Email == email))
             ModelState.AddModelError("Input.Email", "Ten adres jest już zarejestrowany.");
 
-        if (await db.Accounts.AnyAsync(a => a.Nickname.ToLower() == nickname.ToLower()))
+        if (await db.Accounts.AnyAsync(a => a.DeletedAt == null && a.Nickname.ToLower() == nickname.ToLower()))
             ModelState.AddModelError("Input.Nickname", "Ten nick jest już zajęty.");
 
         if (!ModelState.IsValid) return Page();
@@ -101,7 +101,9 @@ public class RegisterModel(NextSkillDb db) : PageModel
             return Page();
         }
 
-        await Sessions.SignInAsync(HttpContext, db, account);
+        if (!await Sessions.SignInAsync(HttpContext, db, account))
+            return Redirect($"/{Locales.Current}/account/login");
+
         return Redirect($"/{Locales.Current}");
     }
 }

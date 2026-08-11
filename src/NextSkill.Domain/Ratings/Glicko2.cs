@@ -12,6 +12,8 @@ namespace NextSkill.Domain.Ratings;
 /// <param name="Volatility">How erratic results have been. Rarely surfaced.</param>
 public readonly record struct Glicko2Rating(double Rating, double Deviation, double Volatility)
 {
+    public const double ProvisionalDeviation = 110;
+
     /// <summary>A new, unrated entrant: wide RD, so early results move them a lot.</summary>
     public static readonly Glicko2Rating Unrated = new(1500, 350, 0.06);
 
@@ -20,7 +22,7 @@ public readonly record struct Glicko2Rating(double Rating, double Deviation, dou
     /// internally but kept off public leaderboards, which is what stops
     /// "played two matches, ranked #1" (decision 025).
     /// </summary>
-    public bool IsProvisional => Deviation > 110;
+    public bool IsProvisional => Deviation > ProvisionalDeviation;
 }
 
 /// <summary>One opponent faced during a rating period.</summary>

@@ -482,6 +482,58 @@ catch (Exception ex)
 }
 
 Console.WriteLine();
+Console.WriteLine("RANKING · season, player view, search and pagination  (decisions 021, 025, 039)");
+try
+{
+    NextSkill.Checks.RankingChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  ranking checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
+Console.WriteLine("PROFILES · public/private boundary  (decisions 012, 025, 029)");
+try
+{
+    NextSkill.Checks.ProfileChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  profile checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
+Console.WriteLine("ACCOUNT ERASURE · anonymised history, no persisted IP  (decisions 011, 012, 029)");
+try
+{
+    NextSkill.Checks.AccountDeletionChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  account-erasure checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
+Console.WriteLine("EXTERNAL ACCOUNTS · verified Steam/Discord links  (decision 011)");
+try
+{
+    NextSkill.Checks.ExternalAccountChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  external-account checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
 Console.WriteLine("ACCOUNTS · real cookies, real database  (decisions 011, 040)");
 try
 {
@@ -543,6 +595,19 @@ catch (Exception ex)
 {
     failed++;
     Console.WriteLine("  FAIL  bracket persistence checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
+Console.WriteLine("DISCORD ANNOUNCEMENTS · encrypted credential, durable delivery  (decision 014)");
+try
+{
+    NextSkill.Checks.DiscordAnnouncementChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  Discord announcement checks could not run");
     Console.WriteLine($"        {ex.Message}");
 }
 

@@ -1,0 +1,197 @@
+@page
+@model NextSkill.Api.Pages.Account.ProfileModel
+@using NextSkill.Api.Localisation
+@using NextSkill.Domain.Auth
+@{
+    var locale = Locales.Current;
+    ViewData["Title"] = "Moje konto";
+}
+
+<div class="wrap section">
+    <p class="eyebrow">Konto</p>
+    <h1>Moje konto</h1>
+    <p class="lede">Prywatne ustawienia i stan zabezpieczeń. Publiczny profil pokazuje tylko dane gracza.</p>
+
+    @if (Model.NoticeMessage is not null)
+    {
+        <div class="alert @(Model.Notice?.EndsWith("linked") == true || Model.Notice?.EndsWith("unlinked") == true ? "alert--ok" : "alert--error")"
+             role="status" style="margin-top:var(--s5)">@Model.NoticeMessage</div>
+    }
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert--error" role="alert" style="margin-top:var(--s5)">
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <div>@error.ErrorMessage</div>
+            }
+        </div>
+    }
+
+    <div class="detail-grid" style="margin-top:var(--s7)">
+        <div class="stack" style="gap:var(--s5)">
+            <section class="card" aria-labelledby="identity-heading">
+                <div class="row" style="justify-content:space-between">
+                    <div>
+                        <p class="label" id="identity-heading">Tożsamość</p>
+                        <h2>@Model.Nickname</h2>
+                        <p class="dim" style="margin:var(--s2) 0 0">@Model.Email</p>
+                    </div>
+                    <a class="btn" asp-page="/Players/Details" asp-route-culture="@locale" asp-route-id="@Model.AccountId">Zobacz publiczny profil</a>
+                </div>
+            </section>
+
+            <section class="card" aria-labelledby="token-heading">
+                <div class="row" style="justify-content:space-between">
+                    <div>
+                        <p class="label" id="token-heading">CS 1.6 · setinfo</p>
+                        <h2>@(Model.SetinfoConfigured ? "Token skonfigurowany" : "Token nieskonfigurowany")</h2>
+                    </div>
+                    <span class="pill @(Model.SetinfoConfigured ? "pill--ok" : "pill--warn")">
+                        <span class="pill__dot"></span>
+                        @(Model.SetinfoConfigured ? "Aktywny" : "Brak")
+                    </span>
+                </div>
+                <p class="lede">
+                    Istniejącego tokenu nie można odczytać. Jest przechowywany jako hash, tak jak hasło;
+                    jego zmiana zawsze utworzy nowy token.
+                </p>
+
+                @if (Model.FreshSetinfoCommand is not null)
+                {
+                    <div class="alert alert--ok" role="status" style="margin-top:var(--s4)">
+                        <b>Skopiuj teraz — ten token jest widoczny tylko raz.</b>
+                        <code id="setinfo-command" style="display:block;user-select:all;overflow-wrap:anywhere;margin-top:var(--s3);font-size:14px">@Model.FreshSetinfoCommand</code>
+                    </div>
+                }
+
+                <p class="dim" style="font-size:13px;margin:var(--s4) 0 0">
+                    To nie jest hasło i nie pozwala zalogować się na stronę. Sam token też nie wystarcza
+                    do gry — każdy mecz wymaga osobnego, jednorazowego kodu. Serwery CS 1.6 mogą odczytać
+                    wartości <code>setinfo</code>, dlatego możesz natychmiast unieważnić stary token przez obrót.
+                </p>
+
+                <form method="post" asp-page-handler="RotateSetinfo" style="margin-top:var(--s4)">
+                    <button class="btn @(Model.SetinfoConfigured ? "btn--danger" : "btn--primary")" type="submit">
+                        @(Model.SetinfoConfigured ? "Obróć token" : "Utwórz token")
+                    </button>
+                    @if (Model.SetinfoConfigured)
+                    {
+                        <span class="field__hint">Stary wpis przestanie działać natychmiast.</span>
+                    }
+                </form>
+            </section>
+
+            <section class="card" aria-labelledby="links-heading">
+                <p class="label" id="links-heading">Połączone konta</p>
+                <p class="lede" style="margin-top:0">
+                    Dostawca potwierdza własność konta. NEXTSKILL nigdy nie prosi o wpisanie SteamID ani Discord ID.
+                </p>
+                <div class="stack" style="margin-top:var(--s4)">
+                    <div class="row" style="justify-content:space-between">
+                        <div>
+                            <b>Steam</b>
+                            <span class="pill @(Model.SteamLinked ? "pill--ok" : "")" style="margin-left:var(--s2)">
+                                @(Model.SteamLinked ? "Połączony" : "Niepołączony")
+                            </span>
+                        </div>
+                        @if (Model.SteamLinked)
+                        {
+                            <form method="post" asp-page-handler="UnlinkSteam">
+                                <button class="btn btn--danger" type="submit">Odłącz</button>
+                            </form>
+                        }
+                        else if (Model.SteamLinkAvailable)
+                        {
+                            <form method="post" asp-page-handler="LinkSteam">
+                                <button class="btn" type="submit">Połącz przez Steam</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <span class="field__hint">Brak publicznego adresu HTTPS</span>
+                        }
+                    </div>
+
+                    <div class="row" style="justify-content:space-between">
+                        <div>
+                            <b>Discord</b>
+                            <span class="pill @(Model.DiscordLinked ? "pill--ok" : "")" style="margin-left:var(--s2)">
+                                @(Model.DiscordLinked ? "Połączony" : "Niepołączony")
+                            </span>
+                        </div>
+                        @if (Model.DiscordLinked)
+                        {
+                            <form method="post" asp-page-handler="UnlinkDiscord">
+                                <button class="btn btn--danger" type="submit">Odłącz</button>
+                            </form>
+                        }
+                        else if (Model.DiscordLinkAvailable)
+                        {
+                            <form method="post" asp-page-handler="LinkDiscord">
+                                <button class="btn" type="submit">Połącz przez Discord</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <span class="field__hint">Wymaga konfiguracji aplikacji OAuth</span>
+                        }
+                    </div>
+                </div>
+            </section>
+
+            <section class="card" aria-labelledby="data-heading">
+                <p class="label" id="data-heading">Twoje dane</p>
+                <p class="lede" style="margin-top:0">
+                    Usunięcie konta zanonimizuje gracza, ale zachowa historyczne mecze.
+                    Wyniki innych osób i ich ratingi zależą od tej historii.
+                </p>
+                <p class="dim" style="font-size:13px">
+                    Adres e-mail, telefon, połączenia Steam/Discord, tokeny i dane logowania zostaną
+                    nieodwracalnie usunięte. Opuścisz aktywne drużyny, a wszystkie sesje wygasną.
+                </p>
+                <form method="post" asp-page-handler="DeleteAccount" style="margin-top:var(--s4)">
+                    <div class="field">
+                        <label asp-for="DeleteAccount.Password">Aktualne hasło</label>
+                        <input class="input" asp-for="DeleteAccount.Password" type="password"
+                               autocomplete="current-password" required />
+                        <span class="field__error" asp-validation-for="DeleteAccount.Password"></span>
+                    </div>
+                    <div class="field">
+                        <label asp-for="DeleteAccount.ConfirmationNickname">
+                            Wpisz <strong>@Model.Nickname</strong>, aby potwierdzić
+                        </label>
+                        <input class="input" asp-for="DeleteAccount.ConfirmationNickname"
+                               autocomplete="off" required />
+                        <span class="field__error" asp-validation-for="DeleteAccount.ConfirmationNickname"></span>
+                    </div>
+                    <button class="btn btn--danger" type="submit">Usuń konto nieodwracalnie</button>
+                </form>
+            </section>
+        </div>
+
+        <aside>
+            <p class="label">Bezpieczeństwo</p>
+            <div class="rail">
+                <div>
+                    <span>Weryfikacja dwuetapowa</span>
+                    <span>@(Model.TwoFactorMethod switch
+                    {
+                        TwoFactorMethod.Totp => "Aplikacja",
+                        TwoFactorMethod.Sms => "SMS",
+                        _ => "Wyłączona",
+                    })</span>
+                </div>
+                <div><span>Aktywne sesje</span><span>@Model.ActiveSessions</span></div>
+                <div><span>Konto od</span><span>@Model.CreatedAt.ToString("dd.MM.yyyy")</span></div>
+            </div>
+            <a class="btn" asp-page="/Account/TwoFactor" asp-route-culture="@locale" style="margin-top:var(--s4)">Ustaw weryfikację dwuetapową</a>
+            <form method="post" asp-page-handler="LogoutEverywhere" style="margin-top:var(--s4)">
+                <button class="btn btn--danger" type="submit">Wyloguj wszędzie</button>
+                <p class="field__hint" style="margin-top:var(--s2)">
+                    Natychmiast unieważnia wszystkie sesje, także na tym urządzeniu.
+                </p>
+            </form>
+        </aside>
+    </div>
+</div>
