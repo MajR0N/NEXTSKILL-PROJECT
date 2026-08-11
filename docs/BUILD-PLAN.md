@@ -213,8 +213,15 @@ endpoint, request, handler and validator together.
   - ☑ **Roster is 5 players + 3 substitutes + 2 coaches = 10 places**, capped *per slot*. Coaches are **never fieldable**; pending invites occupy a place; moving between slots respects the destination cap ([045](decisions/045-teams-and-rosters.md))
   - ☐ Team logos — a [044](decisions/044-visual-direction.md) question, and it brings image validation and moderation with it
   - ☐ **Team page needs grilling**: match history, rating trend, trophies, open slots
-- ☐ **Tournaments** — create from template, register, seed ([015](decisions/015-admin-panel.md)). **1v1, 2v2 and 5v5** ([045](decisions/045-teams-and-rosters.md)); the registered lineup is capped by the tournament, not by the team
-- ☐ **Brackets** — render, advance (integrity-gated)
+- ◐ **Tournaments** — lifecycle, registration and seeding done ([046](decisions/046-tournament-lifecycle.md))
+  - ☑ State machine as a pure function; **`Draft → Running` refused**, `Completed`/`Cancelled` terminal
+  - ☑ **Drafts are private** — invisible to the list, to strangers and by direct id
+  - ☑ Entry requires enough **fieldable** members for the format (coaches excluded)
+  - ☑ Seeding on close: strongest first, **provisional teams last**, deterministic, written to the database
+  - ☑ `PublicReads` — the one sanctioned cross-tenant read seam ([036](decisions/036-authorization.md))
+  - ☐ Templates and post-creation editing ([015](decisions/015-admin-panel.md))
+  - ☐ Check-in before start, and **forfeit** as the honest exit from a running event
+- ☐ **Brackets** — persist the generated bracket to `matches` (routing links included), render, advance (integrity-gated). Seeds already exist ([046](decisions/046-tournament-lifecycle.md)); the engine is tested but has never run on live data
 - ☐ **Matches** — detail, config endpoint, event ingest, bind, demo upload
 - ☐ **Veto & lobby** — web veto over SSE ([028](decisions/028-veto-and-lobby.md))
 - ☐ **Organiser panel** — servers, disputes, staff

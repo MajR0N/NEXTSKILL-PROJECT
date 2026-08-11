@@ -19,6 +19,7 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
     public DbSet<GameServer> Servers => Set<GameServer>();
     public DbSet<Tournament> Tournaments => Set<Tournament>();
     public DbSet<Match> Matches => Set<Match>();
+    public DbSet<TournamentRegistration> Registrations => Set<TournamentRegistration>();
     public DbSet<Rating> Ratings => Set<Rating>();
     public DbSet<TeamMembership> TeamMemberships => Set<TeamMembership>();
     public DbSet<OrganiserStaff> OrganiserStaff => Set<OrganiserStaff>();
@@ -35,6 +36,7 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
         b.Entity<Tournament>().Property(x => x.Game).HasConversion<string>();
         b.Entity<Tournament>().Property(x => x.Format).HasConversion<string>();
         b.Entity<Tournament>().Property(x => x.Status).HasConversion<string>();
+        b.Entity<Tournament>().Property(x => x.TeamSize).HasConversion<string>();
         b.Entity<Match>().Property(x => x.Game).HasConversion<string>();
         b.Entity<Match>().Property(x => x.Status).HasConversion<string>();
         b.Entity<Match>().Property(x => x.Integrity).HasConversion<string>();
@@ -58,6 +60,7 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
         b.Entity<GameServer>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
         b.Entity<Tournament>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
         b.Entity<Match>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
+        b.Entity<TournamentRegistration>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
         b.Entity<OrganiserStaff>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
         //
         // Accounts, Teams and Ratings are deliberately UNFILTERED: they are
@@ -147,6 +150,25 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
 
         b.Entity<OrganiserStaff>(e =>
             e.HasIndex(x => new { x.OrganiserId, x.AccountId }).IsUnique());
+
+        b.Entity<TournamentRegistration>(e =>
+        {
+            // One ACTIVE entry per team per tournament. Partial, so a team that
+            // withdrew and re-entered does not collide with its own history —
+            // the same technique as one-live-match-per-server (007) and
+            // one-active-membership-per-team (045).
+            e.HasIndex(x => new { x.TournamentId, x.TeamId })
+                .IsUnique()
+                .HasFilter("withdrawn_at IS NULL")
+                .HasDatabaseName("ix_one_active_entry_per_tournament");
+
+            // Seeds must be unique within a tournament, or two teams share a
+            // bracket position and one of them silently disappears (023).
+            e.HasIndex(x => new { x.TournamentId, x.Seed })
+                .IsUnique()
+                .HasFilter("seed IS NOT NULL AND withdrawn_at IS NULL")
+                .HasDatabaseName("ix_one_team_per_seed");
+        });
 
         b.Entity<Notification>(e =>
         {

@@ -5,7 +5,8 @@ using NextSkill.Domain.Matches;
 using NextSkill.Domain.Ratings;
 using NextSkill.Domain.Teams;
 using DbGame = NextSkill.Api.Shared.Persistence.Game;
-using DbFormat = NextSkill.Api.Shared.Persistence.TournamentFormat;
+using NextSkill.Domain.Tournaments;
+using DbFormat = NextSkill.Domain.Tournaments.TournamentFormat;
 
 namespace NextSkill.Checks;
 

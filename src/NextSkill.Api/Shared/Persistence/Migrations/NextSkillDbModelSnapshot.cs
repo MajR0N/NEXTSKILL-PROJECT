@@ -637,6 +637,10 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
                     b.Property<string>("Format")
                         .IsRequired()
                         .HasColumnType("text")
@@ -646,6 +650,10 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("game");
+
+                    b.Property<int>("MaxTeams")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_teams");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -669,9 +677,60 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("status");
 
+                    b.Property<string>("TeamSize")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("team_size");
+
                     b.HasKey("Id");
 
                     b.ToTable("tournaments");
+                });
+
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.TournamentRegistration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("OrganiserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organiser_id");
+
+                    b.Property<DateTimeOffset>("RegisteredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("registered_at");
+
+                    b.Property<int?>("Seed")
+                        .HasColumnType("integer")
+                        .HasColumnName("seed");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("team_id");
+
+                    b.Property<Guid>("TournamentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tournament_id");
+
+                    b.Property<DateTimeOffset?>("WithdrawnAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("withdrawn_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TournamentId", "Seed")
+                        .IsUnique()
+                        .HasDatabaseName("ix_one_team_per_seed")
+                        .HasFilter("seed IS NOT NULL AND withdrawn_at IS NULL");
+
+                    b.HasIndex("TournamentId", "TeamId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_one_active_entry_per_tournament")
+                        .HasFilter("withdrawn_at IS NULL");
+
+                    b.ToTable("registrations");
                 });
 #pragma warning restore 612, 618
         }

@@ -3,6 +3,7 @@ using System.Text.Json;
 using NextSkill.Api.Shared.Tenancy;
 using NextSkill.Domain.Access;
 using NextSkill.Domain.Matches;
+using NextSkill.Domain.Tournaments;
 
 namespace NextSkill.Api.Shared.Persistence;
 
@@ -20,9 +21,11 @@ public enum Game { Cs2, Cs16 }
 
 public enum MatchStatus { Scheduled, VetoInProgress, AwaitingPlayers, Live, Completed, Forfeited, Cancelled }
 
-public enum TournamentFormat { SingleElimination, DoubleElimination, RoundRobin, GroupStage, League }
-
-public enum TournamentStatus { Draft, RegistrationOpen, RegistrationClosed, Running, Completed, Cancelled }
+// TournamentFormat, TournamentStatus and TeamSize are DEFINED ONCE, in
+// NextSkill.Domain.Tournaments, and reused here — the same call already made for
+// MatchIntegrity and the role enums. The rules that reason about a status are
+// pure functions, and a second copy of the enum is how those rules and the
+// database drift apart.
 
 // ── entities ─────────────────────────────────────────────────────────────
 
@@ -174,6 +177,20 @@ public class Tournament : ITenantOwned
     public TournamentFormat Format { get; set; }
     public TournamentStatus Status { get; set; }
 
+    /// <summary>1v1, 2v2 or 5v5 (decision 045). Decides how many fieldable
+    /// players a team needs before it may register.</summary>
+    public TeamSize TeamSize { get; set; }
+
+    /// <summary>
+    /// Registration cap. An uncapped community cup that attracts three hundred
+    /// teams is not a nice problem to have — it is an event nobody can run
+    /// (decision 046).
+    /// </summary>
+    public int MaxTeams { get; set; }
+
+    /// <summary>Free text shown on the tournament page: rules, prize, contact.</summary>
+    public string? Description { get; set; }
+
     /// <summary>Groups tournaments into a season (decision 021).</summary>
     public Guid? SeasonId { get; set; }
 
@@ -253,4 +270,36 @@ public class Rating
     public double Volatility { get; set; }
     public int MatchesPlayed { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
+}
+
+/// <summary>
+/// A team entered into a tournament (decision 046).
+///
+/// Tenant-scoped like the tournament it belongs to, and carrying
+/// <c>OrganiserId</c> directly so the filter stays a single column comparison
+/// rather than a join — the same shape <see cref="Match"/> uses.
+/// </summary>
+public class TournamentRegistration : ITenantOwned
+{
+    public Guid Id { get; set; }
+    public Guid OrganiserId { get; set; }
+    public Guid TournamentId { get; set; }
+    public Guid TeamId { get; set; }
+
+    /// <summary>
+    /// Assigned when registration closes, not when a team signs up. Null until
+    /// then, because seeding needs the whole field to exist before it can be
+    /// ordered (decision 046).
+    /// </summary>
+    public int? Seed { get; set; }
+
+    public DateTimeOffset RegisteredAt { get; set; }
+
+    /// <summary>
+    /// Soft, like every other departure in this schema. A team that withdrew
+    /// from a running event is part of that event's history, and the partial
+    /// unique index ignores withdrawn rows so a team can re-enter while
+    /// registration is still open.
+    /// </summary>
+    public DateTimeOffset? WithdrawnAt { get; set; }
 }

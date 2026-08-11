@@ -1,0 +1,194 @@
+@page "{id:guid}"
+@model NextSkill.Api.Pages.Tournaments.DetailsModel
+@using NextSkill.Api.Localisation
+@using NextSkill.Api.Shared.Persistence
+@using NextSkill.Domain.Tournaments
+@using M = NextSkill.Api.Pages.Tournaments.DetailsModel
+@using L = NextSkill.Api.Pages.Tournaments.IndexModel
+@{
+    var t = Model.Tournament!;
+    ViewData["Title"] = t.Name;
+    ViewData["Description"] = $"{t.Name} — {L.Size(t.TeamSize)} {(t.Game == Game.Cs2 ? "CS2" : "CS 1.6")}, {Model.OrganiserName}.";
+    var locale = Locales.Current;
+    var registering = TournamentLifecycle.AcceptsRegistrations(t.Status);
+}
+
+<div class="wrap section">
+
+    <p class="eyebrow">
+        @Model.OrganiserName · <b>@M.StatusName(t.Status)</b>
+        @if (t.Status == TournamentStatus.Draft)
+        {
+            <span class="dim"> — widoczny tylko dla organizatora</span>
+        }
+    </p>
+    <h1>@t.Name</h1>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert--error" role="alert" style="margin-top:var(--s5)">
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <div>@error.ErrorMessage</div>
+            }
+        </div>
+    }
+
+    <div class="detail-grid" style="margin-top:var(--s7)">
+        <div>
+            @* ── the page has three lives; this is the one it is in now (043) ── *@
+            @if (t.Status == TournamentStatus.Cancelled)
+            {
+                <div class="empty">
+                    <div class="empty__icon">✕</div>
+                    <h4>Turniej odwołany</h4>
+                    <p>Ten turniej się nie odbędzie. Strona zostaje, żeby linki nie przestały działać.</p>
+                </div>
+            }
+            else if (registering || t.Status is TournamentStatus.Draft or TournamentStatus.RegistrationClosed)
+            {
+                @if (!string.IsNullOrWhiteSpace(t.Description))
+                {
+                    <p class="lede" style="margin-top:0">@t.Description</p>
+                }
+
+                <p class="label" style="margin-top:var(--s6)">
+                    Zapisane drużyny · @Model.Entries.Count / @t.MaxTeams
+                </p>
+
+                @if (Model.Entries.Count == 0)
+                {
+                    <div class="empty">
+                        <div class="empty__icon">◇</div>
+                        <h4>Nikt się jeszcze nie zapisał</h4>
+                        <p>Bądź pierwszy — potrzebujesz drużyny z @Model.PlayersRequired zawodnikami.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-scroll">
+                        <table class="table table--dense">
+                            <tbody>
+                                @foreach (var entry in Model.Entries)
+                                {
+                                    <tr>
+                                        <td class="num" style="width:48px;color:var(--text-dim)">@(entry.Seed?.ToString() ?? "—")</td>
+                                        <td>
+                                            <a class="team" style="text-decoration:none;color:inherit"
+                                               asp-page="/Teams/Details" asp-route-culture="@locale" asp-route-id="@entry.TeamId">
+                                                <span class="avatar avatar--sm avatar--@M.Palette(entry.Tag)">@M.Initials(entry.Name)</span>
+                                                <span>
+                                                    <span class="team__name">@entry.Name</span>
+                                                    <span class="team__meta"><span class="team__tag">@entry.Tag</span></span>
+                                                </span>
+                                            </a>
+                                        </td>
+                                        <td class="r">
+                                            @* A team that has dropped below the format size since entering is
+                                               a forfeit waiting to happen — the organiser should see it now. *@
+                                            @if (!entry.Ready)
+                                            {
+                                                <span class="pill">niepełny skład · @entry.Fieldable/@Model.PlayersRequired</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="empty">
+                    <div class="empty__icon">◍</div>
+                    <h4>@(t.Status == TournamentStatus.Running ? "Turniej trwa" : "Turniej zakończony")</h4>
+                    <p>Drabinka i wyniki pojawią się tutaj.</p>
+                </div>
+            }
+
+            @* ── entering, for captains ─────────────────────────────────── *@
+            @if (Model.MyTeams.Count > 0 && !TournamentLifecycle.ParticipantsAreFrozen(t.Status))
+            {
+                <div class="card" style="margin-top:var(--s6)">
+                    <p class="label">Twoje drużyny</p>
+                    <div class="stack">
+                        @foreach (var team in Model.MyTeams)
+                        {
+                            <div class="row" style="justify-content:space-between">
+                                <span>
+                                    <span class="team__name">@team.Name</span>
+                                    <span class="team__meta">@team.Fieldable / @Model.PlayersRequired zawodników</span>
+                                </span>
+                                @if (team.Entered)
+                                {
+                                    <form method="post" asp-page-handler="Withdraw" asp-route-culture="@locale"
+                                          asp-route-id="@t.Id" asp-route-teamId="@team.Id">
+                                        <button class="btn btn--danger" type="submit">Wycofaj</button>
+                                    </form>
+                                }
+                                else if (registering && team.Fieldable >= Model.PlayersRequired && Model.PlacesLeft > 0)
+                                {
+                                    <form method="post" asp-page-handler="Enter" asp-route-culture="@locale"
+                                          asp-route-id="@t.Id" asp-route-teamId="@team.Id">
+                                        <button class="btn btn--primary" type="submit">Zapisz drużynę</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    @* Say WHY, never just disable a button (020). *@
+                                    <span class="dim" style="font-size:13px">
+                                        @(!registering ? "zapisy zamknięte"
+                                          : Model.PlacesLeft <= 0 ? "brak miejsc"
+                                          : $"potrzeba {Model.PlayersRequired} zawodników")
+                                    </span>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            @* ── organiser controls ─────────────────────────────────────── *@
+            @if (Model.CanManage)
+            {
+                <div class="card" style="margin-top:var(--s6)">
+                    <p class="label">Organizator</p>
+                    <div class="row">
+                        @* Only legal transitions get a button. The state machine
+                           refuses the rest anyway, but an option that always fails
+                           is worse than no option (020, 046). *@
+                        @foreach (var to in Enum.GetValues<TournamentStatus>().Where(s => TournamentLifecycle.CanTransition(t.Status, s)))
+                        {
+                            <form method="post" asp-page-handler="Status" asp-route-culture="@locale"
+                                  asp-route-id="@t.Id" asp-route-to="@to">
+                                <button class="btn @(to == TournamentStatus.Cancelled ? "btn--danger" : "")" type="submit">
+                                    @M.StatusName(to)
+                                </button>
+                            </form>
+                        }
+                    </div>
+                    @if (t.Status == TournamentStatus.RegistrationOpen)
+                    {
+                        <p class="lede" style="font-size:13px">
+                            Zamknięcie zapisów rozstawia drużyny według ratingu.
+                            Drużyny wstępne trafiają na koniec, nawet jeśli mają wysoki rating.
+                        </p>
+                    }
+                </div>
+            }
+        </div>
+
+        <aside>
+            <p class="label">Informacje</p>
+            <div class="rail">
+                <div><span>Gra</span><span>@(t.Game == Game.Cs2 ? "CS2" : "CS 1.6")</span></div>
+                <div><span>Format</span><span>@L.FormatName(t.Format)</span></div>
+                <div><span>Skład</span><span>@L.Size(t.TeamSize)</span></div>
+                <div><span>Drużyny</span><span>@Model.Entries.Count / @t.MaxTeams</span></div>
+                <div><span>Start</span><span>@(t.StartsAt?.ToString("yyyy-MM-dd") ?? "—")</span></div>
+                <div><span>Organizator</span><span>@Model.OrganiserName</span></div>
+            </div>
+        </aside>
+    </div>
+</div>

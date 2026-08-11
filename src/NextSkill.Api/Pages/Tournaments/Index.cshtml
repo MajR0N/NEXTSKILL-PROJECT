@@ -1,0 +1,80 @@
+@page
+@model NextSkill.Api.Pages.Tournaments.IndexModel
+@using NextSkill.Api.Localisation
+@using NextSkill.Api.Shared.Persistence
+@using NextSkill.Domain.Tournaments
+@using M = NextSkill.Api.Pages.Tournaments.IndexModel
+@{
+    ViewData["Title"] = "Turnieje";
+    ViewData["Description"] = "Turnieje CS 1.6 i CS2 — zapisy, drabinki, wyniki.";
+    var locale = Locales.Current;
+}
+
+<div class="wrap section">
+
+    <p class="eyebrow">NEXTSKILL</p>
+    <h1>Turnieje</h1>
+    <p class="lede">Wszystkie turnieje wszystkich organizatorów w jednym miejscu.</p>
+
+    <div class="row" style="margin:var(--s6) 0 var(--s4);justify-content:flex-end">
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a class="btn" asp-page="/Tournaments/Create" asp-route-culture="@locale">Utwórz turniej</a>
+        }
+    </div>
+
+    @if (Model.Open.Count == 0 && Model.Live.Count == 0 && Model.Past.Count == 0)
+    {
+        @* Day one has no tournaments. Looking EARLY beats looking abandoned (020). *@
+        <div class="empty">
+            <div class="empty__icon">◎</div>
+            <h4>Pierwszy turniej wkrótce</h4>
+            <p>
+                Nie ma jeszcze żadnego turnieju. Jeśli organizujesz — możesz utworzyć pierwszy.
+            </p>
+            <a class="btn btn--primary" asp-page="/Tournaments/Create" asp-route-culture="@locale">Utwórz turniej</a>
+        </div>
+    }
+
+    @foreach (var (label, rows) in new[] { ("Zapisy i nadchodzące", Model.Open), ("Trwają", Model.Live), ("Zakończone", Model.Past) })
+    {
+        if (rows.Count == 0) { continue; }
+
+        <p class="label" style="margin-top:var(--s6)">@label</p>
+        <div class="table-scroll">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">Turniej</th>
+                        <th scope="col">Organizator</th>
+                        <th scope="col">Format</th>
+                        <th scope="col" class="r">Drużyny</th>
+                        <th scope="col" class="r">Start</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in rows)
+                    {
+                        <tr>
+                            <td>
+                                <a asp-page="/Tournaments/Details" asp-route-culture="@locale" asp-route-id="@row.Id"
+                                   style="text-decoration:none;color:inherit">
+                                    <span class="team__name">@row.Name</span>
+                                    <span class="team__meta">
+                                        <span>@(row.Game == Game.Cs2 ? "CS2" : "CS 1.6")</span>
+                                        <span>@M.Size(row.TeamSize)</span>
+                                        <span>@NextSkill.Api.Pages.Tournaments.DetailsModel.StatusName(row.Status)</span>
+                                    </span>
+                                </a>
+                            </td>
+                            <td class="dim">@row.Organiser</td>
+                            <td class="dim">@M.FormatName(row.Format)</td>
+                            <td class="r num">@row.Teams / @row.MaxTeams</td>
+                            <td class="r num dim">@(row.StartsAt?.ToString("yyyy-MM-dd") ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

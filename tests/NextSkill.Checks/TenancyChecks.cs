@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using NextSkill.Api.Shared.Persistence;
+using NextSkill.Domain.Tournaments;
 using NextSkill.Api.Shared.Tenancy;
 
 namespace NextSkill.Checks;

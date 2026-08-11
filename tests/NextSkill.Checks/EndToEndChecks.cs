@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using NextSkill.Api.Shared.Persistence;
+using NextSkill.Domain.Tournaments;
 using NextSkill.Domain.Matches;
 using NextSkill.Api.Shared.Tenancy;
 using NextSkill.Simulator;

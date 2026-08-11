@@ -137,6 +137,7 @@ builder.Services.AddRazorPages(o =>
     // order, and the locale prefix has to apply to this route too.
     o.Conventions.AddPageRoute("/Teams/Details", "teams/{id:guid}");
     o.Conventions.AddPageRoute("/Teams/Edit", "teams/{id:guid}/edit");
+    o.Conventions.AddPageRoute("/Tournaments/Details", "t/{id:guid}");   // 043: the link pasted mid-event
 
     o.Conventions.Add(new LocaleRouteConvention());
 });

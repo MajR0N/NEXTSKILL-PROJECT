@@ -452,6 +452,10 @@ Console.WriteLine("SIGNING & INTEGRITY  (decisions 009, 012, 035)");
 NextSkill.Checks.IntegrityChecks.Run(Check, That);
 
 Console.WriteLine();
+Console.WriteLine("TOURNAMENT LIFECYCLE & SEEDING  (decision 046)");
+NextSkill.Checks.TournamentChecks.RunPure(Check, That);
+
+Console.WriteLine();
 Console.WriteLine("PASSWORDS & REDIRECTS  (decisions 011, 040)");
 NextSkill.Checks.AccountChecks.RunPure(Check, That);
 
@@ -496,6 +500,19 @@ catch (Exception ex)
 {
     failed++;
     Console.WriteLine("  FAIL  team checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
+Console.WriteLine("TOURNAMENTS · tenancy boundary, entry rules  (decisions 036, 046)");
+try
+{
+    NextSkill.Checks.TournamentE2EChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  tournament checks could not run");
     Console.WriteLine($"        {ex.Message}");
 }
 
