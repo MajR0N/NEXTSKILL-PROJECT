@@ -185,8 +185,67 @@ rows, a visitor cannot tell which part of the ordering is evidence and which is 
 verified counts stop meaning anything. This is [056](056-lft-board.md)'s *rating never buys
 prominence*, applied to servers.
 
-**Deferred:** pricing, ad formats, credit model and go-to-market are a separate grilling
-against the [strategy](../MARKETING-AND-SALES-STRATEGY.md).
+### The inventory, decided 2026-08-17
+
+**A labelled slot above a list, sold per `game × period`.** One or two placements at the top of a
+facet or the main list, fixed price by the week or month.
+
+Chosen over an enhanced-listing upsell and over bid-for-position because it is the only format
+where **inventory is naturally scarce** — and scarcity is what lets price rise later without
+changing the product. It is also unmistakable to a visitor, which is the entire requirement: a
+placement nobody can mistake for a ranking cannot corrupt one.
+
+**Still deferred:** actual prices, whether credit is prepaid, and per-slot versus per-period
+billing. Those need traffic to price against; setting them now would be guessing.
+
+---
+
+## 5a. The useful list and the defensible list are not the same list
+
+The verification claim depends on the plugin, which creates a split worth stating plainly rather
+than discovering after launch:
+
+| | CS2 / CS:GO (Steam API) | CS 1.6 (plugin) |
+| --- | --- | --- |
+| Catalogue | **Full, day one** | Near zero at launch |
+| Useful as a list? | **Yes** | Not for a long time |
+| Bot/human split | **No — the same spoofable data everyone has** | **Yes** |
+| Data tier | 5 — public | **1 — proprietary** |
+
+**They have opposite problems.** At launch the CS2 listing is a *worse GO-Setti* — same data,
+fewer years, less traffic — and *"liczby z serwera, nie z zapytania"* is simply not true of it.
+
+**Decided: lead with CS2 for traffic, and convert owners to the plugin.** The CS2 list is
+genuinely useful on day one and gets indexed while nobody is verified. Its job is to put server
+owners in front of the one thing they cannot get anywhere else — *your server could show real
+numbers* — and every owner who installs converts a commodity row into a proprietary page.
+
+**What was given up:** the positioning is openly undifferentiated at launch on the larger half of
+the catalogue. That is preferable to launching a list nobody can use to find a server.
+
+> **The moat is a race, not a wall.** Nothing stops an incumbent writing a plugin of their own.
+> What protects this is that they would face the identical adoption barrier from a standing start,
+> without a tournament product to attach it to. **The head start is the asset** — which is an
+> argument for shipping sooner, and sits in tension with §8's sequencing.
+
+---
+
+## 5b. The ranking does not publish until it is worth reading
+
+The monthly ranking contains only verified servers, so at launch it would hold about three rows.
+[020](020-motion-and-ux.md) already sets the rule — **looking early beats looking abandoned** —
+and a three-row leaderboard on the most competitive surface in the product reads as *nobody uses
+this*.
+
+**The ranking page exists from day one and publishes no ranking.** It states the threshold and the
+progress toward it: *"the first ranking publishes when N servers are verified — X so far."*
+
+A countdown is not an empty leaderboard. It is a reason for an owner to be among the first, and it
+makes early adoption feel like getting in rather than joining nothing.
+
+**Rejected:** ranking all listed servers with verified ones badged. It would never look empty —
+and it would rank servers by exactly the numbers this decision says cannot be trusted, publishing
+the thing the positioning attacks.
 
 ---
 
@@ -306,6 +365,8 @@ Per the project's engineering principles, in `tests/NextSkill.Checks`:
     is turned off.
 11. Account erasure removes votes and presence data, while the anonymous
     roster/rating history rules remain unchanged.
+12. The ranking page **publishes no ranking below the threshold** and states the progress toward
+    it instead — never a three-row leaderboard.
 
 ---
 

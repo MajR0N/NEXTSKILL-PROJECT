@@ -1,8 +1,22 @@
 # NEXTSKILL — Marketing & Solution Sale Strategy
 
 **Status:** living document
-**Date:** 2026-08-10 · **revised 2026-08-12** after research, strategy grilling and the LFT boundary
+**Date:** 2026-08-10 · **revised 2026-08-12** after research, strategy grilling and the LFT boundary ·
+**revised 2026-08-17** after [057](decisions/057-server-browser-and-seo.md) and a marketing-council pass
 **Scope:** **Poland first.** The product is global-capable by construction; the go-to-market is not.
+
+> ### What the 2026-08-17 revision changed, and why
+>
+> [057](decisions/057-server-browser-and-seo.md) added a server browser with programmatic SEO.
+> Four sections of this document were wrong or silent about it — and one finding already in it
+> turned out to be the strongest argument *for* it, written before it existed.
+>
+> | Was | Is now | Why |
+> | --- | --- | --- |
+> | Alternatives table listed eight competitors, **none of them a server list** | **[CS-Setti](https://cssetti.pl/lista) and [GO-Setti](https://gosetti.pl/serwery) are in the table** | They are what a Polish CS player opens *first*. The strategy had no position against the actual front door |
+> | *"Growth is not advertising. It is links"* — one loop, Discord | **Two loops.** Discord is the sharing loop; search is the discovery loop | A Discord link only reaches people who already know somebody who knows us |
+> | Monetisation *"deliberately undecided, nothing charged"* | **The listing carries the first revenue line**, with the boundary named | 057 sells sponsored placement. Leaving §9 as "undecided" would have made this document contradict a decided one |
+> | *"Most communities are venues, not organisers"* was a footnote about product scope | **It is the business case for the listing** | Four of six networks will never organise. The listing is the only surface that serves them, and it was described here a week before it was designed |
 
 How NEXTSKILL reaches people, why they stay, and what we sell. Grounded in decisions already
 made — most of the strategy is a consequence of the architecture rather than something bolted
@@ -52,6 +66,15 @@ anyone recognises.** Nobody offers both.
 | **[G5API / G5V](https://github.com/PhlexPlexico/G5API)** | You keep servers and brand — and your rating means nothing outside your own box. Docker, MariaDB, reverse proxy |
 | **Challonge / Toornament** | Brackets with no game integration; every score typed by hand |
 | **Discord + a spreadsheet** | The real status quo. Free, familiar, terrible |
+| **[CS-Setti](https://cssetti.pl/lista) / [GO-Setti](https://gosetti.pl/serwery)** | **Not a tournament alternative at all — the front door.** Where a Polish player goes to *find somewhere to play*, and where a server owner goes to *be found*. Counts come from dialling the server and believing the answer, so bot inflation is endemic; GO-Setti's **MasterBoost** sells list position outright. **They own the query we do not compete for** |
+
+> ### ⚠ The alternative this table missed for a week
+>
+> Every row above answers *"where do I run my tournament?"* Nobody in this market wakes up asking
+> that. They ask **"gdzie zagrać?"** — and the answer has been a server list for fifteen years.
+>
+> That is not a competitor to the tournament product. It is the surface *in front of it*, and
+> until [057](decisions/057-server-browser-and-seo.md) we had no presence on it at all. See §5.1.
 
 ### Market intelligence — hard numbers, verified 2026-08-11
 
@@ -181,6 +204,24 @@ The first non-inferred evidence in this project. Confidence: *medium* on the lab
 > It also promotes first-party cups from a cold-start fix to **permanent core supply**: if most
 > communities will never organise, someone has to, forever. And it makes the community standings
 > table load-bearing — **it is how a network that organises nothing still gets promoted.**
+>
+> #### This paragraph is the business case for the server listing
+>
+> Written 2026-08-11, six days before [057](decisions/057-server-browser-and-seo.md) was designed.
+> Run the offer through Hormozi's value equation for the four networks that never host: the dream
+> outcome is fine, but **effort is 3–5 people per event**, so the value collapses. That is not a
+> messaging failure. **The tournament offer does not fit two thirds of the market.**
+>
+> The listing is a different offer to the *same buyer*, with the effort term near zero:
+>
+> | | Tournament offer | Listing offer |
+> | --- | --- | --- |
+> | Effort | 3–5 people, a weekend | Install a plugin |
+> | Who it fits | The rare organiser | **Every venue** |
+> | What they get | An event that runs itself | Players who can find them, and a rank they can climb |
+>
+> **It is the missing bottom rung.** A venue installs the plugin to be listed and rankable; the
+> plugin is what makes tournaments possible later. Acquisition stops being hand-recruitment.
 
 > ### ⚠ Poland-first and the CS 1.6 moat do not overlap
 >
@@ -222,6 +263,15 @@ Gampre adjudicates 3 862 tournaments by screenshot and phone photo:
 
 > **Wyniki z serwera, nie ze zrzutu ekranu.**
 > *(Results from the server, not from a screenshot.)*
+
+And against the server lists specifically — the same sentence, one layer down, which is what stops
+the listing being a directory bolted onto a platform:
+
+> **Liczby z serwera, nie z zapytania.**
+> *(Numbers from the server, not from a query.)*
+>
+> Every other list dials a server and believes the answer. Ours counts humans from inside it, and
+> shows you the bots ([057](decisions/057-server-browser-and-seo.md) §2).
 
 ---
 
@@ -356,6 +406,77 @@ they share their own link      →  loop
 Polish, keep the routing, write the other `.resx` files when a market asks — which is exactly
 what [051](decisions/051-phase-4-remainder.md) §3's neutral-resource-is-Polish decision enables.
 
+### 5.1 The second loop — search ([057](decisions/057-server-browser-and-seo.md))
+
+The loop above has a floor it cannot cross: **a shared link only reaches people who already know
+somebody who knows NEXTSKILL.** It has no answer for the person typing *"serwery cs 1.6
+deathrun"*, who is the largest population in this market and currently lands on CS-Setti.
+
+```
+someone searches "serwery cs2 surf"   →  Google (not Discord, not a friend)
+   ↓
+lands on a facet or server page       →  real servers, real occupancy history
+   ↓
+sees the honest number                →  humans vs bots, over weeks (057 §2)
+   ↓
+      ├─ player  →  plays there  →  eventually has a rating and a team
+      └─ owner   →  "why is my server not verified?"  →  installs the plugin
+   ↓
+the plugin is the tournament entry point                  →  loop into §5's loop
+```
+
+| | Discord loop | Search loop |
+| --- | --- | --- |
+| Reaches | People adjacent to someone already here | **Strangers with intent** |
+| Arrives with | Social proof, no intent | Intent, no trust |
+| Compounds via | Shares | Indexed pages and links |
+| Speed | Immediate | **Months — and the clock cannot be shortened** |
+| Converts to | A visit | A plugin install, then everything else |
+
+**The two loops are complementary rather than redundant**, and they fail differently: the Discord
+loop stalls when nobody shares, the search loop stalls when nothing is indexed. Neither fixes the
+other.
+
+> #### ⚠ The data hierarchy inverts the intuition
+>
+> Steam-API listings are **public data — the weakest tier**. Anyone can have them today, free.
+> The plugin's occupancy time series and bot/human split is **proprietary — the strongest tier**,
+> and nobody can reconstruct it without rebuilding our plugin and convincing owners to run it.
+>
+> **The big catalogue is the commodity; the small one is the moat.** So the SEO weight rides on
+> per-server pages, not on catalogue size — which is why [057](decisions/057-server-browser-and-seo.md)
+> builds them first, and why losing the breadth race to CS-Setti costs nothing we were going to win.
+
+> #### ⚠ The launch angle, and the thing it admits
+>
+> The verification claim depends on the plugin, so the two halves of the catalogue have
+> **opposite problems**:
+>
+> | | CS2 / CS:GO (Steam API) | CS 1.6 (plugin) |
+> | --- | --- | --- |
+> | Useful as a list on day one | **Yes** | No |
+> | Differentiated | **No — the same data everyone has** | **Yes** |
+>
+> **Lead with CS2 for traffic; convert owners to the plugin.** The CS2 list is useful immediately
+> and gets indexed while nobody is verified — and at launch it is, openly, *a worse GO-Setti*.
+> Its job is to put owners in front of the one offer nobody else has: **your server could show
+> real numbers.**
+>
+> **The moat is a race, not a wall.** Nothing stops CS-Setti writing a plugin. What protects us is
+> that they would face the identical adoption barrier from a standing start, without a tournament
+> product to attach it to — which makes the head start the whole asset, and is the strongest
+> argument against the sequencing in §8.
+>
+> #### ⚠ The tripwire that says this became a directory
+>
+> The council's dissenting position — the one worth monitoring rather than dismissing — is that
+> search traffic arrives with **no permission relationship**: it came for a server, not for us,
+> and serving it well costs roadmap.
+>
+> **The signal:** server pages generating traffic with **no clicks into `/teams`, `/ranking` or a
+> tournament**. Instrument that link from day one. If it stays near zero, the listing is a
+> directory bolted onto a platform and should be cut back to per-server pages and guides.
+
 ---
 
 ## 6. The partner model
@@ -435,6 +556,20 @@ cups  →  weekly league  →  continuous ladder  →  queue (only if the tripwi
 | **3. Polish scene** | Word of mouth in PL | Organisers arrive unprompted, having seen a shared link |
 | **4. CS 1.6 = Brazil** | The moat opens **outside Poland** | V3 verified on a Polish 1.6 server (the laboratory), AMXX plugin shipped, and the first **Brazilian** organiser registered — 1 306 concurrent players and an existing PUG/Mix culture |
 
+> ### ⚠ The listing does not have a stage, and that is a scheduling problem
+>
+> [057](decisions/057-server-browser-and-seo.md) sequences the server browser **after Phase 5**,
+> which is blocked on [044](decisions/044-visual-direction.md) — open and ungrilled. So the second
+> growth loop currently has no date.
+>
+> That matters more here than in the build plan, because **search compounds on a clock that cannot
+> be shortened.** Every month unlisted is authority that never accrues, and unlike a feature it
+> cannot be caught up by working harder later. The stages above all depend on the Discord loop
+> alone until it exists.
+>
+> **Not re-deciding it** — 057 chose a finished-looking launch deliberately and that is a defensible
+> trade. Recording it as the one strategic cost that grows silently while nothing appears to be wrong.
+
 **Stages 4 and 5 merged on 2026-08-11.** They were listed separately on the assumption that CS 1.6
 was a Polish market. It is not — 72 servers and ~189 concurrent players, mostly casual public
 modes. **The 1.6 product and the international expansion are the same move**, and treating them as
@@ -450,9 +585,48 @@ because software that works for one community is G5API with extra steps.
 
 ---
 
-## 9. Monetisation — deliberately undecided
+## 9. Monetisation — the tournament side stays free; the listing carries the revenue
 
-**Nothing is charged for now, and that is a decision rather than an omission.**
+**Revised 2026-08-17.** This section previously read *"nothing is charged for now"*, which
+[057](decisions/057-server-browser-and-seo.md) made untrue: the listing sells sponsored placement.
+The split is deliberate and is the honest version of "free forever" —
+**the competitive product is free; the visibility product is not.**
+
+| Surface | Charged? | Why |
+| --- | --- | --- |
+| Tournaments, ratings, brackets, LFT | **Free** | The rating is the moat. Charging for it is charging for the thing that only works at scale |
+| **Server listing placement** | **Paid** | An existing market with an existing price. Server owners already pay CS-Boost, tsarvar and GO-Setti for exactly this |
+
+### The line the money does not cross
+
+> **Money buys clearly-labelled placement above or beside a list. It never buys a position
+> inside one.**
+
+This is [056](decisions/056-lft-board.md)'s *rating never buys prominence*, applied to servers, and
+it is a commercial position rather than a scruple. GO-Setti's MasterBoost sells position *inside*
+the ranking; the moment budget moves rows, a visitor cannot tell which part of the order is
+evidence — and **verified counts, the only asset a competitor cannot copy, stop meaning anything.**
+Selling position would be selling the moat by the metre.
+
+**What this makes sellable that the incumbents cannot sell:** placement next to a list people
+*trust*. That is worth more per impression than placement inside one they don't.
+
+**The inventory** ([057](decisions/057-server-browser-and-seo.md) §5): **a labelled slot above a
+list, sold per `game × period`** — one or two placements, fixed price, by the week or month.
+Chosen over an enhanced-listing upsell because it is the only format where inventory is naturally
+scarce, and **scarcity is what lets the price rise later without changing the product.**
+
+### Why this monetises without contradicting §3.3
+
+Charging a **venue** for visibility is not charging a **player** for access, and it does not make
+us a destination — the traffic still leaves for their server. It is also the one revenue line that
+scales with the thing we already give away free.
+
+**Still deferred by [057](decisions/057-server-browser-and-seo.md), deliberately:** prices, ad
+formats, whether credit is prepaid, and whether placement is sold per-slot or per-period. Those
+need a market with traffic in it; setting them now would be guessing.
+
+### The rest, still open
 
 | Model | Fit | Concern |
 | --- | --- | --- |
@@ -482,6 +656,8 @@ Revisit when a partner asks to pay, or when support time becomes the binding con
 | **A Valve update breaks CS2 plugins** | Matches stop mid-tournament | Pinned CSSharp version, staging server, documented rollback ([002](decisions/002-cs2-plugin.md)) |
 | **Ratings feel unfair** | Players argue the number is wrong | Uncertainty shown openly (±RD) ([025](decisions/025-rating-system.md)) |
 | **CS 1.6 identity does not work** | `setinfo` behaves differently on non-Steam clients | **V3**, still open. §3.5 turns it into a partner conversation |
+| **The listing becomes a directory that eats the roadmap** | Server pages get traffic, **nobody clicks through to `/teams`, `/ranking` or a tournament** | §5.1's tripwire. Instrument the click-through from day one; if it stays near zero, cut back to per-server pages and guides |
+| **Thin SEO pages demote the whole domain** | Ranking, LFT and match pages lose position together | The **content floor** in [057](decisions/057-server-browser-and-seo.md) §6. Google names scaled thin pages and doorway pages directly, and a shared domain means a shared blast radius |
 | Building for years without launching | The decision stack keeps growing while user count stays zero | Ship the first inter-community cup early, even ugly |
 
 ---
@@ -496,6 +672,9 @@ Revisit when a partner asks to pay, or when support time becomes the binding con
 - **Volume is not optional.** Without continuous play, tier 2–5 acknowledgment is a promise that silently never arrives.
 - **Poland first, in depth.** The product is global; the relationships are not.
 - **Path 1 has a tripwire, not a date.**
+- **Two loops, not one.** Discord reaches people adjacent to us; **search reaches strangers with intent**, and it is the only channel that scales without us knowing anyone.
+- **The listing is the bottom rung of the ladder** — the offer that fits the two thirds of networks who will never organise, and the reason they install the plugin that makes everything else possible.
+- **Free where the moat is, paid where the market already pays.** Tournaments and ratings free; server visibility sold — **beside the list, never inside it.**
 
 ---
 
