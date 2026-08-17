@@ -69,6 +69,22 @@ public class LoginModel(NextSkillDb db, TwoFactorLogin pending) : PageModel
             return Page();
         }
 
+        // Checked only AFTER the password verified, and that ordering is the
+        // whole point. Telling an unauthenticated caller "this account is
+        // banned" would confirm the address exists, which is the enumeration
+        // leak 040 spends the rest of this method closing. Someone who has just
+        // proved they own the account learns nothing new by being told why they
+        // cannot get in — and a sanction nobody can understand cannot be
+        // appealed (015).
+        if (account.BannedAt is not null)
+        {
+            ModelState.AddModelError(string.Empty,
+                string.IsNullOrWhiteSpace(account.BanReason)
+                    ? "To konto zostało zablokowane."
+                    : $"To konto zostało zablokowane: {account.BanReason}");
+            return Page();
+        }
+
         // A password is one factor. If the account has a second, the login is
         // NOT finished — no session is created, and the pending state travels in
         // its own short-lived cookie that grants nothing (047).

@@ -135,6 +135,11 @@ builder.Services.AddScoped<RatingSweeper>();
 // The headbar's unread count. Scoped, because it reads the request's own
 // signed-in account and nobody else's (043).
 builder.Services.AddScoped<NextSkill.Api.Features.Notifications.NotificationBell>();
+
+// Advert expiry, the 48-hour reminder and request retention (056). The board is
+// correct without this having run; the worker only tidies state.
+builder.Services.AddScoped<NextSkill.Api.Features.Recruitment.RecruitmentLifecycle>();
+builder.Services.AddHostedService<NextSkill.Api.Features.Recruitment.RecruitmentLifecycleWorker>();
 builder.Services.AddHostedService<RatingSweepWorker>();
 
 // OpenAPI 3.1, generated from the real endpoint signatures rather than
@@ -225,6 +230,7 @@ builder.Services.AddRazorPages(o =>
     o.Conventions.AddPageRoute("/Teams/Restore", "teams/{id:guid}/restore");
     o.Conventions.AddPageRoute("/Players/Details", "players/{id:guid}");
     o.Conventions.AddPageRoute("/Account/Profile", "me");
+    o.Conventions.AddPageRoute("/Account/Recruitment", "me/recruitment");       // 056: the one private surface
     o.Conventions.AddPageRoute("/Account/TwoFactor", "account/two-factor");
     o.Conventions.AddPageRoute("/Tournaments/Details", "t/{id:guid}");          // 043: the link pasted mid-event
     o.Conventions.AddPageRoute("/Tournaments/Edit", "t/{id:guid}/edit");

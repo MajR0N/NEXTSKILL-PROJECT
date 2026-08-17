@@ -1,0 +1,234 @@
+@page
+@model NextSkill.Api.Pages.Lft.IndexModel
+@using System.Globalization
+@using NextSkill.Api.Pages.Lft
+@using NextSkill.Api.Shared.Persistence
+@using NextSkill.Domain.Recruitment
+@{
+    var players = Model.View == BoardView.Players;
+    ViewData["Title"] = players ? "Gracze szukają drużyny" : "Drużyny szukają graczy";
+    var locale = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+}
+
+@* Volatile state: worth following links out of, not worth indexing. Emitted as
+   a header too, for crawlers that never render. *@
+<meta name="robots" content="noindex, follow" />
+
+<div class="wrap section">
+    <p class="eyebrow">LFT</p>
+    <h1>@(players ? "Gracze szukają drużyny" : "Drużyny szukają graczy")</h1>
+    <p class="lede">
+        Rating jest prawdziwy — pochodzi z rozegranych meczów, nie z deklaracji.
+        Kolejność ustala świeżość ogłoszenia, nigdy rating.
+    </p>
+
+    @* ── the two sides, explicit ─────────────────────────────────────── *@
+    <div class="row" style="margin-top:var(--s5)">
+        <a asp-route-view="Teams" asp-route-game="@Model.Game" asp-route-culture="@locale"
+           aria-current="@(players ? "false" : "true")">Drużyny rekrutują</a>
+        <a asp-route-view="Players" asp-route-game="@Model.Game" asp-route-culture="@locale"
+           aria-current="@(players ? "true" : "false")">Gracze szukają</a>
+        <span class="headbar__spacer"></span>
+        <a asp-route-view="@Model.View" asp-route-game="Cs2" asp-route-culture="@locale"
+           aria-current="@(Model.Game == Game.Cs2 ? "true" : "false")">CS2</a>
+        <a asp-route-view="@Model.View" asp-route-game="Cs16" asp-route-culture="@locale"
+           aria-current="@(Model.Game == Game.Cs16 ? "true" : "false")">CS 1.6</a>
+    </div>
+
+    @* ── explicit filters, all in the URL ────────────────────────────── *@
+    <form method="get" class="row" style="margin-top:var(--s4)">
+        <input type="hidden" name="view" value="@Model.View" />
+        <input type="hidden" name="game" value="@Model.Game" />
+
+        <label class="visually-hidden" for="role">Rola</label>
+        <select id="role" name="role">
+            <option value="">Każda rola</option>
+            @foreach (var role in RecruitmentRules.Roles)
+            {
+                <option value="@role" selected="@(Model.Role == role)">@role</option>
+            }
+        </select>
+
+        <label class="visually-hidden" for="slot">Miejsce</label>
+        <select id="slot" name="slot">
+            <option value="">Każde miejsce</option>
+            @foreach (var slot in RecruitmentRules.Slots)
+            {
+                <option value="@slot" selected="@(Model.Slot == slot)">@slot</option>
+            }
+        </select>
+
+        <label class="visually-hidden" for="lang">Język</label>
+        <select id="lang" name="lang">
+            <option value="">Każdy język</option>
+            @foreach (var language in RecruitmentRules.Languages)
+            {
+                <option value="@language" selected="@(Model.Language == language)">@language</option>
+            }
+        </select>
+
+        <label class="visually-hidden" for="region">Region</label>
+        <select id="region" name="region">
+            <option value="">Każdy region</option>
+            @foreach (var region in RecruitmentRules.Regions)
+            {
+                <option value="@region" selected="@(Model.Region == region)">@region</option>
+            }
+        </select>
+
+        <button class="btn" type="submit">Filtruj</button>
+    </form>
+
+    @if (Model.ActionError is not null)
+    {
+        <div class="alert" role="alert" style="margin-top:var(--s4)">@Model.ActionError</div>
+    }
+
+    @if (Model.Cards.Count == 0)
+    {
+        <div class="empty" style="margin-top:var(--s6)">
+            <div class="empty__icon">◍</div>
+            @if (Model.AnyFilter && !Model.WholeViewEmpty)
+            {
+                @* Filters are KEPT and the removal is offered explicitly. Quietly
+                   relaxing them would show results the URL does not describe. *@
+                <h4>Nic nie pasuje do tych filtrów</h4>
+                <p>Ogłoszenia są tu, ale żadne nie spełnia wszystkich warunków naraz.</p>
+                <a class="btn btn--primary" asp-route-view="@Model.View" asp-route-game="@Model.Game"
+                   asp-route-culture="@locale">Wyczyść filtry</a>
+            }
+            else
+            {
+                <h4>@(players ? "Nikt jeszcze nie szuka drużyny" : "Nikt jeszcze nie rekrutuje") w tej grze</h4>
+                <p>Sprawdź drugą stronę tablicy albo drugą grę — albo wystaw własne ogłoszenie.</p>
+                <div class="row" style="justify-content:center">
+                    <a class="btn" asp-route-view="@(players ? BoardView.Teams : BoardView.Players)"
+                       asp-route-game="@Model.Game" asp-route-culture="@locale">
+                        @(players ? "Zobacz drużyny" : "Zobacz graczy")
+                    </a>
+                    <a class="btn btn--primary" asp-page="/Account/Recruitment" asp-route-culture="@locale">
+                        Wystaw ogłoszenie
+                    </a>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="stack" style="margin-top:var(--s6)">
+            @foreach (var card in Model.Cards)
+            {
+                <article class="card">
+                    <div class="row" style="justify-content:space-between;align-items:baseline">
+                        <div>
+                            <a asp-page="@(players ? "/Players/Details" : "/Teams/Details")"
+                               asp-route-culture="@locale" asp-route-id="@card.SubjectId">
+                                <b>@card.Title</b>
+                            </a>
+                            @if (card.Subtitle is not null)
+                            {
+                                <span class="team__tag"> @card.Subtitle</span>
+                            }
+                        </div>
+
+                        @* Uncertainty is shown, and "no evidence yet" is its own
+                           state — never folded into a settled-rating band (025). *@
+                        <span class="dim">
+                            @if (card.Unrated)
+                            {
+                                <text>Bez ratingu</text>
+                            }
+                            else
+                            {
+                                @card.Rating!.Value.ToString("F0")<span class="rating__rd"> ±@card.Deviation!.Value.ToString("F0")</span>
+                                @if (card.Provisional)
+                                {
+                                    <text> · wstępny</text>
+                                }
+                                <text> · @card.Matches mecz.</text>
+                            }
+                        </span>
+                    </div>
+
+                    <p class="dim" style="margin-top:var(--s3)">
+                        @string.Join(" · ", card.Slots)
+                        @if (card.Roles.Length > 0)
+                        {
+                            <text> — @string.Join(", ", card.Roles)</text>
+                        }
+                        @if (card.Languages.Length > 0)
+                        {
+                            <text> · @string.Join("/", card.Languages)</text>
+                        }
+                        @if (card.Regions.Length > 0)
+                        {
+                            <text> · @string.Join("/", card.Regions)</text>
+                        }
+                    </p>
+
+                    @if (!string.IsNullOrWhiteSpace(card.Note))
+                    {
+                        @* Encoded plain text. Razor escapes it, and no markdown
+                           renderer is anywhere near this path — a note must never
+                           become a clickable link (056). *@
+                        <p style="margin-top:var(--s3)">@card.Note</p>
+                    }
+
+                    <p class="dim" style="margin-top:var(--s3)">
+                        Opublikowano @card.PublishedAt.ToString("yyyy-MM-dd")
+                    </p>
+
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        @if (!players)
+                        {
+                            <form method="post" asp-page-handler="Apply" class="stack" style="margin-top:var(--s3)">
+                                <input type="hidden" asp-for="Action.Id" value="@card.Id" />
+                                <label class="visually-hidden" for="note-@card.Id">Wiadomość</label>
+                                <input id="note-@card.Id" asp-for="Action.Note" maxlength="300"
+                                       placeholder="Krótka wiadomość (opcjonalnie)" />
+                                <button class="btn" type="submit">Zgłoś się</button>
+                            </form>
+                        }
+                        else if (Model.MyOpenings.Count > 0)
+                        {
+                            @* A team approach ALWAYS names a real opening. There is
+                               no context-free variant of this form, because a
+                               context-free approach is a direct message (056). *@
+                            <form method="post" asp-page-handler="Invite" class="stack" style="margin-top:var(--s3)">
+                                <input type="hidden" asp-for="Action.Id" value="@card.Id" />
+                                <label for="opening-@card.Id">W sprawie ogłoszenia</label>
+                                <select id="opening-@card.Id" asp-for="Action.OpeningId">
+                                    @foreach (var opening in Model.MyOpenings)
+                                    {
+                                        <option value="@opening.Id">@opening.Label</option>
+                                    }
+                                </select>
+                                <input asp-for="Action.Note" maxlength="300"
+                                       placeholder="Krótka wiadomość (opcjonalnie)" />
+                                <button class="btn" type="submit">Zaproś do rozmowy</button>
+                            </form>
+                        }
+                    }
+                </article>
+            }
+        </div>
+
+        <div class="row" style="margin-top:var(--s5)">
+            @if (Model.Skip > 0)
+            {
+                <a asp-route-view="@Model.View" asp-route-game="@Model.Game" asp-route-role="@Model.Role"
+                   asp-route-slot="@Model.Slot" asp-route-lang="@Model.Language" asp-route-region="@Model.Region"
+                   asp-route-skip="@Math.Max(0, Model.Skip - NextSkill.Api.Pages.Lft.IndexModel.PageSize)"
+                   asp-route-culture="@locale">Nowsze</a>
+            }
+            @if (Model.HasMore)
+            {
+                <a asp-route-view="@Model.View" asp-route-game="@Model.Game" asp-route-role="@Model.Role"
+                   asp-route-slot="@Model.Slot" asp-route-lang="@Model.Language" asp-route-region="@Model.Region"
+                   asp-route-skip="@(Model.Skip + NextSkill.Api.Pages.Lft.IndexModel.PageSize)"
+                   asp-route-culture="@locale">Starsze</a>
+            }
+        </div>
+    }
+</div>

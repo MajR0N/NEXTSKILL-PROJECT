@@ -1,0 +1,40 @@
+@page
+@model NextSkill.Api.Pages.Admin.OrganisersModel
+@{
+    ViewData["Title"] = "Organizatorzy";
+}
+
+<div class="wrap-narrow section">
+    <p class="eyebrow">Panel platformy</p>
+    <h1>Organizatorzy</h1>
+    <p class="lede">
+        Zaufany organizator nie czeka na okno zastrzeżeń — jego wyniki wchodzą do rankingu od razu.
+        Zaufanie nie omija natomiast kontroli spójności danych z serwera.
+    </p>
+
+    @foreach (var organiser in Model.Organisers)
+    {
+        <section class="card" style="margin-top:var(--s5)">
+            <div class="row" style="justify-content:space-between;align-items:center">
+                <div>
+                    <b>@organiser.Name</b>
+                    <span class="dim"> · @organiser.Slug · @organiser.Tournaments turniejów</span>
+                </div>
+                @if (organiser.Trusted)
+                {
+                    <span class="pill pill--ok"><span class="pill__dot"></span>zaufany</span>
+                }
+            </div>
+
+            <form method="post" class="stack" style="margin-top:var(--s4)">
+                <input type="hidden" asp-for="Input.OrganiserId" value="@organiser.Id" />
+                <input type="hidden" asp-for="Input.Trusted" value="@((!organiser.Trusted).ToString())" />
+                <label for="reason-@organiser.Id">Uzasadnienie</label>
+                <input id="reason-@organiser.Id" asp-for="Input.Reason" maxlength="500" required />
+                <button class="btn" type="submit">
+                    @(organiser.Trusted ? "Cofnij zaufanie" : "Nadaj zaufanie")
+                </button>
+            </form>
+        </section>
+    }
+</div>

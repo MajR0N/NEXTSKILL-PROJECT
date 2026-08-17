@@ -117,6 +117,27 @@ public class Account
     public string? SteamId { get; set; }
     public string? DiscordId { get; set; }
 
+    // ── moderation (decisions 015, 036) ──────────────────────────────────
+    //
+    // Distinct from DeletedAt, and not a softer version of it. Erasure is the
+    // account holder's right and destroys their data; a ban is our decision and
+    // deliberately keeps everything, because the record of why someone was
+    // removed is the point.
+
+    /// <summary>
+    /// Set when platform staff removed this account's access.
+    ///
+    /// Enforced in <c>Sessions.ValidateAsync</c>, so an existing session dies on
+    /// its next request rather than surviving until the cookie expires — the
+    /// same reason 011 pairs the signed cookie with a session row at all.
+    /// </summary>
+    public DateTimeOffset? BannedAt { get; set; }
+
+    /// <summary>Why. Shown to the banned person: a sanction nobody can understand cannot be appealed.</summary>
+    public string? BanReason { get; set; }
+
+    public Guid? BannedByAccountId { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
 
     /// <summary>

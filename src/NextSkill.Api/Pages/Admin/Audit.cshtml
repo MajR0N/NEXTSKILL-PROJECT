@@ -1,0 +1,90 @@
+@page
+@model NextSkill.Api.Pages.Admin.AuditModel
+@using NextSkill.Api.Shared.Persistence
+@{
+    ViewData["Title"] = "Dziennik decyzji";
+}
+
+<div class="wrap section">
+    <p class="eyebrow">Panel platformy</p>
+    <h1>Dziennik decyzji</h1>
+    <p class="lede">
+        Zapis tylko do odczytu. Baza danych odmawia edycji tych wierszy — także nam.
+    </p>
+
+    <div class="row" style="margin-top:var(--s4)">
+        <a asp-route-deniedonly="false" aria-current="@(Model.DeniedOnly ? "false" : "true")">Wszystko</a>
+        @* Where an incident review starts. *@
+        <a asp-route-deniedonly="true" aria-current="@(Model.DeniedOnly ? "true" : "false")">Tylko odmowy</a>
+    </div>
+
+    @if (Model.Entries.Count == 0)
+    {
+        <div class="empty" style="margin-top:var(--s5)">
+            <div class="empty__icon">◍</div>
+            <h4>Pusto</h4>
+            <p>Nikt jeszcze nie podjął decyzji, która wymaga zapisu.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-scroll" style="margin-top:var(--s5)">
+            <table class="table">
+                <caption class="visually-hidden">Zapisane decyzje uprzywilejowane</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Kiedy</th>
+                        <th scope="col">Kto</th>
+                        <th scope="col">Co</th>
+                        <th scope="col">Wynik</th>
+                        <th scope="col">Uzasadnienie</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in Model.Entries)
+                    {
+                        <tr>
+                            <td class="dim">
+                                <time datetime="@entry.OccurredAt.ToString("o")">
+                                    @entry.OccurredAt.ToString("yyyy-MM-dd HH:mm")
+                                </time>
+                            </td>
+                            <td>@entry.Actor</td>
+                            <td>
+                                @entry.Action
+                                @if (entry.Organiser is not null)
+                                {
+                                    <span class="dim"> · @entry.Organiser</span>
+                                }
+                            </td>
+                            <td>
+                                @if (entry.Outcome == AuditOutcome.Denied)
+                                {
+                                    <span class="pill pill--warn">odmowa</span>
+                                }
+                                else
+                                {
+                                    <span class="dim">wykonano</span>
+                                }
+                            </td>
+                            <td class="dim">@entry.Reason</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="row" style="margin-top:var(--s5)">
+            @if (Model.Skip > 0)
+            {
+                <a asp-route-skip="@Math.Max(0, Model.Skip - NextSkill.Api.Pages.Admin.AuditModel.PageSize)"
+                   asp-route-deniedonly="@Model.DeniedOnly">Nowsze</a>
+            }
+            @if (Model.HasMore)
+            {
+                <a asp-route-skip="@(Model.Skip + NextSkill.Api.Pages.Admin.AuditModel.PageSize)"
+                   asp-route-deniedonly="@Model.DeniedOnly">Starsze</a>
+            }
+        </div>
+    }
+</div>

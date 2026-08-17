@@ -4,7 +4,7 @@ The design phase is complete (**43 decision records** in `docs/decisions/`, two 
 deliberately reopened). This is the implementation sequence, derived from
 [038 — build order](decisions/038-build-order.md).
 
-**Currently: Phase 4, past the keystone. 287 checks passing.** The marks below are audited
+**Currently: Phase 4, nearly complete. 308 checks passing.** The marks below are audited
 rather than asserted — see the note at the end of Phase 4 about what "◐" means here.
 
 **Status legend:** ☐ pending · ◐ in progress · ☑ done · ⊘ blocked — nothing to test until the slice it belongs to exists · ➡ deliberately moved
@@ -405,19 +405,30 @@ endpoint, request, handler and validator together.
   to read them; invites were findable only because the teams page listed them as a stopgap.
   Reading the inbox is what marks it read. Polling stays a 5c enhancement on a number that is
   already correct without JavaScript ([043](decisions/043-page-contents.md), [018](decisions/018-frontend-architecture.md))
-- ☐ **LFT board + recruitment** ([056](decisions/056-lft-board.md))
-  - One server-rendered two-sided board; defaults to **CS2 / teams recruiting**, with shareable
-    game, view and explicit filter state. Freshness orders; rating never buys prominence
-  - Expand the existing `LftListing`; add `TeamOpening`, `OpeningApplication`, `TeamInterest` and
-    `RecruitmentBlock` as distinct objects rather than a nullable polymorphic row
-  - Structured roles, roster commitment, weekly availability, languages and server regions;
-    unrated and already-rostered players remain eligible and are labelled honestly
-  - Team interest always names a real opening; mutual acceptance reveals only chosen verified
-    contact and moves conversation off-platform. **No recruitment chat**
-  - Fourteen-day advert cycle, seven-day pending requests, bounded outreach/applications, durable
-    block, fourteen-day failed-request retention and thirty-day mutual-contact grant
-  - Add `/me/recruitment`, lifecycle notifications, stable profile/team share links, and
-    `noindex, follow` on the volatile board
+- ◐ **LFT board + recruitment** ([056](decisions/056-lft-board.md)) — **built 2026-08-17**
+  - `/lft`: one server-rendered two-sided board defaulting to **CS2 / teams recruiting**, with game,
+    view and every filter in the URL. `noindex, follow`, and it browses without an account
+  - **Freshness orders it and rating never buys prominence** — proven by putting a 2400-rated team
+    below a newer unrated one. Rating-first would turn evidence into permanent visibility and starve
+    exactly the teams the board exists to serve
+  - Five distinct objects (`TeamOpening`, `OpeningApplication`, `TeamInterest`, `RecruitmentBlock`,
+    `ContactGrant`) plus an expanded `LftListing` — never a polymorphic row whose nullable keys
+    change its meaning
+  - **A team approach always names a real opening**, enforced server-side, so a context-free
+    approach does not exist. Caps of ten pending per side, per *team* not per opening — counting per
+    opening would let a team with five vacancies approach fifty people
+  - Unrated and already-rostered players stay eligible and are labelled honestly. Capacity bounds
+    openings, so a vacancy is never a promise the roster cannot keep
+  - Mutual acceptance reveals exactly one chosen verified contact each way, bounded to 30 days.
+    **No recruitment chat.** Public projections contain no identifier at all
+  - Fourteen-day adverts that never auto-renew; a material change starts a cycle and neutrally
+    closes old requests while a **note edit does neither**; seven-day requests; durable blocks;
+    a lifecycle worker for expiry, one reminder and retention — and **public reads exclude expired
+    rows without it**, so a late worker can never leave a stale advert up
+  - Erasure removes listings, applications, interests, grants and blocks immediately
+  - ⊘ Remaining from 056: weekly availability capture and overlap filtering (the columns and the
+    UTC hour-of-week normaliser ship; the form does not), reporting/moderation of adverts, and
+    conversion of a mutual contact into the roster invitation that is the only real success metric
 - ☑ **News/CMS** — `/news` and `/news/{slug}`, scheduled posts invisible until their time
   - `DisableHtml()` **plus a scheme allow-list** (http, https, mailto, relative, anchor). Allow-list
     rather than block-list, because the dangerous schemes are open-ended and the useful ones are not
@@ -456,7 +467,20 @@ endpoint, request, handler and validator together.
     the one it replaces. `ponytail:` ceiling — the replay is platform-wide per reversal; upgrade
     path is a per-season snapshot, and [051](decisions/051-phase-4-remainder.md) §4 already gives
     seasons a closing timestamp
-- ☐ **Staff panel** — users, orgs (the `trusted` toggle), audit, maintenance mode
+- ◐ **Staff panel** — users ☑, orgs ☑, audit ☑, maintenance mode ➡ Phase 7
+  - `/admin/organisers` — **the `trusted` flag finally has a user interface.** It has been in the
+    schema since the first migration and now decides whose results skip the challenge window, while
+    the only way to set it was editing the database by hand. Owner-only; staff moderate people, and
+    deciding whose results skip corroboration is a different authority
+  - `/admin/users` — ban and unban, always with a reason. A ban **deletes every live session** and
+    is enforced in `Sessions.ValidateAsync`, so access ends on the next request rather than whenever
+    a cookie expires. Staff cannot ban staff or the owner
+  - The ban reason is shown **only after the password verified**, so it never becomes an
+    account-enumeration oracle ([040](decisions/040-threat-model.md))
+  - `/admin/audit` — read-only, with a denied-only filter. **Until this existed the log was storage
+    rather than security**: an append-only record nobody can view protects nothing
+  - ☐ Still missing: account merges, advert moderation, and the news CMS editor (posts are still
+    seeded by hand)
 
 > ### What ◐ means here
 >
@@ -477,7 +501,7 @@ endpoint, request, handler and validator together.
 - ⊘ Sort allowlist — `?sort=id;DROP` rejected, never interpolated. **Nothing to test yet**: no page takes a sort parameter
 - ➡ Zip bomb aborted; archive filenames never trusted. **Moves to Phase 6** with demo upload — the endpoint shares no state with anything Phase 4 designs, and its specifics (headers, zip layout, size ceiling) are what the real plugin will settle ([024](decisions/024-demos.md), [050](decisions/050-match-results-and-ratings.md) §6)
 - ☑ **Stored XSS in news markdown** — closed and proven against Markdig 1.3.2, in the renderer *and* end to end through the real page. `javascript:`, `vbscript:`, `data:` and scheme-relative targets are emptied while the link text survives; `https:`, `mailto:`, relative and anchor links pass. Raw HTML is escaped rather than stripped, so an event handler appears as inert text inside an escaped tag — the check asserts no **tag** is emitted, which is the thing that actually matters ([051](decisions/051-phase-4-remainder.md) §8)
-- ☐ **Recruitment spam** — a team cannot exceed 10 open interests, nor approach the same player twice ([051](decisions/051-phase-4-remainder.md) §5). Without this, `TeamInterest` reopens the 200-invite hole [045](decisions/045-teams-and-rosters.md) deliberately closed
+- ☑ **Recruitment spam** — ten pending per side, counted **per team** rather than per opening, and a unique index makes one-approach-per-pair-per-cycle a database rule. Blocks are durable across cycles. Proven by driving the eleventh approach and asserting it is refused ([051](decisions/051-phase-4-remainder.md) §5, [045](decisions/045-teams-and-rosters.md))
 - ◐ No secret appears in any log — **the audit log is now covered**: a server registration writes a row identifying the endpoint by its public address, and the check asserts the freshly minted HMAC secret is absent from it. Application logs, reset tokens and TOTP secrets remain untested
 - ☑ CSRF — an untokened POST is refused ([011](decisions/011-accounts-and-login.md))
 - ☑ Account enumeration — unknown address and wrong password are indistinguishable by **message and by timing**, on both login and password reset

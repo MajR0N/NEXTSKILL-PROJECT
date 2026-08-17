@@ -105,6 +105,25 @@ public sealed class AccountDeletion(NextSkillDb db)
         await db.OneTimeCodes.Where(c => c.AccountId == accountId).ExecuteDeleteAsync(cancellationToken);
         await db.Notifications.Where(n => n.AccountId == accountId).ExecuteDeleteAsync(cancellationToken);
         await db.LftListings.Where(l => l.AccountId == accountId).ExecuteDeleteAsync(cancellationToken);
+
+        // Ephemeral recruitment state goes immediately (056). Accepted roster
+        // and rating history still survives behind the anonymous tombstone —
+        // deleting results would corrupt tournaments — but a pending approach,
+        // a note somebody wrote about themselves and a live contact grant are
+        // exactly the transient personal data erasure is for.
+        await db.OpeningApplications.Where(a => a.AccountId == accountId).ExecuteDeleteAsync(cancellationToken);
+        await db.TeamInterests.Where(i => i.AccountId == accountId).ExecuteDeleteAsync(cancellationToken);
+        await db.ContactGrants
+            .Where(g => g.AccountId == accountId || g.CaptainAccountId == accountId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await db.RecruitmentBlocks.Where(b => b.AccountId == accountId).ExecuteDeleteAsync(cancellationToken);
+
+        // An opening naming this person as its contact loses that designation
+        // rather than being deleted: the team's vacancy is the team's, and
+        // approaches pause until a replacement captain is chosen.
+        await db.TeamOpenings
+            .Where(o => o.ContactCaptainAccountId == accountId)
+            .ExecuteUpdateAsync(s => s.SetProperty(o => o.ContactCaptainAccountId, (Guid?)null), cancellationToken);
         await staff.Where(s => s.AccountId == accountId).ExecuteDeleteAsync(cancellationToken);
 
         // Team-invite acceptance is the only current notification payload that

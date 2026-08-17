@@ -37,6 +37,11 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
     public DbSet<OrganiserStaff> OrganiserStaff => Set<OrganiserStaff>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<LftListing> LftListings => Set<LftListing>();
+    public DbSet<TeamOpening> TeamOpenings => Set<TeamOpening>();
+    public DbSet<OpeningApplication> OpeningApplications => Set<OpeningApplication>();
+    public DbSet<TeamInterest> TeamInterests => Set<TeamInterest>();
+    public DbSet<RecruitmentBlock> RecruitmentBlocks => Set<RecruitmentBlock>();
+    public DbSet<ContactGrant> ContactGrants => Set<ContactGrant>();
     public DbSet<Season> Seasons => Set<Season>();
     public DbSet<NewsPost> News => Set<NewsPost>();
 
@@ -95,6 +100,10 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
         b.Entity<OrganiserStaff>().Property(x => x.Role).HasConversion<string>();
         b.Entity<Notification>().Property(x => x.Type).HasConversion<string>();
         b.Entity<LftListing>().Property(x => x.Game).HasConversion<string>();
+        b.Entity<TeamOpening>().Property(x => x.Game).HasConversion<string>();
+        b.Entity<TeamOpening>().Property(x => x.Slot).HasConversion<string>();
+        b.Entity<OpeningApplication>().Property(x => x.State).HasConversion<string>();
+        b.Entity<TeamInterest>().Property(x => x.State).HasConversion<string>();
 
         // ── tenancy: scoping is the DEFAULT, not something to remember ─────
         //
@@ -146,6 +155,7 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
             e.Property(x => x.Nickname).HasMaxLength(32);
             e.Property(x => x.SteamId).HasMaxLength(20);
             e.Property(x => x.DiscordId).HasMaxLength(20);
+            e.Property(x => x.BanReason).HasMaxLength(500);
 
             // An external identity can prove ownership of ONE NEXTSKILL
             // account, never two. Application checks give a friendly answer;
@@ -424,8 +434,84 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
             e.HasIndex(x => new { x.AccountId, x.Game })
                 .IsUnique()
                 .HasDatabaseName("ix_one_lft_listing_per_account_game");
-            // The board query: unexpired, by game.
-            e.HasIndex(x => new { x.Game, x.ExpiresAt });
+
+            e.Property(x => x.Note).HasMaxLength(300);
+            e.Property(x => x.TimeZoneId).HasMaxLength(64);
+
+            // The board query, in its actual order: freshness, never rating.
+            // Rating is visible and filterable and must never buy prominence,
+            // or the board starves exactly the new players it exists to serve.
+            e.HasIndex(x => new { x.Game, x.PublishedAt });
+            e.HasIndex(x => x.ExpiresAt).HasFilter("closed_at IS NULL");
+        });
+
+        b.Entity<TeamOpening>(e =>
+        {
+            e.Property(x => x.Note).HasMaxLength(300);
+            e.Property(x => x.TimeZoneId).HasMaxLength(64);
+
+            e.HasIndex(x => new { x.Game, x.PublishedAt });
+            e.HasIndex(x => new { x.TeamId, x.ClosedAt });
+            e.HasIndex(x => x.ExpiresAt).HasFilter("closed_at IS NULL");
+
+            e.HasOne<Team>().WithMany()
+                .HasForeignKey(x => x.TeamId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<OpeningApplication>(e =>
+        {
+            e.Property(x => x.Note).HasMaxLength(300);
+
+            // One application per player per opening PER CYCLE. The database
+            // enforces it, so a decline cannot be worked around by resubmitting
+            // and a double-click cannot consume two of the player's ten (056).
+            e.HasIndex(x => new { x.TeamOpeningId, x.AccountId, x.Cycle })
+                .IsUnique()
+                .HasDatabaseName("ix_one_application_per_opening_cycle");
+
+            e.HasIndex(x => new { x.AccountId, x.State });
+
+            e.HasOne<TeamOpening>().WithMany()
+                .HasForeignKey(x => x.TeamOpeningId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<TeamInterest>(e =>
+        {
+            e.Property(x => x.Note).HasMaxLength(300);
+
+            // One live approach per opening/player pair. Without this, 045's
+            // deliberately-closed 200-invite hole reopens through a different
+            // door (051 §5).
+            e.HasIndex(x => new { x.TeamOpeningId, x.AccountId, x.Cycle })
+                .IsUnique()
+                .HasDatabaseName("ix_one_interest_per_opening_cycle");
+
+            e.HasIndex(x => new { x.AccountId, x.State });
+
+            e.HasOne<TeamOpening>().WithMany()
+                .HasForeignKey(x => x.TeamOpeningId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<RecruitmentBlock>(e =>
+        {
+            e.HasIndex(x => new { x.AccountId, x.TeamId })
+                .IsUnique()
+                .HasDatabaseName("ix_one_block_per_player_team");
+        });
+
+        b.Entity<ContactGrant>(e =>
+        {
+            e.HasIndex(x => new { x.TeamOpeningId, x.AccountId })
+                .IsUnique()
+                .HasDatabaseName("ix_one_contact_grant_per_opening_player");
+            e.HasIndex(x => x.ExpiresAt);
+
+            e.HasOne<TeamOpening>().WithMany()
+                .HasForeignKey(x => x.TeamOpeningId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<Season>(e => e.HasIndex(x => x.Number).IsUnique());

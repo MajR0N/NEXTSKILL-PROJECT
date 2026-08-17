@@ -104,20 +104,74 @@ public class LftListing
     public Guid AccountId { get; set; }
     public Game Game { get; set; }
 
-    /// <summary>Self-declared: AWP, IGL, entry, support.</summary>
+    /// <summary>Free text, kept for the pre-056 rows. Superseded by <see cref="Roles"/>.</summary>
     public string? Role { get; set; }
 
-    /// <summary>Free text: "wieczory", "weekendy".</summary>
+    /// <summary>Free text, kept for the pre-056 rows. Superseded by <see cref="AvailabilityHours"/>.</summary>
     public string? Availability { get; set; }
 
+    /// <summary>Plain text, 300 characters, rendered inert — no markup, no clickable links.</summary>
     public string? Note { get; set; }
 
+    // ── structured, from 056 ─────────────────────────────────────────────
+    //
+    // Product vocabulary rather than user-authored labels, because the entire
+    // advantage over a Discord advert is that these fields mean the same thing
+    // for everybody. `coach` is deliberately NOT an in-game role — it is a
+    // roster slot, and 045 already says so.
+
+    /// <summary>Up to two of IGL, AWP, rifler, entry, support, lurker, flexible.</summary>
+    public string[] Roles { get; set; } = [];
+
+    /// <summary>Stable language codes; never inferred from nationality.</summary>
+    public string[] Languages { get; set; } = [];
+
+    /// <summary>Playable latency, not nationality. A platform-managed allow-list.</summary>
+    public string[] Regions { get; set; } = [];
+
     /// <summary>
-    /// <b>Expires after 14 days</b>, renewable in one click (decision 043).
+    /// Which roster places this player will accept — player, substitute, coach.
+    /// A separate axis from in-game role: seeking a starting place and accepting
+    /// bench duty are different requests.
+    /// </summary>
+    public string[] Slots { get; set; } = [];
+
+    /// <summary>
+    /// Weekly availability as <b>UTC hours-of-week</b> (0–167), so genuine
+    /// overlap is an array intersection the database can answer rather than a
+    /// timezone reconciliation done per row.
+    /// </summary>
+    public int[] AvailabilityHours { get; set; } = [];
+
+    /// <summary>The publisher's zone, so their own windows read back correctly.</summary>
+    public string? TimeZoneId { get; set; }
+
+    /// <summary>
+    /// Increments on publication, explicit renewal or a material edit — never on
+    /// a note edit, which must not buy fresh prominence.
+    /// </summary>
+    public int Cycle { get; set; } = 1;
+
+    /// <summary>
+    /// What the board orders by. Distinct from <see cref="CreatedAt"/> so a
+    /// renewal moves the row while the advert keeps its identity.
+    /// </summary>
+    public DateTimeOffset PublishedAt { get; set; }
+
+    /// <summary>
+    /// <b>Expires after 14 days</b> and <b>never auto-renews</b> (043, 056).
     /// A stale board is worse than an empty one — nothing kills an LFT board
-    /// faster than messaging five people who all quit months ago.
+    /// faster than messaging five people who all quit months ago. Automatic
+    /// renewal would make board activity dishonest, which is the same failure
+    /// wearing a friendlier face.
     /// </summary>
     public DateTimeOffset ExpiresAt { get; set; }
+
+    /// <summary>Sent once, 48 hours before expiry.</summary>
+    public DateTimeOffset? ReminderSentAt { get; set; }
+
+    /// <summary>Closed by the player. Kept privately for republication.</summary>
+    public DateTimeOffset? ClosedAt { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
 }

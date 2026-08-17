@@ -643,6 +643,32 @@ catch (Exception ex)
 }
 
 Console.WriteLine();
+Console.WriteLine("LFT & RECRUITMENT · freshness, caps, consent  (decision 056)");
+try
+{
+    NextSkill.Checks.RecruitmentChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  recruitment checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
+Console.WriteLine("STAFF PANEL · trust, bans, and a log someone can read  (decisions 015, 036)");
+try
+{
+    NextSkill.Checks.StaffChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  staff panel checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
 Console.WriteLine("NEWS · stored XSS, closed for real  (decisions 040, 051)");
 try
 {

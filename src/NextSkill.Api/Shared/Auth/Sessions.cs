@@ -116,8 +116,18 @@ public static class Sessions
         }
 
         var db = ctx.HttpContext.RequestServices.GetRequiredService<NextSkillDb>();
+
+        // A live session belonging to an account that is neither erased nor
+        // banned. Checking the ban HERE rather than only at login is what makes
+        // it take effect on the next request instead of whenever the cookie
+        // happens to expire — the same reason 011 pairs the signed cookie with
+        // a server-side row in the first place.
         var alive = await db.Sessions
-            .AnyAsync(s => s.Id == id && s.ExpiresAt > DateTimeOffset.UtcNow);
+            .AnyAsync(s => s.Id == id &&
+                           s.ExpiresAt > DateTimeOffset.UtcNow &&
+                           db.Accounts.Any(a => a.Id == s.AccountId &&
+                                                a.DeletedAt == null &&
+                                                a.BannedAt == null));
 
         if (!alive)
         {

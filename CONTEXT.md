@@ -4,7 +4,7 @@ The shared, general-purpose document. Anything true across the whole project liv
 Anything specific to one decision lives in `docs/` as its own file.
 
 **Status:** **building.** Phases 0–3 complete; **Phase 4 (web platform) past its keystone**.
-**287 checks passing** against a real PostgreSQL, including in-process end-to-end runs of the
+**308 checks passing** against a real PostgreSQL, including in-process end-to-end runs of the
 plugin pipeline, the tournament and bracket flow, and the whole authentication surface.
 
 > **The definition-of-done sentence is now true in code (2026-08-17):** a bracket advances
@@ -35,6 +35,8 @@ plugin pipeline, the tournament and bracket flow, and the whole authentication s
 | **Seasons archive** — `/seasons/{n}` read as at the closing instant, with a database constraint refusing to close a season without recording when | [021](docs/decisions/021-site-structure.md), [051](docs/decisions/051-phase-4-remainder.md) |
 | **News** — `/news`, scheduled posts invisible until due, markdown with raw HTML disabled and a link-scheme allow-list applied to the parsed document | [015](docs/decisions/015-admin-panel.md), [040](docs/decisions/040-threat-model.md), [051](docs/decisions/051-phase-4-remainder.md) |
 | **Competitive history** — integrity-aware team record and ledger-backed rating trend; player match history labelled by provenance | [049](docs/decisions/049-team-page.md), [029](docs/decisions/029-profile-login-footer.md) |
+| **Staff panel** — `/admin/*`: the `trusted` flag finally has a user interface, bans end every live session and are refused for staff and the owner, and the audit log has a reader with a denied-only filter | [015](docs/decisions/015-admin-panel.md), [036](docs/decisions/036-authorization.md) |
+| **LFT board** — `/lft`, two explicit sides, freshness-ordered with rating never buying prominence; a team approach always names a real opening; ten pending per side; mutual acceptance reveals one verified contact each way for 30 days, and there is no recruitment chat | [056](docs/decisions/056-lft-board.md) |
 
 ### The three things that most need saying
 
@@ -44,17 +46,20 @@ plugin pipeline, the tournament and bracket flow, and the whole authentication s
    touched, and no en/ru/de translation catalog exists yet.
 2. **The product ships monochrome on purpose** until [044](docs/decisions/044-visual-direction.md)
    closes. Colour is an open question, not an oversight.
-3. **What is left is a short list, and it is named.** Match completion, ratings, the referee's desk,
-   the home page, notifications, search, seasons, news and competitive history all run end to end.
-   Still missing:
-   - **The LFT board and recruitment** ([056](docs/decisions/056-lft-board.md)) — the largest
-     remaining slice, and entirely unbuilt.
-   - **The staff panel** — users, the `trusted` toggle, reading the audit log, maintenance mode.
-     Until it exists the audit log is written and never read, which is storage rather than security.
+3. **Phase 4 is nearly complete, and what remains is named.** Match completion, ratings, the
+   referee's desk, the staff panel, the LFT board, the home page, notifications, search, seasons,
+   news and competitive history all run end to end. Still open:
+   - **Weekly availability capture and overlap filtering** on the LFT board. The columns and the
+     UTC hour-of-week normaliser ship; the form that collects windows does not, so the schedule
+     filter [056](docs/decisions/056-lft-board.md) specifies is not yet offered.
+   - **Advert reporting/moderation**, and converting a mutual contact into the roster invitation
+     that is the only thing counting as recruitment success.
+   - **The news CMS editor** — posts are still seeded by hand.
    - **Team trophies**, blocked on placement standings: nothing computes a top-three finish beyond
      the bracket winner.
-   - The organiser panel holds only the server inventory and the dispute desk, and the inventory
-     stays unusable by a real organiser until the Phase 6 plugin can send a signed heartbeat.
+   - **Maintenance mode** ([033](docs/decisions/033-maintenance-mode.md)) is Phase 7 by design.
+   - The organiser server inventory stays unusable by a real organiser until the Phase 6 plugin can
+     send a signed heartbeat — which is the real gate on a first live cup, not anything in Phase 4.
 
    See [BUILD-PLAN](docs/BUILD-PLAN.md) for the itemised list, which is kept honest rather than
    flattering.

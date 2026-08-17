@@ -1,0 +1,267 @@
+@page
+@model NextSkill.Api.Pages.Account.RecruitmentModel
+@using System.Globalization
+@using NextSkill.Api.Shared.Persistence
+@using NextSkill.Domain.Recruitment
+@{
+    ViewData["Title"] = "Rekrutacja";
+    var locale = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+}
+
+<div class="wrap-narrow section">
+    <p class="eyebrow">Twoje konto</p>
+    <h1>Rekrutacja</h1>
+    <p class="lede">
+        Twoje ogłoszenia, zgłoszenia w obie strony i kontakty, na które obie strony się zgodziły.
+        Rozmowa toczy się poza NEXTSKILL — my pilnujemy zgody i rekordu.
+    </p>
+
+    <div asp-validation-summary="All" class="alert" role="alert"></div>
+
+    @if (!Model.HasShareableContact)
+    {
+        @* Said up front, not at the moment of acceptance — discovering it then
+           would have wasted the other person's time (056). *@
+        <div class="alert" role="status" style="margin-top:var(--s4)">
+            Połącz konto Discord lub Steam w <a asp-page="/Account/Profile" asp-route-culture="@locale">ustawieniach</a>,
+            zanim wystawisz ogłoszenie. Po obustronnej zgodzie udostępniamy dokładnie jeden z tych kontaktów.
+        </div>
+    }
+
+    @* ── the player's own advert ─────────────────────────────────────── *@
+    <section style="margin-top:var(--s7)" aria-labelledby="listing-heading">
+        <p class="label" id="listing-heading">Szukam drużyny</p>
+
+        @foreach (var listing in Model.MyListings)
+        {
+            <div class="card" style="margin-top:var(--s4)">
+                <b>@(listing.Game == Game.Cs2 ? "CS2" : "CS 1.6")</b>
+                <span class="dim"> · @string.Join(", ", listing.Slots)</span>
+                @if (listing.Roles.Length > 0)
+                {
+                    <span class="dim"> · @string.Join(", ", listing.Roles)</span>
+                }
+                <p class="dim">
+                    @if (listing.Expired)
+                    {
+                        <text>Wygasło @listing.ExpiresAt.ToString("yyyy-MM-dd") — opublikuj ponownie, żeby wróciło na tablicę.</text>
+                    }
+                    else
+                    {
+                        <text>Widoczne do @listing.ExpiresAt.ToString("yyyy-MM-dd")</text>
+                    }
+                </p>
+                <form method="post" asp-page-handler="CloseListing" style="margin-top:var(--s3)">
+                    <input type="hidden" asp-for="Request.Id" value="@listing.Id" />
+                    <button class="btn btn--ghost" type="submit">Zakończ ogłoszenie</button>
+                </form>
+            </div>
+        }
+
+        <form method="post" asp-page-handler="PublishListing" class="stack" style="margin-top:var(--s4)">
+            <label for="listing-game">Gra</label>
+            <select id="listing-game" asp-for="Listing.Game">
+                <option value="Cs2">CS2</option>
+                <option value="Cs16">CS 1.6</option>
+            </select>
+
+            <fieldset>
+                <legend>Miejsce w składzie</legend>
+                @foreach (var slot in RecruitmentRules.Slots)
+                {
+                    <label><input type="checkbox" name="Listing.Slots" value="@slot" /> @slot</label>
+                }
+            </fieldset>
+
+            <fieldset>
+                <legend>Rola (maks. 2)</legend>
+                @foreach (var role in RecruitmentRules.Roles)
+                {
+                    <label><input type="checkbox" name="Listing.Roles" value="@role" /> @role</label>
+                }
+            </fieldset>
+
+            <fieldset>
+                <legend>Język</legend>
+                @foreach (var language in RecruitmentRules.Languages)
+                {
+                    <label><input type="checkbox" name="Listing.Languages" value="@language" /> @language</label>
+                }
+            </fieldset>
+
+            <fieldset>
+                <legend>Region</legend>
+                @foreach (var region in RecruitmentRules.Regions)
+                {
+                    <label><input type="checkbox" name="Listing.Regions" value="@region" /> @region</label>
+                }
+            </fieldset>
+
+            <label for="listing-note">Notatka (maks. 300 znaków, bez linków)</label>
+            <textarea id="listing-note" asp-for="Listing.Note" maxlength="300" rows="2"></textarea>
+
+            <button class="btn btn--primary" type="submit">Opublikuj</button>
+            <p class="dim">
+                Zmiana roli, miejsca, języka lub regionu zaczyna nowy cykl: ogłoszenie wraca na górę,
+                a niezałatwione zgłoszenia z poprzedniego cyklu zostają neutralnie zamknięte.
+                Sama zmiana notatki nic nie porusza.
+            </p>
+        </form>
+    </section>
+
+    @* ── openings for teams this person captains ─────────────────────── *@
+    @if (Model.CaptainOf.Count > 0)
+    {
+        <section style="margin-top:var(--s7)" aria-labelledby="openings-heading">
+            <p class="label" id="openings-heading">Ogłoszenia drużyn</p>
+
+            @foreach (var opening in Model.MyOpenings)
+            {
+                <div class="card" style="margin-top:var(--s4)">
+                    <b>@opening.Team</b>
+                    <span class="dim"> · @(opening.Game == Game.Cs2 ? "CS2" : "CS 1.6") · @opening.Slot</span>
+                    @if (opening.PendingRequests > 0)
+                    {
+                        <span class="pill pill--warn">@opening.PendingRequests oczekuje</span>
+                    }
+                    @if (!opening.HasContactCaptain)
+                    {
+                        @* Approaches pause rather than quietly exposing another
+                           captain's identifier (056). *@
+                        <p class="dim">Brak kapitana do kontaktu — nowe zgłoszenia wstrzymane.</p>
+                    }
+                    <p class="dim">Widoczne do @opening.ExpiresAt.ToString("yyyy-MM-dd")</p>
+                    <form method="post" asp-page-handler="CloseOpening" style="margin-top:var(--s3)">
+                        <input type="hidden" asp-for="Request.Id" value="@opening.Id" />
+                        <button class="btn btn--ghost" type="submit">Zamknij ogłoszenie</button>
+                    </form>
+                </div>
+            }
+
+            <form method="post" asp-page-handler="PublishOpening" class="stack" style="margin-top:var(--s4)">
+                <label for="opening-team">Drużyna</label>
+                <select id="opening-team" asp-for="Opening.TeamId">
+                    @foreach (var team in Model.CaptainOf)
+                    {
+                        <option value="@team.Id">@team.Name</option>
+                    }
+                </select>
+
+                <label for="opening-game">Gra</label>
+                <select id="opening-game" asp-for="Opening.Game">
+                    <option value="Cs2">CS2</option>
+                    <option value="Cs16">CS 1.6</option>
+                </select>
+
+                <label for="opening-slot">Szukane miejsce</label>
+                <select id="opening-slot" asp-for="Opening.Slot">
+                    <option value="Player">player</option>
+                    <option value="Substitute">substitute</option>
+                    <option value="Coach">coach</option>
+                </select>
+
+                <fieldset>
+                    <legend>Rola (maks. 2)</legend>
+                    @foreach (var role in RecruitmentRules.Roles)
+                    {
+                        <label><input type="checkbox" name="Opening.Roles" value="@role" /> @role</label>
+                    }
+                </fieldset>
+
+                <label for="opening-note">Notatka (maks. 300 znaków, bez linków)</label>
+                <textarea id="opening-note" asp-for="Opening.Note" maxlength="300" rows="2"></textarea>
+
+                <button class="btn btn--primary" type="submit">Opublikuj wakat</button>
+                <p class="dim">Wolne miejsce w składzie to jeszcze nie ogłoszenie — publikujesz je świadomie.</p>
+            </form>
+        </section>
+    }
+
+    @* ── pending, both directions ────────────────────────────────────── *@
+    <section style="margin-top:var(--s7)" aria-labelledby="pending-heading">
+        <p class="label" id="pending-heading">Oczekujące</p>
+
+        @if (Model.Pending.Count == 0)
+        {
+            <p class="dim" style="margin-top:var(--s4)">Nic nie czeka na decyzję.</p>
+        }
+
+        @foreach (var request in Model.Pending)
+        {
+            <div class="card" style="margin-top:var(--s4)">
+                <p>
+                    <b>@request.Who</b>
+                    <span class="dim"> · @request.Team · @request.Slot ·
+                        @(request.Direction == "application" ? "zgłoszenie gracza" : "zaproszenie drużyny")</span>
+                </p>
+                @if (!string.IsNullOrWhiteSpace(request.Note))
+                {
+                    <p>@request.Note</p>
+                }
+
+                <div class="row" style="margin-top:var(--s3)">
+                    @if (request.ActionableByMe)
+                    {
+                        <form method="post" asp-page-handler="Accept">
+                            <input type="hidden" asp-for="Request.Id" value="@request.Id" />
+                            <button class="btn btn--primary" type="submit">Akceptuj kontakt</button>
+                        </form>
+                        <form method="post" asp-page-handler="Decline">
+                            <input type="hidden" asp-for="Request.Id" value="@request.Id" />
+                            <button class="btn" type="submit">Odrzuć</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <form method="post" asp-page-handler="Withdraw">
+                            <input type="hidden" asp-for="Request.Id" value="@request.Id" />
+                            <button class="btn btn--ghost" type="submit">Wycofaj</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        }
+    </section>
+
+    @* ── mutual contact ──────────────────────────────────────────────── *@
+    @if (Model.Contacts.Count > 0)
+    {
+        <section style="margin-top:var(--s7)" aria-labelledby="contacts-heading">
+            <p class="label" id="contacts-heading">Kontakty</p>
+            <p class="lede" style="font-size:13px">
+                Obie strony się zgodziły. Rozmowa toczy się dalej poza NEXTSKILL —
+                nie prowadzimy czatu rekrutacyjnego.
+            </p>
+
+            @foreach (var contact in Model.Contacts)
+            {
+                <div class="card" style="margin-top:var(--s4)">
+                    <b>@contact.Who</b>
+                    <span class="dim"> · @contact.Team</span>
+                    <p>@(contact.Contact ?? "Brak udostępnionego kontaktu.")</p>
+                    <p class="dim">
+                        Dostęp wygasa @contact.ExpiresAt.ToString("yyyy-MM-dd").
+                        Możemy usunąć swój zapis, ale nie skasujemy tego, co ktoś już sobie zapisał.
+                    </p>
+                </div>
+            }
+        </section>
+    }
+
+    @if (Model.Closed.Count > 0)
+    {
+        <section style="margin-top:var(--s7)" aria-labelledby="closed-heading">
+            <p class="label" id="closed-heading">Zamknięte</p>
+            <ul class="stack" style="margin-top:var(--s4)">
+                @foreach (var request in Model.Closed)
+                {
+                    <li class="dim">
+                        @request.Who · @request.Team · @request.State
+                        · @request.CreatedAt.ToString("yyyy-MM-dd")
+                    </li>
+                }
+            </ul>
+            <p class="dim">Zamknięte zgłoszenia znikają po 14 dniach.</p>
+        </section>
+    }
+</div>

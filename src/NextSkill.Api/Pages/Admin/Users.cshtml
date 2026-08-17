@@ -1,0 +1,52 @@
+@page
+@model NextSkill.Api.Pages.Admin.UsersModel
+@{
+    ViewData["Title"] = "Moderacja";
+}
+
+<div class="wrap-narrow section">
+    <p class="eyebrow">Panel platformy</p>
+    <h1>Moderacja</h1>
+    <p class="lede">Blokada odcina dostęp i kończy wszystkie sesje. Nie usuwa historii — po to jest.</p>
+
+    <form method="get" class="row" style="margin-top:var(--s5)">
+        <label class="visually-hidden" for="q">Nick</label>
+        <input id="q" name="q" value="@Model.Q" maxlength="60" placeholder="Nick gracza" />
+        <button class="btn" type="submit">Szukaj</button>
+    </form>
+
+    @if (Model.Q is not null && Model.Users.Count == 0)
+    {
+        <p class="dim" style="margin-top:var(--s5)">Nie znaleziono konta „@Model.Q”.</p>
+    }
+
+    @foreach (var user in Model.Users)
+    {
+        <section class="card" style="margin-top:var(--s5)">
+            <div class="row" style="justify-content:space-between;align-items:center">
+                <b>@user.Nickname</b>
+                @if (user.BannedAt is { } bannedAt)
+                {
+                    <span class="pill pill--warn">zablokowane @bannedAt.ToString("yyyy-MM-dd")</span>
+                }
+            </div>
+
+            @if (user.BanReason is not null)
+            {
+                <p class="dim">@user.BanReason</p>
+            }
+
+            @* Every moderation action states a reason, because the audit row is
+               only worth having if it says why (012 §7, 036). *@
+            <form method="post" asp-page-handler="@(user.BannedAt is null ? "Ban" : "Unban")"
+                  class="stack" style="margin-top:var(--s4)">
+                <input type="hidden" asp-for="Input.AccountId" value="@user.Id" />
+                <label for="reason-@user.Id">Uzasadnienie</label>
+                <input id="reason-@user.Id" asp-for="Input.Reason" maxlength="500" required />
+                <button class="btn @(user.BannedAt is null ? "btn--danger" : "")" type="submit">
+                    @(user.BannedAt is null ? "Zablokuj konto" : "Odblokuj konto")
+                </button>
+            </form>
+        </section>
+    }
+</div>
