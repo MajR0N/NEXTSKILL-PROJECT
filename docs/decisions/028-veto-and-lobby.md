@@ -5,6 +5,11 @@
 **Decision:** **Veto happens on the web, before the server is needed.** Neither plugin
 implements veto.
 
+> **Implementation update, 2026-08-12:** the Phase 4 server-rendered floor is live at `/m/{id}`.
+> Captain readiness and every action are durable; a 30-second overdue turn becomes one random legal
+> action on read; and completion atomically freezes ordered maps and starting sides for the plugin.
+> BO1, BO3 and BO5 output rules have executable checks. SSE remains the Phase 5 enhancement.
+
 ---
 
 ## Why this is the largest simplification in the project

@@ -57,6 +57,29 @@ public sealed class PluginSimulator(HttpClient http, Guid serverId, string secre
         Misbehaviour bad = Misbehaviour.None) =>
         SendEvent(matchId, seq, MatchEventType.MatchLoaded, new { }, bad);
 
+    /// <summary>
+    /// A player presenting both binding factors (decision 011).
+    ///
+    /// The simulator can present a wrong one on purpose, which is the whole
+    /// reason this exists before the plugin does: 034 says the simulator covers
+    /// flow, integrity, security and identity, and identity was the one word in
+    /// that sentence with nothing behind it.
+    /// </summary>
+    public Task<HttpResponseMessage> PlayerBound(
+        Guid matchId, long seq, Guid accountId, string setinfoToken, string linkCode,
+        string slot = "player", Misbehaviour bad = Misbehaviour.None)
+    {
+        var payload = new PlayerBoundPayload
+        {
+            Slot = slot,
+            AccountId = accountId.ToString(),
+            InGameId = "STEAM_1:0:12345",
+            SetinfoToken = setinfoToken,
+            LinkCode = linkCode,
+        };
+        return SendEvent(matchId, seq, MatchEventType.PlayerBound, payload, bad);
+    }
+
     public Task<HttpResponseMessage> RoundEnd(Guid matchId, long seq, int round, int scoreA, int scoreB,
         Misbehaviour bad = Misbehaviour.None)
     {

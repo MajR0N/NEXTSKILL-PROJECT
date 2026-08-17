@@ -6,6 +6,12 @@
 contract), [002](002-cs2-plugin.md) / [005](005-cs16-plugin.md) (the plugins),
 [046](046-tournament-lifecycle.md) (tournaments)
 
+> **Implementation update, 2026-08-12:** the registration half is closed by
+> [051 §2](051-phase-4-remainder.md#2-we-never-dial-a-game-server): authorised organisers can
+> register `host:port`, receive the signing secret once, and the first valid plugin heartbeat
+> verifies the server. This ADR remains open for the plugin-list, event configuration and server
+> allocation questions below.
+
 ---
 
 ## The requirement, as stated

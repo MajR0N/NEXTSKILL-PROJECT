@@ -127,6 +127,16 @@ builder.Services.AddSingleton<IDiscordWebhookTransport, DiscordWebhookTransport>
 builder.Services.AddScoped<DiscordAnnouncementDispatcher>();
 builder.Services.AddHostedService<DiscordAnnouncementWorker>();
 
+// Ratings settle AFTER results do (025, 050). The sweeper applies final results
+// in (EndedAt, Id) order, because Glicko-2 is rating-period based and an
+// out-of-order application gives different numbers.
+builder.Services.AddScoped<RatingSweeper>();
+
+// The headbar's unread count. Scoped, because it reads the request's own
+// signed-in account and nobody else's (043).
+builder.Services.AddScoped<NextSkill.Api.Features.Notifications.NotificationBell>();
+builder.Services.AddHostedService<RatingSweepWorker>();
+
 // OpenAPI 3.1, generated from the real endpoint signatures rather than
 // hand-written (009, 039). .NET 10 emits 3.1 by default, and NSwag turns the
 // document into the TypeScript client 004 planned for.
@@ -200,6 +210,7 @@ builder.Services.AddRateLimiter(o =>
 
 // Localisation: four locales, locale in the URL path (decision 018).
 builder.Services.AddLocalization(o => o.ResourcesPath = "Resources");
+builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
 
 builder.Services.AddRazorPages(o =>
 {
@@ -219,6 +230,9 @@ builder.Services.AddRazorPages(o =>
     o.Conventions.AddPageRoute("/Tournaments/Edit", "t/{id:guid}/edit");
     o.Conventions.AddPageRoute("/Tournaments/Bracket", "t/{id:guid}/bracket");  // 041: a different page SHAPE, not a tab
     o.Conventions.AddPageRoute("/Tournaments/Forfeit", "t/{id:guid}/matches/{matchId:guid}/forfeit");
+    o.Conventions.AddPageRoute("/Matches/Details", "m/{id:guid}");              // 021/028: one durable match + lobby URL
+    o.Conventions.AddPageRoute("/Seasons/Details", "seasons/{number:int}");     // 021: a permanent archive URL
+    o.Conventions.AddPageRoute("/News/Details", "news/{slug}");                 // 015: a stable, shareable post URL
 
     o.Conventions.Add(new LocaleRouteConvention());
 });

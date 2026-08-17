@@ -1,0 +1,186 @@
+@page "{id:guid}"
+@model NextSkill.Api.Pages.Matches.DetailsModel
+@using Microsoft.Extensions.Localization
+@using NextSkill.Api.Localisation
+@inject IStringLocalizer<UiText> T
+@{
+    ViewData["Title"] = T["Lobby.Title", Model.TeamA!.Name, Model.TeamB!.Name];
+}
+@if (Model.VetoStarted)
+{
+    <meta http-equiv="refresh" content="5" />
+}
+
+<div class="wrap-narrow section">
+    <p class="eyebrow">@T["Lobby.Eyebrow"] · @Model.Tournament!.Name</p>
+    <h1>@T["Lobby.Heading"]</h1>
+
+    <div class="card" style="margin-top:var(--s6)">
+        <div class="row" style="justify-content:space-between;align-items:center">
+            <div>
+                <h2>@Model.TeamA!.Name</h2>
+                <p class="dim">@Model.TeamA.Tag</p>
+            </div>
+            <span class="dim">@T["Lobby.Versus"]</span>
+            <div style="text-align:right">
+                <h2>@Model.TeamB!.Name</h2>
+                <p class="dim">@Model.TeamB.Tag</p>
+            </div>
+        </div>
+    </div>
+
+    <section class="card" style="margin-top:var(--s5)" aria-labelledby="veto-heading">
+        <p class="label" id="veto-heading">@T["Lobby.Veto.Title"]</p>
+        <p class="lede">@(Model.VetoCompleted
+            ? T["Lobby.Veto.Completed"]
+            : Model.VetoStarted
+                ? T["Lobby.Veto.Started"]
+                : T["Lobby.Veto.WaitingForCaptains"])</p>
+        @if (Model.VetoStarted)
+        {
+            <p>@T["Lobby.Veto.Turn", Model.CurrentTurnTeamName ?? ""]</p>
+        }
+
+        @if (Model.VetoActions.Count > 0)
+        {
+            <ol class="stack" style="margin-top:var(--s4)">
+                @foreach (var action in Model.VetoActions)
+                {
+                    <li>
+                        @(action.Kind switch
+                        {
+                            NextSkill.Domain.Veto.VetoActionKind.Ban => T["Lobby.Veto.Banned", action.Map],
+                            NextSkill.Domain.Veto.VetoActionKind.Pick => T["Lobby.Veto.Picked", action.Map],
+                            _ => T["Lobby.Veto.SideChosen", action.Map, action.Side!.Value.ToString().ToUpperInvariant()],
+                        })
+                        <span class="dim"> · @action.Team</span>
+                        @if (action.Automatic)
+                        {
+                            <span class="dim"> · @T["Lobby.Veto.Automatic"]</span>
+                        }
+                    </li>
+                }
+            </ol>
+        }
+
+        @if (Model.VetoStarted && Model.MayTakeTurn && Model.CurrentTurnTeamId is { } turnTeamId)
+        {
+            <div class="row" style="margin-top:var(--s4)">
+                @foreach (var map in Model.LegalMaps)
+                {
+                    <form method="post" asp-page-handler="Veto">
+                        <input type="hidden" asp-for="Input.TeamId" value="@turnTeamId" />
+                        <input type="hidden" asp-for="Input.Map" value="@map" />
+                        <button class="btn" type="submit">@map</button>
+                    </form>
+                }
+                @foreach (var side in Model.LegalSides)
+                {
+                    <form method="post" asp-page-handler="Veto">
+                        <input type="hidden" asp-for="Input.TeamId" value="@turnTeamId" />
+                        <input type="hidden" asp-for="Input.Side" value="@side" />
+                        <button class="btn" type="submit">@side.ToString().ToUpperInvariant()</button>
+                    </form>
+                }
+            </div>
+        }
+
+        <div class="stack" style="margin-top:var(--s4)">
+            <div>@Model.TeamA!.Name · @(Model.TeamAReady ? T["Lobby.Ready"] : T["Lobby.Waiting"])</div>
+            <div>@Model.TeamB!.Name · @(Model.TeamBReady ? T["Lobby.Ready"] : T["Lobby.Waiting"])</div>
+        </div>
+
+        @if (!Model.VetoStarted && Model.ReadyTeamId is { } readyTeamId &&
+             !((readyTeamId == Model.TeamA.Id && Model.TeamAReady) ||
+               (readyTeamId == Model.TeamB.Id && Model.TeamBReady)))
+        {
+            <form method="post" asp-page-handler="Ready" style="margin-top:var(--s4)">
+                <input type="hidden" asp-for="Input.TeamId" value="@readyTeamId" />
+                <button class="btn btn--primary" type="submit">@T["Lobby.Ready.Action"]</button>
+            </form>
+        }
+    </section>
+
+    @if (Model.MyLinkCode is { } linkCode)
+    {
+        <section class="card" style="margin-top:var(--s5)" aria-labelledby="code-heading">
+            <p class="label" id="code-heading">@T["Match.LinkCode.Title"]</p>
+            <p style="font-family:var(--font-mono,monospace);font-size:var(--fs6);letter-spacing:.2em">@linkCode</p>
+            <p class="dim">@T["Match.LinkCode.Help"]</p>
+        </section>
+    }
+
+    @if (Model.HasResult)
+    {
+        <section class="card" style="margin-top:var(--s5)" aria-labelledby="result-heading">
+            <p class="label" id="result-heading">@T["Match.Result.Title"]</p>
+
+            <p class="lede">@Model.Match!.ScoreA : @Model.Match.ScoreB</p>
+            <p>@(Model.WinnerName is null
+                ? T["Match.Result.NoWinner"]
+                : T["Match.Result.Winner", Model.WinnerName])</p>
+
+            @if (Model.Match.Integrity == NextSkill.Domain.Matches.MatchIntegrity.Suspect)
+            {
+                <p class="dim">@T["Match.Result.Integrity.Suspect"]</p>
+            }
+            else if (Model.Match.Integrity == NextSkill.Domain.Matches.MatchIntegrity.Disputed)
+            {
+                <p class="dim">@T["Match.Result.Integrity.Disputed"]</p>
+            }
+
+            <div class="stack" style="margin-top:var(--s4)">
+                <div>@Model.TeamA.Name · @(Model.TeamAConfirmed ? T["Match.Result.Confirmed"] : T["Match.Result.Unconfirmed"])</div>
+                <div>@Model.TeamB.Name · @(Model.TeamBConfirmed ? T["Match.Result.Confirmed"] : T["Match.Result.Unconfirmed"])</div>
+            </div>
+
+            @if (Model.Disputed)
+            {
+                <p style="margin-top:var(--s4)">@T["Match.Result.Disputed"]</p>
+                <p class="dim">@Model.DisputeReason</p>
+                <p class="dim">@T["Match.Result.Disputed.Held"]</p>
+            }
+            else
+            {
+                <p class="dim" style="margin-top:var(--s4)">@(Model.Rated
+                    ? T["Match.Result.Rated"]
+                    : T["Match.Result.Pending"])</p>
+            }
+
+            @if (Model.MayActOnResultFor is { } resultTeamId)
+            {
+                <form method="post" asp-page-handler="Confirm" style="margin-top:var(--s4)">
+                    <input type="hidden" asp-for="Result.TeamId" value="@resultTeamId" />
+                    <button class="btn btn--primary" type="submit">@T["Match.Result.Confirm.Action"]</button>
+                </form>
+
+                <form method="post" asp-page-handler="Dispute" class="stack" style="margin-top:var(--s4)">
+                    <input type="hidden" asp-for="Result.TeamId" value="@resultTeamId" />
+                    <label for="dispute-reason">@T["Match.Result.Dispute.Reason"]</label>
+                    <textarea id="dispute-reason" asp-for="Result.Reason" rows="2" maxlength="500" required></textarea>
+                    <button class="btn" type="submit">@T["Match.Result.Dispute.Action"]</button>
+                </form>
+            }
+        </section>
+    }
+
+    @if (Model.Participants.Count > 0)
+    {
+        <section class="card" style="margin-top:var(--s5)" aria-labelledby="lineup-heading">
+            <p class="label" id="lineup-heading">@T["Match.Lineup.Title"]</p>
+            <ul class="stack" style="margin-top:var(--s4)">
+                @foreach (var player in Model.Participants)
+                {
+                    <li>
+                        @player.Nickname
+                        <span class="dim"> · @player.Team</span>
+                        @* Provenance is shown, never collapsed away: a captain's
+                           claim and a proof from the server are different facts,
+                           and 050 keeps the difference visible. *@
+                        <span class="dim"> · @(player.Bound ? T["Match.Lineup.Bound"] : T["Match.Lineup.Declared"])</span>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+</div>

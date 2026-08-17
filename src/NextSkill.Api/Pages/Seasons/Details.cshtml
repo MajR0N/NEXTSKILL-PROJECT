@@ -1,0 +1,79 @@
+@page "{number:int}"
+@model NextSkill.Api.Pages.Seasons.DetailsModel
+@using System.Globalization
+@using NextSkill.Api.Shared.Persistence
+@{
+    var season = Model.Season!;
+    ViewData["Title"] = season.Name;
+    var locale = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+}
+
+<div class="wrap-narrow section">
+    <p class="eyebrow">Sezon @season.Number</p>
+    <h1>@season.Name</h1>
+
+    <p class="lede">
+        @if (Model.Frozen && Model.AsAt is { } closedAt)
+        {
+            @* The instant is stated, because that is the whole mechanism: the
+               table is the ledger read as at this moment, not a copy of it. *@
+            <text>Tabela zamknięta @closedAt.ToString("yyyy-MM-dd HH:mm") i od tego momentu niezmienna.</text>
+        }
+        else if (Model.Frozen)
+        {
+            <text>Ten sezon zamknięto, zanim zapisywaliśmy dokładny moment zamknięcia — nie możemy odtworzyć tabeli na ten dzień.</text>
+        }
+        else
+        {
+            <text>Sezon trwa. Tabela zmienia się po każdym rozliczonym meczu.</text>
+        }
+    </p>
+
+    <div class="row" style="margin-top:var(--s4)">
+        <a asp-route-number="@season.Number" asp-route-culture="@locale" asp-route-game="Cs2"
+           aria-current="@(Model.Game == Game.Cs2 ? "true" : "false")">CS2</a>
+        <a asp-route-number="@season.Number" asp-route-culture="@locale" asp-route-game="Cs16"
+           aria-current="@(Model.Game == Game.Cs16 ? "true" : "false")">CS 1.6</a>
+    </div>
+
+    @if (Model.Standings.Count == 0)
+    {
+        <div class="empty" style="margin-top:var(--s5)">
+            <div class="empty__icon">◍</div>
+            <h4>Brak tabeli w tej grze</h4>
+            <p>Żadna drużyna nie zdążyła wyjść ze stanu wstępnego przed zamknięciem sezonu.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-scroll" style="margin-top:var(--s5)">
+            <table class="table">
+                <caption class="visually-hidden">Tabela sezonu @season.Name</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Drużyna</th>
+                        <th scope="col" class="r">Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var standing in Model.Standings)
+                    {
+                        <tr>
+                            <td class="num" style="width:56px">@standing.Rank</td>
+                            <td>
+                                <a asp-page="/Teams/Details" asp-route-culture="@locale" asp-route-id="@standing.TeamId">
+                                    @standing.Name
+                                </a>
+                                <span class="team__tag"> @standing.Tag</span>
+                            </td>
+                            <td class="r num">
+                                @standing.Rating.ToString("F0")<span class="rating__rd"> ±@standing.Deviation.ToString("F0")</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

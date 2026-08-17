@@ -63,4 +63,265 @@
   <data name="Navigation.Tournaments" xml:space="preserve">
     <value>Turnieje</value>
   </data>
+  <data name="Servers.Title" xml:space="preserve">
+    <value>Serwery gry</value>
+  </data>
+  <data name="Servers.Eyebrow" xml:space="preserve">
+    <value>Panel organizatora</value>
+  </data>
+  <data name="Servers.Intro" xml:space="preserve">
+    <value>Dodaj adres serwera, a potem wklej jednorazowo pokazany sekret do konfiguracji pluginu. Panel nie łączy się z podanym adresem.</value>
+  </data>
+  <data name="Servers.Secret.Title" xml:space="preserve">
+    <value>Skopiuj sekret teraz</value>
+  </data>
+  <data name="Servers.Secret.Warning" xml:space="preserve">
+    <value>Nie pokażemy go ponownie. Plugin podpisze nim pierwszy heartbeat i zweryfikuje serwer.</value>
+  </data>
+  <data name="Servers.Register.Title" xml:space="preserve">
+    <value>Zarejestruj serwer</value>
+  </data>
+  <data name="Servers.Register.Action" xml:space="preserve">
+    <value>Dodaj i wygeneruj sekret</value>
+  </data>
+  <data name="Servers.Field.Organiser" xml:space="preserve">
+    <value>Organizator</value>
+  </data>
+  <data name="Servers.Field.Host" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="Servers.Field.Host.Hint" xml:space="preserve">
+    <value>Nazwa hosta lub adres IP, bez protokołu i ścieżki.</value>
+  </data>
+  <data name="Servers.Field.Port" xml:space="preserve">
+    <value>Port</value>
+  </data>
+  <data name="Servers.Field.Game" xml:space="preserve">
+    <value>Gra</value>
+  </data>
+  <data name="Servers.List.Title" xml:space="preserve">
+    <value>Zarejestrowane serwery</value>
+  </data>
+  <data name="Servers.List.Empty" xml:space="preserve">
+    <value>Nie zarejestrowano jeszcze żadnego serwera.</value>
+  </data>
+  <data name="Servers.Status.Verified" xml:space="preserve">
+    <value>Zweryfikowany</value>
+  </data>
+  <data name="Servers.Status.Waiting" xml:space="preserve">
+    <value>Czeka na heartbeat</value>
+  </data>
+  <data name="Servers.LastHeartbeat" xml:space="preserve">
+    <value>Ostatni heartbeat: {0}</value>
+  </data>
+  <data name="Servers.NoHeartbeat" xml:space="preserve">
+    <value>Brak heartbeatów</value>
+  </data>
+  <data name="Servers.PluginVersion" xml:space="preserve">
+    <value>plugin {0}</value>
+  </data>
+  <data name="Servers.Error.Host" xml:space="preserve">
+    <value>Podaj poprawną nazwę hosta lub adres IP.</value>
+  </data>
+  <data name="Servers.Error.Port" xml:space="preserve">
+    <value>Port musi mieścić się w zakresie od 1 do 65535.</value>
+  </data>
+  <data name="Servers.Error.Game" xml:space="preserve">
+    <value>Wybierz obsługiwaną grę.</value>
+  </data>
+  <data name="Servers.Error.Duplicate" xml:space="preserve">
+    <value>Ten host i port są już zarejestrowane dla wybranego organizatora.</value>
+  </data>
+  <data name="Lobby.Title" xml:space="preserve">
+    <value>{0} kontra {1}</value>
+  </data>
+  <data name="Lobby.Eyebrow" xml:space="preserve">
+    <value>Lobby meczu</value>
+  </data>
+  <data name="Lobby.Heading" xml:space="preserve">
+    <value>Przed meczem</value>
+  </data>
+  <data name="Lobby.Versus" xml:space="preserve">
+    <value>kontra</value>
+  </data>
+  <data name="Lobby.Veto.Title" xml:space="preserve">
+    <value>Veto map</value>
+  </data>
+  <data name="Lobby.Veto.WaitingForCaptains" xml:space="preserve">
+    <value>Veto rozpocznie się, gdy obaj kapitanowie potwierdzą obecność.</value>
+  </data>
+  <data name="Lobby.Veto.Started" xml:space="preserve">
+    <value>Veto trwa</value>
+  </data>
+  <data name="Lobby.Veto.Completed" xml:space="preserve">
+    <value>Veto zakończone</value>
+  </data>
+  <data name="Lobby.Veto.Turn" xml:space="preserve">
+    <value>Ruch: {0}</value>
+  </data>
+  <data name="Lobby.Veto.Banned" xml:space="preserve">
+    <value>Zbanowano: {0}</value>
+  </data>
+  <data name="Lobby.Veto.Picked" xml:space="preserve">
+    <value>Wybrano: {0}</value>
+  </data>
+  <data name="Lobby.Veto.Automatic" xml:space="preserve">
+    <value>Automatyczny wybór</value>
+  </data>
+  <data name="Lobby.Veto.SideChosen" xml:space="preserve">
+    <value>Strona na {0}: {1}</value>
+  </data>
+  <data name="Lobby.Ready" xml:space="preserve">
+    <value>Gotowy</value>
+  </data>
+  <data name="Lobby.Waiting" xml:space="preserve">
+    <value>Czeka</value>
+  </data>
+  <data name="Lobby.Ready.Action" xml:space="preserve">
+    <value>Potwierdź obecność</value>
+  </data>
+  <data name="Match.Result.Title" xml:space="preserve">
+    <value>Wynik</value>
+  </data>
+  <data name="Match.Result.Winner" xml:space="preserve">
+    <value>Wygrywa {0}</value>
+  </data>
+  <data name="Match.Result.NoWinner" xml:space="preserve">
+    <value>Bez rozstrzygnięcia</value>
+  </data>
+  <data name="Match.Result.Integrity.Suspect" xml:space="preserve">
+    <value>Brakuje części zdarzeń z serwera. Wynik nie wejdzie do rankingu, dopóki organizator go nie sprawdzi.</value>
+  </data>
+  <data name="Match.Result.Integrity.Disputed" xml:space="preserve">
+    <value>Serwer podał dwie różne wersje wyniku. Ranking wstrzymany, drabinka czeka na organizatora.</value>
+  </data>
+  <data name="Match.Result.Rated" xml:space="preserve">
+    <value>Ranking zaktualizowany</value>
+  </data>
+  <data name="Match.Result.Pending" xml:space="preserve">
+    <value>Ranking policzy się po zamknięciu okna zastrzeżeń — zwykle w ciągu dwóch godzin. Gdy obaj kapitanowie potwierdzą wynik, dzieje się to od razu.</value>
+  </data>
+  <data name="Match.Result.Confirmed" xml:space="preserve">
+    <value>Potwierdzone</value>
+  </data>
+  <data name="Match.Result.Unconfirmed" xml:space="preserve">
+    <value>Bez potwierdzenia</value>
+  </data>
+  <data name="Match.Result.Confirm.Action" xml:space="preserve">
+    <value>Potwierdź wynik</value>
+  </data>
+  <data name="Match.Result.Dispute.Action" xml:space="preserve">
+    <value>Zgłoś zastrzeżenie</value>
+  </data>
+  <data name="Match.Result.Dispute.Reason" xml:space="preserve">
+    <value>Co się nie zgadza?</value>
+  </data>
+  <data name="Match.Result.Disputed" xml:space="preserve">
+    <value>Kapitan zgłosił zastrzeżenie do wyniku</value>
+  </data>
+  <data name="Match.Result.Disputed.Held" xml:space="preserve">
+    <value>Ranking czeka na decyzję organizatora. Drabinka idzie dalej — zgłoszenie nie cofa awansu.</value>
+  </data>
+  <data name="Match.Lineup.Title" xml:space="preserve">
+    <value>Kto zagrał</value>
+  </data>
+  <data name="Match.Lineup.Bound" xml:space="preserve">
+    <value>potwierdzony w grze</value>
+  </data>
+  <data name="Match.Lineup.Declared" xml:space="preserve">
+    <value>zgłoszony przez kapitana</value>
+  </data>
+  <data name="Match.LinkCode.Title" xml:space="preserve">
+    <value>Twój kod na ten mecz</value>
+  </data>
+  <data name="Search.Label" xml:space="preserve">
+    <value>Szukaj</value>
+  </data>
+  <data name="Notifications.Bell" xml:space="preserve">
+    <value>Powiadomienia</value>
+  </data>
+  <data name="Notifications.Aria" xml:space="preserve">
+    <value>Powiadomienia, nieprzeczytane: {0}</value>
+  </data>
+  <data name="Notifications.Eyebrow" xml:space="preserve">
+    <value>Twoje konto</value>
+  </data>
+  <data name="Notifications.Title" xml:space="preserve">
+    <value>Powiadomienia</value>
+  </data>
+  <data name="Notifications.Empty" xml:space="preserve">
+    <value>Tu trafią zaproszenia do drużyn, zmiany w składzie i decyzje przy wynikach.</value>
+  </data>
+  <data name="Notifications.New" xml:space="preserve">
+    <value>nowe</value>
+  </data>
+  <data name="Notifications.Open" xml:space="preserve">
+    <value>Otwórz</value>
+  </data>
+  <data name="Notifications.TeamInvite" xml:space="preserve">
+    <value>{0} zaprasza Cię do składu.</value>
+  </data>
+  <data name="Notifications.TeamInviteAccepted" xml:space="preserve">
+    <value>{0} dołączył do drużyny.</value>
+  </data>
+  <data name="Notifications.RosterChanged" xml:space="preserve">
+    <value>Zmiana w składzie: {0}.</value>
+  </data>
+  <data name="Notifications.ResultDisputed" xml:space="preserve">
+    <value>Kapitan zgłosił zastrzeżenie do wyniku meczu.</value>
+  </data>
+  <data name="Notifications.ResultConfirmed" xml:space="preserve">
+    <value>Wynik meczu został potwierdzony.</value>
+  </data>
+  <data name="Notifications.RatingUpdated" xml:space="preserve">
+    <value>Twój ranking został przeliczony.</value>
+  </data>
+  <data name="Notifications.MatchScheduled" xml:space="preserve">
+    <value>Masz zaplanowany mecz.</value>
+  </data>
+  <data name="Notifications.MatchStartingSoon" xml:space="preserve">
+    <value>Mecz zaraz się zaczyna.</value>
+  </data>
+  <data name="Notifications.Generic" xml:space="preserve">
+    <value>Masz nowe powiadomienie.</value>
+  </data>
+  <data name="Disputes.Eyebrow" xml:space="preserve">
+    <value>Panel organizatora</value>
+  </data>
+  <data name="Disputes.Title" xml:space="preserve">
+    <value>Sporne wyniki</value>
+  </data>
+  <data name="Disputes.Intro" xml:space="preserve">
+    <value>Mecze, przy których ranking czeka na decyzję. Drabinka nie czeka — zgłoszenie nigdy nie cofa awansu.</value>
+  </data>
+  <data name="Disputes.Empty" xml:space="preserve">
+    <value>Nic nie wymaga Twojej decyzji.</value>
+  </data>
+  <data name="Disputes.Integrity" xml:space="preserve">
+    <value>Serwer zgłosił niespójne dane ({0}).</value>
+  </data>
+  <data name="Disputes.CaptainClaim" xml:space="preserve">
+    <value>Kapitan zgłosił zastrzeżenie:</value>
+  </data>
+  <data name="Disputes.Reason" xml:space="preserve">
+    <value>Uzasadnienie decyzji</value>
+  </data>
+  <data name="Disputes.Dismiss.Action" xml:space="preserve">
+    <value>Utrzymaj wynik</value>
+  </data>
+  <data name="Disputes.Winner" xml:space="preserve">
+    <value>Kto naprawdę wygrał</value>
+  </data>
+  <data name="Disputes.Winner.None" xml:space="preserve">
+    <value>Nikt — mecz bez rozstrzygnięcia</value>
+  </data>
+  <data name="Disputes.Reverse.Action" xml:space="preserve">
+    <value>Zmień wynik</value>
+  </data>
+  <data name="Disputes.Reverse.Warning" xml:space="preserve">
+    <value>Rankingi zostaną przeliczone od nowa z historii. Poprzednie wartości zostają w archiwum, nic nie znika.</value>
+  </data>
+  <data name="Match.LinkCode.Help" xml:space="preserve">
+    <value>Wpisz go na serwerze, żeby przypisać swoje konto do tego meczu. Kod działa raz i tylko dla Ciebie — sam token z konfiguracji nie wystarczy.</value>
+  </data>
 </root>

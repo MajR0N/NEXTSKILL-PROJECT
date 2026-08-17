@@ -109,6 +109,58 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                     b.ToTable("accounts");
                 });
 
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.AuditEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("action");
+
+                    b.Property<Guid>("ActorAccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_account_id");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<Guid?>("OrganiserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organiser_id");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("outcome");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid?>("ResourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resource_id");
+
+                    b.Property<string>("Retention")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("retention");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganiserId", "OccurredAt");
+
+                    b.HasIndex("Retention", "OccurredAt");
+
+                    b.ToTable("audit_entries");
+                });
+
             modelBuilder.Entity("NextSkill.Api.Shared.Persistence.DiscordAnnouncement", b =>
                 {
                     b.Property<Guid>("Id")
@@ -298,6 +350,19 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("DisputeReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("dispute_reason");
+
+                    b.Property<DateTimeOffset?>("DisputedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("disputed_at");
+
+                    b.Property<Guid?>("DisputedByAccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("disputed_by_account_id");
+
                     b.Property<DateTimeOffset?>("EndedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("ended_at");
@@ -361,6 +426,10 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("position");
 
+                    b.Property<DateTimeOffset?>("RatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("rated_at");
+
                     b.Property<int>("Round")
                         .HasColumnType("integer")
                         .HasColumnName("round");
@@ -399,9 +468,17 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("status");
 
+                    b.Property<DateTimeOffset?>("TeamAConfirmedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("team_a_confirmed_at");
+
                     b.Property<Guid?>("TeamAId")
                         .HasColumnType("uuid")
                         .HasColumnName("team_a_id");
+
+                    b.Property<DateTimeOffset?>("TeamBConfirmedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("team_b_confirmed_at");
 
                     b.Property<Guid?>("TeamBId")
                         .HasColumnType("uuid")
@@ -438,6 +515,10 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
 
                     b.HasIndex("WinnerToMatchId");
 
+                    b.HasIndex("EndedAt", "Id")
+                        .HasDatabaseName("ix_matches_awaiting_rating")
+                        .HasFilter("rated_at IS NULL AND ended_at IS NOT NULL");
+
                     b.HasIndex("TournamentId", "Status");
 
                     b.HasIndex("TournamentId", "Side", "Round", "Position")
@@ -445,6 +526,214 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasDatabaseName("ix_one_match_per_bracket_position");
 
                     b.ToTable("matches");
+                });
+
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.MatchMap", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Map")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("map");
+
+                    b.Property<Guid>("MatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("match_id");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer")
+                        .HasColumnName("order");
+
+                    b.Property<Guid>("OrganiserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organiser_id");
+
+                    b.Property<string>("TeamAStartsAs")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("team_a_starts_as");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MatchId", "Order")
+                        .IsUnique()
+                        .HasDatabaseName("ix_one_map_per_match_order");
+
+                    b.ToTable("match_maps");
+                });
+
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.MatchParticipant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
+                    b.Property<DateTimeOffset?>("BoundAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("bound_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("LinkCode")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("link_code");
+
+                    b.Property<Guid>("MatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("match_id");
+
+                    b.Property<Guid>("OrganiserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organiser_id");
+
+                    b.Property<string>("Provenance")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("provenance");
+
+                    b.Property<string>("Slot")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("slot");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("team_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MatchId", "AccountId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_one_participant_per_match_account");
+
+                    b.ToTable("match_participants");
+                });
+
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.MatchVeto", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("BestOf")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("best_of");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("CurrentStep")
+                        .HasColumnType("integer")
+                        .HasColumnName("current_step");
+
+                    b.PrimitiveCollection<string[]>("MapPool")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("map_pool");
+
+                    b.Property<Guid>("MatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("match_id");
+
+                    b.Property<Guid>("OrganiserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organiser_id");
+
+                    b.Property<DateTimeOffset?>("TeamAReadyAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("team_a_ready_at");
+
+                    b.Property<DateTimeOffset?>("TeamBReadyAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("team_b_ready_at");
+
+                    b.Property<DateTimeOffset?>("TurnStartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("turn_started_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MatchId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_one_veto_per_match");
+
+                    b.ToTable("match_vetos");
+                });
+
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.MatchVetoAction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Automatic")
+                        .HasColumnType("boolean")
+                        .HasColumnName("automatic");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Map")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("map");
+
+                    b.Property<Guid>("MatchVetoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("match_veto_id");
+
+                    b.Property<Guid>("OrganiserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organiser_id");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer")
+                        .HasColumnName("sequence");
+
+                    b.Property<string>("Side")
+                        .HasColumnType("text")
+                        .HasColumnName("side");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("team_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MatchVetoId", "Sequence")
+                        .IsUnique()
+                        .HasDatabaseName("ix_one_action_per_veto_step");
+
+                    b.ToTable("match_veto_actions");
                 });
 
             modelBuilder.Entity("NextSkill.Api.Shared.Persistence.NewsPost", b =>
@@ -724,6 +1013,79 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                     b.ToTable("ratings");
                 });
 
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.RatingChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("AppliedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("applied_at");
+
+                    b.Property<double?>("DeviationAfter")
+                        .HasColumnType("double precision")
+                        .HasColumnName("deviation_after");
+
+                    b.Property<double?>("DeviationBefore")
+                        .HasColumnType("double precision")
+                        .HasColumnName("deviation_before");
+
+                    b.Property<string>("ExcludedBecause")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("excluded_because");
+
+                    b.Property<string>("Game")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("game");
+
+                    b.Property<Guid?>("MatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("match_id");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<bool>("SubjectIsTeam")
+                        .HasColumnType("boolean")
+                        .HasColumnName("subject_is_team");
+
+                    b.Property<DateTimeOffset?>("SupersededAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("superseded_at");
+
+                    b.Property<double?>("ValueAfter")
+                        .HasColumnType("double precision")
+                        .HasColumnName("value_after");
+
+                    b.Property<double?>("ValueBefore")
+                        .HasColumnType("double precision")
+                        .HasColumnName("value_before");
+
+                    b.Property<double?>("VolatilityAfter")
+                        .HasColumnType("double precision")
+                        .HasColumnName("volatility_after");
+
+                    b.Property<double?>("VolatilityBefore")
+                        .HasColumnType("double precision")
+                        .HasColumnName("volatility_before");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MatchId", "SubjectId", "Game")
+                        .IsUnique()
+                        .HasDatabaseName("ix_one_rating_change_per_match_subject")
+                        .HasFilter("match_id IS NOT NULL AND superseded_at IS NULL");
+
+                    b.HasIndex("SubjectId", "Game", "AppliedAt");
+
+                    b.ToTable("rating_changes");
+                });
+
             modelBuilder.Entity("NextSkill.Api.Shared.Persistence.RecoveryCode", b =>
                 {
                     b.Property<Guid>("Id")
@@ -762,6 +1124,10 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                     b.Property<bool>("Closed")
                         .HasColumnType("boolean")
                         .HasColumnName("closed");
+
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("closed_at");
 
                     b.Property<DateTimeOffset?>("EndsAt")
                         .HasColumnType("timestamp with time zone")
@@ -1169,6 +1535,42 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("WinnerToMatchId")
                         .OnDelete(DeleteBehavior.NoAction);
+                });
+
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.MatchMap", b =>
+                {
+                    b.HasOne("NextSkill.Api.Shared.Persistence.Match", null)
+                        .WithMany()
+                        .HasForeignKey("MatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.MatchParticipant", b =>
+                {
+                    b.HasOne("NextSkill.Api.Shared.Persistence.Match", null)
+                        .WithMany()
+                        .HasForeignKey("MatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.MatchVeto", b =>
+                {
+                    b.HasOne("NextSkill.Api.Shared.Persistence.Match", null)
+                        .WithOne()
+                        .HasForeignKey("NextSkill.Api.Shared.Persistence.MatchVeto", "MatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.MatchVetoAction", b =>
+                {
+                    b.HasOne("NextSkill.Api.Shared.Persistence.MatchVeto", null)
+                        .WithMany()
+                        .HasForeignKey("MatchVetoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("NextSkill.Api.Shared.Persistence.Tournament", b =>

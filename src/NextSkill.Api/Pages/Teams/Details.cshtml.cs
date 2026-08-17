@@ -6,6 +6,7 @@ using NextSkill.Api.Localisation;
 using NextSkill.Api.Shared.Auth;
 using NextSkill.Api.Shared.Persistence;
 using NextSkill.Domain.Access;
+using NextSkill.Domain.Matches;
 using NextSkill.Domain.Ratings;
 using NextSkill.Domain.Teams;
 
@@ -23,11 +24,48 @@ public class DetailsModel(NextSkillDb db) : PageModel
 {
     public sealed record Member(Guid AccountId, string Nickname, TeamRole Role, RosterSlot Slot, bool Pending);
 
+    /// <summary>
+    /// One past result, <b>integrity-aware</b> as 049 requires: a result the
+    /// system is not sure it received correctly is shown as such rather than
+    /// counted quietly into a record.
+    /// </summary>
+    public sealed record HistoryRow(
+        Guid MatchId,
+        string Opponent,
+        int? OwnScore,
+        int? OpponentScore,
+        bool Won,
+        bool Forfeit,
+        MatchIntegrity Integrity,
+        DateTimeOffset? EndedAt);
+
+    /// <summary>One immutable point on the rating trend (049).</summary>
+    public sealed record TrendPoint(DateTimeOffset At, double Value, double Deviation);
+
     public Team? Team { get; private set; }
     public IReadOnlyList<Member> Roster { get; private set; } = [];
     public IReadOnlyList<Member> Invited { get; private set; } = [];
     public Rating? Cs2 { get; private set; }
     public Rating? Cs16 { get; private set; }
+
+    /// <summary>
+    /// Which game's history this page is showing (049: one shareable per-game
+    /// view, because a mixed CS2/CS 1.6 record describes nobody).
+    /// </summary>
+    [BindProperty(SupportsGet = true, Name = "game")]
+    public Game HistoryGame { get; set; } = Game.Cs2;
+
+    public IReadOnlyList<HistoryRow> History { get; private set; } = [];
+    public IReadOnlyList<TrendPoint> Trend { get; private set; } = [];
+    public int Wins { get; private set; }
+    public int Losses { get; private set; }
+
+    /// <summary>
+    /// Results excluded from the record because their integrity is unresolved.
+    /// Surfaced as a count rather than silently dropped — a record that quietly
+    /// omits matches is a record nobody can reconcile against their own memory.
+    /// </summary>
+    public int UncountedResults { get; private set; }
 
     /// <summary>Whether the VIEWER may change the roster — drives the whole UI.</summary>
     public bool CanManage { get; private set; }
@@ -367,6 +405,84 @@ public class DetailsModel(NextSkillDb db) : PageModel
 
         CanRestore = actor is not null &&
             AccessPolicy.Can(actor, Operation.RestoreTeam, new ResourceRef(TeamId: id));
+
+        await LoadHistoryAsync(id);
+    }
+
+    /// <summary>
+    /// Competitive history and the rating trend (decision 049).
+    ///
+    /// <b>The trend comes from the immutable ledger</b>, never from trying to
+    /// reconstruct an old rating by subtracting from the current aggregate —
+    /// which is exactly why 050 made rating changes append-only. Superseded rows
+    /// are excluded, so a referee reversal corrects the chart instead of leaving
+    /// a phantom spike in it.
+    /// </summary>
+    private async Task LoadHistoryAsync(Guid id)
+    {
+        if (!Enum.IsDefined(HistoryGame)) HistoryGame = Game.Cs2;
+
+        Guid[] self = [id];
+
+        var results = await db.PublicTeamResults(self)
+            .Where(m => m.Game == HistoryGame)
+            .OrderByDescending(m => m.EndedAt)
+            .Take(25)
+            .Select(m => new
+            {
+                m.Id,
+                m.TeamAId,
+                m.TeamBId,
+                m.ScoreA,
+                m.ScoreB,
+                m.WinnerTeamId,
+                m.Integrity,
+                m.EndedAt,
+                Forfeit = m.ForfeitedTeamId != null,
+            })
+            .AsNoTracking()
+            .ToListAsync();
+
+        if (results.Count > 0)
+        {
+            var opponentIds = results
+                .Select(m => m.TeamAId == id ? m.TeamBId!.Value : m.TeamAId!.Value)
+                .Distinct()
+                .ToList();
+
+            var opponents = await db.Teams.AsNoTracking()
+                .Where(t => opponentIds.Contains(t.Id))
+                .ToDictionaryAsync(t => t.Id, t => t.Name);
+
+            History = results.Select(m =>
+            {
+                var isA = m.TeamAId == id;
+                var opponentId = isA ? m.TeamBId!.Value : m.TeamAId!.Value;
+                return new HistoryRow(
+                    m.Id,
+                    opponents.GetValueOrDefault(opponentId, "—"),
+                    isA ? m.ScoreA : m.ScoreB,
+                    isA ? m.ScoreB : m.ScoreA,
+                    m.WinnerTeamId == id,
+                    m.Forfeit,
+                    m.Integrity,
+                    m.EndedAt);
+            }).ToArray();
+
+            // Only confirmed results count toward the record. A suspect or
+            // disputed one is history and is displayed, but a win-loss line that
+            // silently included it would be asserting more than we know (049).
+            var counted = History.Where(h => h.Integrity == MatchIntegrity.Confirmed).ToList();
+            Wins = counted.Count(h => h.Won);
+            Losses = counted.Count(h => !h.Won);
+            UncountedResults = History.Count - counted.Count;
+        }
+
+        Trend = await db.PublicRatingMovements(self, subjectIsTeam: true, HistoryGame)
+            .OrderBy(r => r.AppliedAt)
+            .Select(r => new TrendPoint(r.AppliedAt, r.ValueAfter!.Value, r.DeviationAfter!.Value))
+            .AsNoTracking()
+            .ToListAsync();
     }
 
     /// <summary>Same generated monogram as the ranking page, so a team looks identical everywhere (019).</summary>

@@ -1,0 +1,122 @@
+@page
+@model NextSkill.Api.Pages.Org.ServersModel
+@using Microsoft.Extensions.Localization
+@using NextSkill.Api.Localisation
+@using NextSkill.Api.Shared.Persistence
+@inject IStringLocalizer<UiText> T
+@{
+    ViewData["Title"] = T["Servers.Title"];
+}
+
+<div class="wrap-narrow section">
+    <p class="eyebrow">@T["Servers.Eyebrow"]</p>
+    <h1>@T["Servers.Title"]</h1>
+    <p class="lede">@T["Servers.Intro"]</p>
+
+    @if (Model.OneTimeSecret is not null)
+    {
+        <div class="alert" role="status" style="margin-top:var(--s5)">
+            <p><b>@T["Servers.Secret.Title"]</b></p>
+            <p>@T["Servers.Secret.Warning"]</p>
+            <code id="server-secret">@Model.OneTimeSecret</code>
+        </div>
+    }
+
+    @if (Model.RegisterableOrganisers.Count > 0)
+    {
+        <form method="post" class="card" style="margin-top:var(--s6)">
+            <h2>@T["Servers.Register.Title"]</h2>
+
+            @if (ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+            {
+                <div class="alert alert--error" role="alert">
+                    @foreach (var error in ViewData.ModelState[string.Empty]!.Errors)
+                    {
+                        <div>@error.ErrorMessage</div>
+                    }
+                </div>
+            }
+
+            @if (Model.RegisterableOrganisers.Count == 1)
+            {
+                <input type="hidden" asp-for="Input.OrganiserId" value="@Model.RegisterableOrganisers[0].Id" />
+            }
+            else
+            {
+                <div class="field">
+                    <label asp-for="Input.OrganiserId">@T["Servers.Field.Organiser"]</label>
+                    <select class="input" asp-for="Input.OrganiserId">
+                        @foreach (var organiser in Model.RegisterableOrganisers)
+                        {
+                            <option value="@organiser.Id">@organiser.Name</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            <div class="field">
+                <label asp-for="Input.Host">@T["Servers.Field.Host"]</label>
+                <input class="input" asp-for="Input.Host" maxlength="253" required autocomplete="off" placeholder="cs.example.org" />
+                <span class="field__hint">@T["Servers.Field.Host.Hint"]</span>
+                <span class="field__error" asp-validation-for="Input.Host"></span>
+            </div>
+
+            <div class="field">
+                <label asp-for="Input.Port">@T["Servers.Field.Port"]</label>
+                <input class="input" asp-for="Input.Port" type="number" min="1" max="65535" required />
+                <span class="field__error" asp-validation-for="Input.Port"></span>
+            </div>
+
+            <div class="field">
+                <label asp-for="Input.Game">@T["Servers.Field.Game"]</label>
+                <select class="input" asp-for="Input.Game">
+                    <option value="@Game.Cs2">CS2</option>
+                    <option value="@Game.Cs16">CS 1.6</option>
+                </select>
+                <span class="field__error" asp-validation-for="Input.Game"></span>
+            </div>
+
+            <button class="btn btn--primary" type="submit">@T["Servers.Register.Action"]</button>
+        </form>
+    }
+
+    <section style="margin-top:var(--s7)" aria-labelledby="registered-servers-title">
+        <h2 id="registered-servers-title">@T["Servers.List.Title"]</h2>
+
+        @if (Model.Servers.Count == 0)
+        {
+            <div class="empty">@T["Servers.List.Empty"]</div>
+        }
+        else
+        {
+            <div class="stack">
+                @foreach (var server in Model.Servers)
+                {
+                    <article class="card">
+                        <div class="row" style="justify-content:space-between;align-items:start">
+                            <div>
+                                <h3>@server.Host:@server.Port</h3>
+                                <p class="dim">@server.Organiser · @(server.Game == Game.Cs2 ? "CS2" : "CS 1.6")</p>
+                            </div>
+                            <span class="badge">@(server.Verified ? T["Servers.Status.Verified"] : T["Servers.Status.Waiting"])</span>
+                        </div>
+                        <p class="dim">
+                            @if (server.LastHeartbeatAt is { } heartbeat)
+                            {
+                                @T["Servers.LastHeartbeat", heartbeat.ToString("u")]
+                            }
+                            else
+                            {
+                                @T["Servers.NoHeartbeat"]
+                            }
+                            @if (server.PluginVersion is { Length: > 0 } version)
+                            {
+                                <span> · @T["Servers.PluginVersion", version]</span>
+                            }
+                        </p>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+</div>

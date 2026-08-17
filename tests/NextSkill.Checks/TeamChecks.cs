@@ -148,6 +148,46 @@ public static class TeamChecks
                 "the invited player must be notified, or the invite is invisible (043)");
         });
 
+        check("notifications: the invite is READABLE — a bell in the headbar and an inbox behind it", () =>
+        {
+            // The row above has existed since the teams slice and nothing could
+            // read it. Invites were findable only because the teams page listed
+            // them as a stopgap (043).
+            var headbar = asPlayer.GetStringAsync("/pl/teams").GetAwaiter().GetResult();
+            that(headbar.Contains("Powiadomienia (1)", StringComparison.Ordinal),
+                "the unread count must be server-rendered into the headbar, not fetched by a script (018)");
+
+            var inbox = WebUtility.HtmlDecode(
+                asPlayer.GetStringAsync("/pl/notifications").GetAwaiter().GetResult());
+            that(inbox.Contains("zaprasza Cię do składu", StringComparison.Ordinal),
+                "the inbox must render the invite from its stored rendering data");
+            that(inbox.Contains($"/pl/teams/{teamId}", StringComparison.Ordinal),
+                "and link to the team it is about");
+
+            // Reading is what marks it read — a per-row button would be a second
+            // click for a state that looking already established.
+            using var db = Db();
+            that(db.Notifications.Count(n => n.AccountId == playerId && n.ReadAt == null) == 0,
+                "viewing the inbox must clear the unread state");
+
+            var after = asPlayer.GetStringAsync("/pl/teams").GetAwaiter().GetResult();
+            that(!after.Contains("Powiadomienia (", StringComparison.Ordinal),
+                "and the headbar count must disappear once nothing is unread");
+        });
+
+        check("notifications: a stranger's inbox is their own, and an anonymous one is a login", () =>
+        {
+            var mine = WebUtility.HtmlDecode(
+                asOutsider.GetStringAsync("/pl/notifications").GetAwaiter().GetResult());
+            that(!mine.Contains("zaprasza Cię do składu", StringComparison.Ordinal),
+                "an inbox must never show another account's notifications");
+
+            using var anonymous = factory.NewClient();
+            var response = anonymous.GetAsync("/pl/notifications").GetAwaiter().GetResult();
+            that(response.StatusCode == HttpStatusCode.Redirect,
+                $"an anonymous visitor must be sent to log in, got {(int)response.StatusCode}");
+        });
+
         check("teams: inviting the same player twice is refused by the DATABASE", () =>
         {
             var res = PostAsync(asCaptain, $"/pl/teams/{teamId}?handler=Invite", new()

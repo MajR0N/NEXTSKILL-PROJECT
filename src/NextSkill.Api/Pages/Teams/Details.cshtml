@@ -211,6 +211,118 @@
                     <button class="btn btn--danger" type="submit">Opuść drużynę</button>
                 </form>
             }
+
+            @* ── competitive history, per game (049) ───────────────────── *@
+            <section style="margin-top:var(--s7)" aria-labelledby="history-heading">
+                <p class="label" id="history-heading">Historia meczów</p>
+
+                @* One game at a time. A record mixing CS2 and CS 1.6 describes
+                   nobody, and the choice stays in the URL so the link someone
+                   pastes into Discord shows what they were looking at. *@
+                <div class="row" style="margin-top:var(--s3)">
+                    <a asp-route-id="@team.Id" asp-route-culture="@locale" asp-route-game="Cs2"
+                       aria-current="@(Model.HistoryGame == Game.Cs2 ? "true" : "false")">CS2</a>
+                    <a asp-route-id="@team.Id" asp-route-culture="@locale" asp-route-game="Cs16"
+                       aria-current="@(Model.HistoryGame == Game.Cs16 ? "true" : "false")">CS 1.6</a>
+                </div>
+
+                @if (Model.History.Count == 0)
+                {
+                    <p class="dim" style="margin-top:var(--s4)">
+                        Brak rozstrzygniętych meczów w tej grze. Historia zapisuje się sama, gdy serwer zgłosi wynik.
+                    </p>
+                }
+                else
+                {
+                    <p style="margin-top:var(--s4)">
+                        Bilans: <b>@Model.Wins — @Model.Losses</b>
+                        @if (Model.UncountedResults > 0)
+                        {
+                            @* Named, not hidden: a record that quietly drops
+                               matches is one nobody can reconcile. *@
+                            <span class="dim">
+                                · @Model.UncountedResults @(Model.UncountedResults == 1 ? "wynik" : "wyniki")
+                                poza bilansem do czasu wyjaśnienia
+                            </span>
+                        }
+                    </p>
+
+                    <div class="table-scroll" style="margin-top:var(--s4)">
+                        <table class="table">
+                            <caption class="visually-hidden">Historia meczów drużyny</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Wynik</th>
+                                    <th scope="col">Przeciwnik</th>
+                                    <th scope="col">Data</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in Model.History)
+                                {
+                                    <tr>
+                                        <td>
+                                            <b>@(row.Won ? "W" : "L")</b>
+                                            @if (row.OwnScore is not null)
+                                            {
+                                                <span class="dim"> @row.OwnScore : @row.OpponentScore</span>
+                                            }
+                                            @if (row.Forfeit)
+                                            {
+                                                <span class="dim"> · walkower</span>
+                                            }
+                                            @if (row.Integrity != NextSkill.Domain.Matches.MatchIntegrity.Confirmed)
+                                            {
+                                                <span class="dim"> · niepotwierdzony</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <a asp-page="/Matches/Details" asp-route-culture="@locale" asp-route-id="@row.MatchId">
+                                                @row.Opponent
+                                            </a>
+                                        </td>
+                                        <td class="dim">@(row.EndedAt?.ToString("yyyy-MM-dd") ?? "—")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </section>
+
+            @if (Model.Trend.Count > 0)
+            {
+                <section style="margin-top:var(--s7)" aria-labelledby="trend-heading">
+                    <p class="label" id="trend-heading">Zmiany ratingu</p>
+                    @* 049 asks for an ACCESSIBLE trend, so the trend IS a table.
+                       A chart drawn over it is a Phase 5 enhancement; a chart
+                       INSTEAD of it would be a number only sighted mouse users
+                       can read. Values come from the append-only ledger, so an
+                       old rating is quoted rather than reconstructed. *@
+                    <div class="table-scroll" style="margin-top:var(--s4)">
+                        <table class="table">
+                            <caption class="visually-hidden">Rating po każdym rozliczonym meczu</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Data</th>
+                                    <th scope="col" class="r">Rating</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var point in Model.Trend.Reverse())
+                                {
+                                    <tr>
+                                        <td class="dim">@point.At.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td class="r num">
+                                            @point.Value.ToString("F0")<span class="rating__rd"> ±@point.Deviation.ToString("F0")</span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            }
         </div>
 
         @* Meta rail carries FACTS, never actions (041). *@

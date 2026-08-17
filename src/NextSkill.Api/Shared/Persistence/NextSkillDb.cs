@@ -25,14 +25,38 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
     public DbSet<TournamentDiscordWebhook> TournamentDiscordWebhooks => Set<TournamentDiscordWebhook>();
     public DbSet<DiscordAnnouncement> DiscordAnnouncements => Set<DiscordAnnouncement>();
     public DbSet<Match> Matches => Set<Match>();
+    public DbSet<MatchVeto> MatchVetos => Set<MatchVeto>();
+    public DbSet<MatchVetoAction> MatchVetoActions => Set<MatchVetoAction>();
+    public DbSet<MatchMap> MatchMaps => Set<MatchMap>();
+    public DbSet<MatchParticipant> MatchParticipants => Set<MatchParticipant>();
     public DbSet<TournamentRegistration> Registrations => Set<TournamentRegistration>();
     public DbSet<Rating> Ratings => Set<Rating>();
+    public DbSet<RatingChange> RatingChanges => Set<RatingChange>();
+    public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
     public DbSet<TeamMembership> TeamMemberships => Set<TeamMembership>();
     public DbSet<OrganiserStaff> OrganiserStaff => Set<OrganiserStaff>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<LftListing> LftListings => Set<LftListing>();
     public DbSet<Season> Seasons => Set<Season>();
     public DbSet<NewsPost> News => Set<NewsPost>();
+
+    /// <summary>
+    /// Accent-insensitive text, for search (decisions 043, 051 §8).
+    ///
+    /// <b>PostgreSQL's own <c>unaccent()</c> cannot be used directly.</b> It is
+    /// declared <c>STABLE</c> rather than <c>IMMUTABLE</c> — because its
+    /// behaviour depends on a dictionary that could be redefined — and
+    /// PostgreSQL refuses to build an index on a non-immutable expression. 043's
+    /// search SQL was written against it and simply does not execute; the
+    /// migration adds a one-line <c>IMMUTABLE</c> wrapper, which is the standard
+    /// resolution and the one 051 §8 recorded.
+    ///
+    /// It matters for this audience specifically: without it a Polish player
+    /// typing <c>lodz</c> or <c>slask</c> finds nothing.
+    /// </summary>
+    [DbFunction("f_unaccent", Schema = "public")]
+    public static string Unaccent(string value) =>
+        throw new NotSupportedException("f_unaccent is evaluated by PostgreSQL, never in memory.");
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -53,7 +77,16 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
         b.Entity<Match>().Property(x => x.Side).HasConversion<string>();
         b.Entity<Match>().Property(x => x.WinnerToSlot).HasConversion<string>();
         b.Entity<Match>().Property(x => x.LoserToSlot).HasConversion<string>();
+        b.Entity<MatchVetoAction>().Property(x => x.Kind).HasConversion<string>();
+        b.Entity<MatchVetoAction>().Property(x => x.Side).HasConversion<string>();
+        b.Entity<MatchMap>().Property(x => x.TeamAStartsAs).HasConversion<string>();
+        b.Entity<MatchParticipant>().Property(x => x.Slot).HasConversion<string>();
+        b.Entity<MatchParticipant>().Property(x => x.Provenance).HasConversion<string>();
         b.Entity<Rating>().Property(x => x.Game).HasConversion<string>();
+        b.Entity<RatingChange>().Property(x => x.Game).HasConversion<string>();
+        b.Entity<AuditEntry>().Property(x => x.Action).HasConversion<string>();
+        b.Entity<AuditEntry>().Property(x => x.Outcome).HasConversion<string>();
+        b.Entity<AuditEntry>().Property(x => x.Retention).HasConversion<string>();
         b.Entity<Account>().Property(x => x.PlatformRole).HasConversion<string>();
         b.Entity<Account>().Property(x => x.TwoFactorMethod).HasConversion<string>();
         b.Entity<OneTimeCode>().Property(x => x.Purpose).HasConversion<string>();
@@ -78,10 +111,14 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
         b.Entity<TournamentDiscordWebhook>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
         b.Entity<DiscordAnnouncement>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
         b.Entity<Match>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
+        b.Entity<MatchVeto>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
+        b.Entity<MatchVetoAction>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
+        b.Entity<MatchMap>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
+        b.Entity<MatchParticipant>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
         b.Entity<TournamentRegistration>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
         b.Entity<OrganiserStaff>().HasQueryFilter(x => x.OrganiserId == tenant.RequireOrganiserId());
         //
-        // Accounts, Teams and Ratings are deliberately UNFILTERED: they are
+        // Accounts, Teams, Ratings and RatingChanges are deliberately UNFILTERED: they are
         // global by design, because cross-organiser ratings and profiles are the
         // whole point of a platform rather than isolated installs (036).
         // Their access rules must therefore be explicit — the safety net does
@@ -210,6 +247,7 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
         {
             e.Property(x => x.Payload).HasColumnType("jsonb");
             e.Property(x => x.ForfeitReason).HasMaxLength(500);
+            e.Property(x => x.DisputeReason).HasMaxLength(500);
 
             // GIN over the whole payload: ANY key inside becomes searchable,
             // including keys we haven't thought of yet. This is the concrete
@@ -231,6 +269,14 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
 
             e.HasIndex(x => new { x.TournamentId, x.Status });
 
+            // The rating sweeper's only query, in (EndedAt, Id) order. PARTIAL,
+            // so it holds the matches still owed a rating rather than every
+            // match ever played — which is the whole point of the RatedAt
+            // column existing next to the ledger's unique index (050 §4).
+            e.HasIndex(x => new { x.EndedAt, x.Id })
+                .HasFilter("rated_at IS NULL AND ended_at IS NOT NULL")
+                .HasDatabaseName("ix_matches_awaiting_rating");
+
             // Routing as real foreign keys. The whole point is that the database
             // refuses a link to a match that does not exist — the application
             // cannot "mostly" get routing right any more (023).
@@ -251,6 +297,83 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
             e.HasIndex(x => new { x.TournamentId, x.Side, x.Round, x.Position })
                 .IsUnique()
                 .HasDatabaseName("ix_one_match_per_bracket_position");
+        });
+
+        b.Entity<MatchVeto>(e =>
+        {
+            e.Property(x => x.BestOf).HasDefaultValue(1);
+            e.HasIndex(x => x.MatchId)
+                .IsUnique()
+                .HasDatabaseName("ix_one_veto_per_match");
+            e.HasOne<Match>().WithOne()
+                .HasForeignKey<MatchVeto>(x => x.MatchId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<MatchVetoAction>(e =>
+        {
+            e.Property(x => x.Map).HasMaxLength(64);
+            e.HasIndex(x => new { x.MatchVetoId, x.Sequence })
+                .IsUnique()
+                .HasDatabaseName("ix_one_action_per_veto_step");
+            e.HasOne<MatchVeto>().WithMany()
+                .HasForeignKey(x => x.MatchVetoId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<MatchMap>(e =>
+        {
+            e.Property(x => x.Map).HasMaxLength(64);
+            e.HasIndex(x => new { x.MatchId, x.Order })
+                .IsUnique()
+                .HasDatabaseName("ix_one_map_per_match_order");
+            e.HasOne<Match>().WithMany()
+                .HasForeignKey(x => x.MatchId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<MatchParticipant>(e =>
+        {
+            e.Property(x => x.LinkCode).HasMaxLength(8);
+
+            // One row per person per match. A `player_bound` event PROMOTES the
+            // declared row; it must never insert a second one, or a player would
+            // be rated twice for the same match (050).
+            e.HasIndex(x => new { x.MatchId, x.AccountId })
+                .IsUnique()
+                .HasDatabaseName("ix_one_participant_per_match_account");
+
+            e.HasOne<Match>().WithMany()
+                .HasForeignKey(x => x.MatchId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<AuditEntry>(e =>
+        {
+            e.Property(x => x.Reason).HasMaxLength(500);
+
+            // The two reads this table has: an organiser's own history, and
+            // staff sweeping recent decisions across the platform.
+            e.HasIndex(x => new { x.OrganiserId, x.OccurredAt });
+            e.HasIndex(x => new { x.Retention, x.OccurredAt });
+        });
+
+        b.Entity<RatingChange>(e =>
+        {
+            e.Property(x => x.ExcludedBecause).HasMaxLength(200);
+
+            // THE SWEEPER'S IDEMPOTENCY, and the reason there is no application
+            // lock around rating. Two sweeps of the same match cannot both
+            // write; the second one hits the database and stops. Filtered
+            // because a season RD widening has no match and several may share a
+            // subject (050 §3).
+            e.HasIndex(x => new { x.MatchId, x.SubjectId, x.Game })
+                .IsUnique()
+                .HasFilter("match_id IS NOT NULL AND superseded_at IS NULL")
+                .HasDatabaseName("ix_one_rating_change_per_match_subject");
+
+            // 049's trend chart: one subject, one game, in order.
+            e.HasIndex(x => new { x.SubjectId, x.Game, x.AppliedAt });
         });
 
         b.Entity<TeamMembership>(e =>

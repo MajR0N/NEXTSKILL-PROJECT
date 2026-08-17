@@ -139,6 +139,23 @@ public class Season
     /// reversal does not rewrite history (decision 021).
     /// </summary>
     public bool Closed { get; set; }
+
+    /// <summary>
+    /// <b>When</b> it closed — and this is what makes the freeze work
+    /// (decision 051 §4).
+    ///
+    /// 021 froze standings forever while 025 derived them at read time, and
+    /// those two cannot both be true. The resolution is neither a snapshot table
+    /// nor a recomputation ban: the ledger is append-only and every row carries
+    /// <c>AppliedAt</c>, so a closed season's table is simply the ledger read
+    /// with <c>AppliedAt &lt;= ClosedAt</c>. History stops moving without
+    /// anything being copied, and a correction made afterwards is visible in the
+    /// live ranking while leaving the archive alone.
+    ///
+    /// Null while open. <see cref="Closed"/> stays as the flag the queries
+    /// filter on, because a boolean is what "is this over" should read like.
+    /// </summary>
+    public DateTimeOffset? ClosedAt { get; set; }
 }
 
 /// <summary>

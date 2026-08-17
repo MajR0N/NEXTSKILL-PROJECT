@@ -20,6 +20,12 @@ contradicted each other.
 
 ## 1. Veto ships before matches, not after
 
+> **Built 2026-08-12.** `/m/{id}` is a public, reloadable lobby with captain readiness and
+> server-rendered veto posts. PostgreSQL row locks serialise turns; expiry makes one disclosed,
+> random legal action on an ordinary read. Completion freezes BO1/BO3/BO5 map order and Team A's
+> starting side per map, and the plugin config now reads that result instead of inventing defaults.
+> Phase 5 still owns SSE as a view-only enhancement.
+
 [028](028-veto-and-lobby.md) puts map selection on the web. [018](018-frontend-architecture.md):16
 puts SSE in Phase 5. Phase 4 therefore contained a slice it had ruled out the means to finish
 — and since `MatchConfig` requires decided maps and `BracketBuilder` never sets `Match.Map`,
@@ -61,6 +67,12 @@ deleted in Phase 5 when SSE replaces it.
 ---
 
 ## 2. We never dial a game server
+
+> **Built 2026-08-12.** `/org/servers` authorises registration through the central operation
+> policy, treats `host:port` as validated display data, generates a 256-bit secret on a `no-store`
+> response and never selects it into later health views. The simulator proves both halves of the
+> boundary: a bad signature leaves the row unverified; the first valid heartbeat sets `Verified`
+> and records plugin version/liveness. A real organiser still waits for the Phase 6 plugin.
 
 This closes the half of [048](048-organiser-server-configuration.md) that Phase 4 needs.
 

@@ -7,6 +7,8 @@ using NextSkill.Domain.Tournaments;
 using NextSkill.Domain.Matches;
 using NextSkill.Api.Shared.Tenancy;
 using NextSkill.Simulator;
+using NextSkill.Contracts;
+using NextSkill.Domain.Veto;
 
 namespace NextSkill.Checks;
 
@@ -59,6 +61,11 @@ public static class EndToEndChecks
             db.Servers.Add(new GameServer { Id = serverId, OrganiserId = orgId, Host = "127.0.0.1", Port = 27015, Game = Game.Cs2, Verified = true, HmacSecret = secret, CreatedAt = DateTimeOffset.UtcNow });
             db.Tournaments.Add(new Tournament { Id = tournamentId, OrganiserId = orgId, Name = "Sim Cup", Game = Game.Cs2, Format = TournamentFormat.SingleElimination, Status = TournamentStatus.Running, CreatedAt = DateTimeOffset.UtcNow });
             db.Matches.Add(new Match { Id = matchId, OrganiserId = orgId, TournamentId = tournamentId, Game = Game.Cs2, Status = MatchStatus.Scheduled, Integrity = MatchIntegrity.Confirmed, ServerId = serverId, Map = "de_dust2", CreatedAt = DateTimeOffset.UtcNow });
+            db.MatchMaps.Add(new MatchMap
+            {
+                Id = Guid.NewGuid(), OrganiserId = orgId, MatchId = matchId, Order = 0,
+                Map = "de_nuke", TeamAStartsAs = VetoStartingSide.T,
+            });
             db.SaveChanges();
         }
 
@@ -126,6 +133,11 @@ public static class EndToEndChecks
             that(json.Contains("\"maps\""), "config must carry the decided map order");
             that(!json.Contains("veto", StringComparison.OrdinalIgnoreCase),
                 "config must NOT carry veto rules — veto happened on the web (028)");
+            var config = NextSkillJson.Deserialize<MatchConfig>(json);
+            that(config.BestOf == 1 && config.Maps.Count == 1,
+                "the plugin config's series length must come from the frozen map result");
+            that(config.Maps[0] == new MapAssignment { Map = "de_nuke", TeamAStartsAs = WireSide.T },
+                "the plugin must receive the veto's map and side, not hard-coded defaults");
         });
 
         // ── sequencing ───────────────────────────────────────────────────

@@ -47,7 +47,12 @@ public static class RankingChecks
             // Existing open seasons are made ineligible only inside this
             // transaction. Disposal rolls the whole arrangement back.
             foreach (var season in db.Seasons.Where(s => !s.Closed))
+            {
                 season.Closed = true;
+                // A closed season must record WHEN (051 §4). The database
+                // enforces it, so a test arrangement cannot skip it either.
+                season.ClosedAt = now;
+            }
 
             db.Seasons.AddRange(
                 new Season
@@ -58,7 +63,8 @@ public static class RankingChecks
                 new Season
                 {
                     Id = Guid.NewGuid(), Number = nextNumber + 1, Name = "Zamknięty",
-                    StartsAt = now.AddDays(-2), EndsAt = now.AddDays(-1), Closed = true,
+                    StartsAt = now.AddDays(-2), EndsAt = now.AddDays(-1),
+                    Closed = true, ClosedAt = now.AddDays(-1),
                 },
                 new Season
                 {
@@ -80,7 +86,10 @@ public static class RankingChecks
             using var transaction = db.Database.BeginTransaction();
 
             foreach (var season in db.Seasons.Where(s => !s.Closed))
+            {
                 season.Closed = true;
+                season.ClosedAt = DateTimeOffset.UtcNow;
+            }
             db.SaveChanges();
 
             var page = Page(db);

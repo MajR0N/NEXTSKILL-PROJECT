@@ -4,7 +4,9 @@ using NextSkill.Domain.Access;
 using NextSkill.Domain.Auth;
 using NextSkill.Domain.Brackets;
 using NextSkill.Domain.Matches;
+using NextSkill.Domain.Teams;
 using NextSkill.Domain.Tournaments;
+using NextSkill.Domain.Veto;
 
 namespace NextSkill.Api.Shared.Persistence;
 
@@ -469,9 +471,324 @@ public class Match : ITenantOwned
     /// </summary>
     public JsonDocument? Payload { get; set; }
 
+    // ── the second ending: when the result becomes FINAL (decision 050) ──
+    //
+    // Receiving a result moves the bracket; only a FINAL result moves a rating.
+    // Two nullable timestamps rather than a confirmations table: there are
+    // exactly two teams, and a table for a two-valued fact never pays its rent.
+
+    public DateTimeOffset? TeamAConfirmedAt { get; set; }
+    public DateTimeOffset? TeamBConfirmedAt { get; set; }
+
+    /// <summary>
+    /// A captain's claim that the result is <b>illegitimate</b>.
+    ///
+    /// <b>Not <see cref="MatchIntegrity.Disputed"/>.</b> Integrity is a machine
+    /// statement about whether we received the result correctly; this is a human
+    /// statement about whether it should stand. Merging them would let a captain
+    /// retroactively flip a machine-verified fact and make reconciliation
+    /// non-deterministic on replay (050).
+    ///
+    /// It holds the rating and <b>never un-advances the bracket</b>: human
+    /// judgement gets the reversible thing and never the irreversible one.
+    /// </summary>
+    public DateTimeOffset? DisputedAt { get; set; }
+    public Guid? DisputedByAccountId { get; set; }
+    public string? DisputeReason { get; set; }
+
+    /// <summary>
+    /// When the rating sweeper settled this match — including settling it as
+    /// <i>unrated</i>, which is why this is not derived from the ledger.
+    ///
+    /// Both this and the ledger's unique index exist deliberately: the index is
+    /// the correctness guarantee, this column is what stops the sweeper
+    /// rescanning every completed match on the platform forever (050).
+    /// </summary>
+    public DateTimeOffset? RatedAt { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? EndedAt { get; set; }
+}
+
+/// <summary>
+/// Privileged decisions that must never be silent
+/// (decisions 012 §7, 015, 036, 051 §7).
+///
+/// <b>Phase 4 records decisions only.</b> Authentication events are deferred
+/// with the staff panel that would read them: an append-only log nobody can
+/// view is storage rather than security, and a row per login accrues GDPR
+/// weight from day one against the IP minimisation that already shipped.
+/// </summary>
+public enum AuditAction
+{
+    ForfeitMatch,
+    ReverseResult,
+    ResolveDispute,
+    RegisterServer,
+    SetOrganiserTrusted,
+    GrantRole,
+    BanUser,
+
+    /// <summary>
+    /// Someone asked for an RCON credential, a <c>setinfo</c> token or a server
+    /// signing secret. It is <b>always</b> denied, to everyone, including the
+    /// platform owner (007, 012) — which is exactly why the attempt is the thing
+    /// worth recording.
+    /// </summary>
+    ReadSecret,
+}
+
+/// <summary>
+/// Whether the decision happened.
+///
+/// <b>This column is why the audit log has to be a table.</b>
+/// [036](036-authorization.md):173 requires that a denied request for a
+/// server's credential is audited — and a <i>denied</i> attempt changes no row,
+/// so there is nothing for per-row attribution to attach itself to. Forfeits
+/// were called "audited" while meaning three columns on the match; that
+/// mechanism could never have covered a refusal.
+/// </summary>
+public enum AuditOutcome { Allowed, Denied }
+
+/// <summary>
+/// How long a row is kept (decision 051 §7).
+///
+/// Present from the first migration purely so authentication events can be
+/// swept on a different clock later without a schema change.
+/// </summary>
+public enum AuditRetention
+{
+    /// <summary>Competition history. Kept — it explains a bracket years later.</summary>
+    Decision,
+
+    /// <summary>Security telemetry. Sweepable once something reads it.</summary>
+    Security,
+}
+
+/// <summary>
+/// One recorded human decision. Append-only (decisions 012 §7, 036, 051 §7).
+///
+/// <b>Global rather than tenant-filtered</b>, and deliberately: platform-scope
+/// actions have no organiser at all, and staff read across organisers by
+/// definition. A nullable column cannot carry the standard filter without
+/// silently hiding exactly the rows staff exist to see, so reads here are
+/// explicit — the same call already made for <see cref="Rating"/>.
+///
+/// <b>Erasure needs no new thinking.</b> Rows reference an account id, and
+/// erasure turns that account into a tombstone. Nothing here is edited and
+/// nothing personal survives it, so append-only and GDPR erasure stop
+/// competing.
+/// </summary>
+public class AuditEntry
+{
+    public Guid Id { get; set; }
+
+    /// <summary>Who decided. Survives their erasure as a tombstoned id.</summary>
+    public Guid ActorAccountId { get; set; }
+
+    /// <summary>Null for platform-scope actions, which belong to no organiser.</summary>
+    public Guid? OrganiserId { get; set; }
+
+    public AuditAction Action { get; set; }
+    public AuditOutcome Outcome { get; set; }
+
+    /// <summary>
+    /// What was acted on. The kind is implied by <see cref="Action"/>, so there
+    /// is no second column repeating it back — a <c>ForfeitMatch</c> row's
+    /// resource is a match and can be nothing else.
+    /// </summary>
+    public Guid? ResourceId { get; set; }
+
+    /// <summary>
+    /// The human's stated reason. <b>Never the secret involved</b> (012 §7).
+    /// </summary>
+    public string? Reason { get; set; }
+
+    public AuditRetention Retention { get; set; }
+    public DateTimeOffset OccurredAt { get; set; }
+}
+
+/// <summary>
+/// How confident we are that this person actually played (decision 050).
+/// </summary>
+public enum ParticipantProvenance
+{
+    /// <summary>
+    /// A captain's attributable statement, frozen when the match loaded.
+    ///
+    /// <b>This does not reopen 029.</b> That decision refused to infer an old
+    /// match's roster from <i>current</i> team membership, and it was right — a
+    /// roster read today says nothing about a roster last March. A declared row
+    /// is not an inference; it is a claim made at a known moment and rendered
+    /// as one.
+    /// </summary>
+    Declared,
+
+    /// <summary>Proven in game by both factors of 011's binding.</summary>
+    Bound,
+}
+
+/// <summary>
+/// Who played, and how confidently (decision 050). One row per
+/// <c>(match, account)</c>.
+///
+/// <b>Both provenances count toward a player rating.</b> Rating only what the
+/// plugin proved was rejected because 005 gives CS 1.6 no binding guarantee on
+/// non-Steam clients (V3, still unverified) — and CS 1.6 is the moat. A
+/// bind-only rule would have quietly meant no player ratings in the game the
+/// product is differentiated by.
+/// </summary>
+public class MatchParticipant : ITenantOwned
+{
+    public Guid Id { get; set; }
+    public Guid OrganiserId { get; set; }
+    public Guid MatchId { get; set; }
+    public Guid AccountId { get; set; }
+    public Guid TeamId { get; set; }
+
+    /// <summary>The roster slot they occupied (decision 045). Never a coach.</summary>
+    public RosterSlot Slot { get; set; }
+
+    public ParticipantProvenance Provenance { get; set; }
+
+    /// <summary>
+    /// Factor 2 of 011's binding: shown to this one player in the lobby, typed
+    /// in game, and good for exactly one bind.
+    ///
+    /// ponytail: stored as plaintext, unlike every other secret in this schema —
+    /// and deliberately. It is four characters, so a hash would be brute-forced
+    /// in microseconds and would buy nothing except the inability to show the
+    /// player their own code. Its security is structural, not cryptographic: it
+    /// is useless without the account's <c>setinfo</c> token, scoped to one
+    /// slot in one match, and consumed by the first successful bind — after
+    /// which <see cref="Provenance"/> itself is the used marker, so there is no
+    /// separate consumed flag to forget to set. Ceiling: a database reader can
+    /// see live codes. Upgrade path: none needed while factor 1 stands; if
+    /// binding ever becomes single-factor, this must become a hash and the code
+    /// must get real entropy.
+    /// </summary>
+    public string? LinkCode { get; set; }
+
+    public DateTimeOffset? BoundAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>
+/// One immutable rating movement (decision 050 §3). Append-only.
+///
+/// <b>Global, like <see cref="Rating"/> itself</b> — a rating trend that spans
+/// organisers is the whole point of a platform rather than isolated installs
+/// (036).
+///
+/// One table does four jobs, which is the tell that it is the right seam:
+/// 049's trend chart reads it directly, 025's recomputation seam replays it,
+/// the unique index <b>is</b> the sweeper's idempotency — a database constraint
+/// rather than application logic hoping to be right — and <i>"why didn't this
+/// match move my rating?"</i> answers itself, which is why unrated rows carry a
+/// reason string rather than a bare flag.
+/// </summary>
+public class RatingChange
+{
+    public Guid Id { get; set; }
+
+    /// <summary>
+    /// <b>Nullable on purpose</b>: 021 promises a soft RD widening at season
+    /// start, which is a rating change with no match behind it.
+    /// </summary>
+    public Guid? MatchId { get; set; }
+
+    /// <summary>A team id or an account id — see <see cref="SubjectIsTeam"/>.</summary>
+    public Guid SubjectId { get; set; }
+
+    /// <summary>Teams are Glicko-2, players are OpenSkill; they never mix (025).</summary>
+    public bool SubjectIsTeam { get; set; }
+
+    public Game Game { get; set; }
+
+    // Null on an unrated row. Nothing moved, so there is nothing to record —
+    // writing the unchanged value in both columns would make "no change" and
+    // "changed by zero" indistinguishable.
+    public double? ValueBefore { get; set; }
+    public double? ValueAfter { get; set; }
+    public double? DeviationBefore { get; set; }
+    public double? DeviationAfter { get; set; }
+    public double? VolatilityBefore { get; set; }
+    public double? VolatilityAfter { get; set; }
+
+    /// <summary>
+    /// Null when the match was rated. Otherwise the reason
+    /// <see cref="NextSkill.Domain.Ratings.RatingPolicy.ExcludedBecause"/>
+    /// returned, verbatim.
+    /// </summary>
+    public string? ExcludedBecause { get; set; }
+
+    /// <summary>
+    /// What freezes a season archive. 021 freezes standings forever and 025
+    /// derives them at read time; 051 §4 resolves the contradiction by filtering
+    /// this append-only ledger on <c>AppliedAt &lt;= Season.ClosedAt</c> rather
+    /// than snapshotting anything.
+    /// </summary>
+    public DateTimeOffset AppliedAt { get; set; }
+
+    /// <summary>
+    /// Set when a referee reversal invalidated this row (050 §5).
+    ///
+    /// <b>Superseding rather than deleting is what makes the ledger a ledger.</b>
+    /// The old numbers stay readable, so "my rating changed and nobody told me
+    /// why" has an answer that survives the correction.
+    ///
+    /// It is also part of the unique index's filter: idempotency must hold over
+    /// the <i>live</i> generation of rows, while a replayed generation has to be
+    /// allowed to exist alongside the one it replaces.
+    /// </summary>
+    public DateTimeOffset? SupersededAt { get; set; }
+}
+
+/// <summary>
+/// Durable pre-match veto state. One row per match; actions and decided maps
+/// grow behind this seam as the veto advances (decisions 028, 051).
+/// </summary>
+public class MatchVeto : ITenantOwned
+{
+    public Guid Id { get; set; }
+    public Guid OrganiserId { get; set; }
+    public Guid MatchId { get; set; }
+
+    public DateTimeOffset? TeamAReadyAt { get; set; }
+    public DateTimeOffset? TeamBReadyAt { get; set; }
+    public DateTimeOffset? TurnStartedAt { get; set; }
+    public DateTimeOffset? CompletedAt { get; set; }
+    public int CurrentStep { get; set; }
+    public int BestOf { get; set; } = 1;
+    public string[] MapPool { get; set; } = [];
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>An append-only captain or expiry action in one veto.</summary>
+public class MatchVetoAction : ITenantOwned
+{
+    public Guid Id { get; set; }
+    public Guid OrganiserId { get; set; }
+    public Guid MatchVetoId { get; set; }
+    public int Sequence { get; set; }
+    public Guid TeamId { get; set; }
+    public VetoActionKind Kind { get; set; }
+    public required string Map { get; set; }
+    public VetoStartingSide? Side { get; set; }
+    public bool Automatic { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>Immutable server-facing map order produced by a completed web veto.</summary>
+public class MatchMap : ITenantOwned
+{
+    public Guid Id { get; set; }
+    public Guid OrganiserId { get; set; }
+    public Guid MatchId { get; set; }
+    public int Order { get; set; }
+    public required string Map { get; set; }
+    public VetoStartingSide TeamAStartsAs { get; set; }
 }
 
 /// <summary>

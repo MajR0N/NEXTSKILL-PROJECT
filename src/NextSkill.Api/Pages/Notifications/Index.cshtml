@@ -1,0 +1,63 @@
+@page
+@model NextSkill.Api.Pages.Notifications.IndexModel
+@using Microsoft.Extensions.Localization
+@using NextSkill.Api.Localisation
+@using NextSkill.Api.Shared.Persistence
+@inject IStringLocalizer<UiText> T
+@{
+    ViewData["Title"] = T["Notifications.Title"];
+}
+
+<div class="wrap-narrow section">
+    <p class="eyebrow">@T["Notifications.Eyebrow"]</p>
+    <h1>@T["Notifications.Title"]</h1>
+
+    @if (Model.Notifications.Count == 0)
+    {
+        @* Looking early beats looking abandoned (020): this says what will
+           arrive here, not that something is missing. *@
+        <p class="dim" style="margin-top:var(--s5)">@T["Notifications.Empty"]</p>
+    }
+    else
+    {
+        <ul class="stack" style="margin-top:var(--s5)">
+            @foreach (var row in Model.Notifications)
+            {
+                <li class="card">
+                    <p>
+                        @* The type carries the meaning; the data only fills in
+                           the names. An unknown type still renders a readable
+                           line rather than a blank row. *@
+                        @(row.Type switch
+                        {
+                            NotificationType.TeamInvite => T["Notifications.TeamInvite", row.Subject ?? ""],
+                            NotificationType.TeamInviteAccepted => T["Notifications.TeamInviteAccepted", row.Subject ?? ""],
+                            NotificationType.RosterChanged => T["Notifications.RosterChanged", row.Subject ?? ""],
+                            NotificationType.ResultDisputed => T["Notifications.ResultDisputed"],
+                            NotificationType.ResultConfirmed => T["Notifications.ResultConfirmed"],
+                            NotificationType.RatingUpdated => T["Notifications.RatingUpdated"],
+                            NotificationType.MatchScheduled => T["Notifications.MatchScheduled"],
+                            NotificationType.MatchStartingSoon => T["Notifications.MatchStartingSoon"],
+                            _ => T["Notifications.Generic"],
+                        })
+                        @if (row.WasUnread)
+                        {
+                            <span class="dim"> · @T["Notifications.New"]</span>
+                        }
+                    </p>
+                    @if (row.Detail is not null)
+                    {
+                        <p class="dim">@row.Detail</p>
+                    }
+                    @if (row.Link is not null)
+                    {
+                        <a href="@row.Link">@T["Notifications.Open"]</a>
+                    }
+                    <p class="dim">
+                        <time datetime="@row.CreatedAt.ToString("o")">@row.CreatedAt.ToString("yyyy-MM-dd HH:mm")</time>
+                    </p>
+                </li>
+            }
+        </ul>
+    }
+</div>

@@ -1,0 +1,22 @@
+@page "{slug}"
+@model NextSkill.Api.Pages.News.DetailsModel
+@using System.Globalization
+@{
+    ViewData["Title"] = Model.Title;
+    var locale = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+}
+
+<article class="wrap-narrow section">
+    <p class="eyebrow">
+        <a asp-page="/News/Index" asp-route-culture="@locale">Aktualności</a>
+    </p>
+    <h1>@Model.Title</h1>
+    <p class="dim">
+        <time datetime="@Model.PublishedAt.ToString("o")">@Model.PublishedAt.ToString("yyyy-MM-dd")</time>
+    </p>
+
+    @* The one place in this application where markup is written unescaped, and
+       it is only reached through NewsMarkdown: raw HTML disabled at the parser,
+       every link target through a scheme allow-list (051 §8). *@
+    <div class="prose" style="margin-top:var(--s5)">@Model.Body</div>
+</article>

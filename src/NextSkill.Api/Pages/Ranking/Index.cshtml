@@ -111,7 +111,21 @@
                     @foreach (var row in Model.Ranked)
                     {
                         <tr>
-                            <td class="num" style="width:56px;color:var(--text-mid);font-weight:600">@row.Rank</td>
+                            <td class="num" style="width:80px;color:var(--text-mid);font-weight:600">
+                                @row.Rank
+                                @* Never the glyph alone. 019's rule is that
+                                   meaning must survive without colour, and the
+                                   same argument applies to a shape a screen
+                                   reader announces as punctuation — so the
+                                   direction carries a text label too. *@
+                                @if (row.Movement is { } direction)
+                                {
+                                    <span aria-hidden="true">@(direction > 0 ? "▲" : "▼")</span>
+                                    <span class="visually-hidden">
+                                        @(direction > 0 ? "rating wzrósł po ostatnim meczu" : "rating spadł po ostatnim meczu")
+                                    </span>
+                                }
+                            </td>
                             <td>
                                 <a class="team" asp-page="@(players ? "/Players/Details" : "/Teams/Details")"
                                    asp-route-culture="@locale" asp-route-id="@row.Id"
@@ -137,7 +151,20 @@
                                     <i style="width:@(row.ConfidencePercent)%"></i>
                                 </div>
                             </td>
-                            <td class="r num">@row.MatchesPlayed</td>
+                            <td class="r num">
+                                @row.MatchesPlayed
+                                @if (row.Form is { } form)
+                                {
+                                    @* Newest first, and letters rather than
+                                       coloured dots — the strip has to be
+                                       readable in monochrome, which is the
+                                       whole point of 019's rule and of shipping
+                                       grey until 044 closes. *@
+                                    <span class="team__meta" aria-label="Ostatnie mecze, od najnowszego: @form">
+                                        @form
+                                    </span>
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>

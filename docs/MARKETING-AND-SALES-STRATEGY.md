@@ -205,6 +205,16 @@ without dismantling their own supply chain — which is the only kind of gap wor
 > **Twój turniej, na Twoim serwerze, z rankingiem, który uznają inni.**
 > *(Your tournament, on your server, with a rating others recognise.)*
 
+The Phase 4 product now proves the first half of that promise rather than merely modelling it:
+an authorised organiser registers their endpoint, receives a write-only plugin credential, and
+the server becomes verified only after a correctly signed inbound heartbeat. The simulator is the
+current proof; a real organiser cannot complete that last step until the Phase 6 plugin ships.
+
+It also proves the hand-off into play: both captains can complete the map veto on a shareable web
+lobby before a server is allocated, and the plugin receives the resulting map order and sides as
+immutable configuration. That is useful sales evidence because the organiser keeps their server
+without inheriting a second, game-specific veto workflow.
+
 And the six-word version of the trade: **Twój turniej, Twoja marka, wspólny ranking.**
 
 Against the largest Polish amateur platform specifically, the difference has a shorter form —

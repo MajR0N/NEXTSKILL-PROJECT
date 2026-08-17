@@ -128,6 +128,21 @@ public class ForfeitModel(NextSkillDb db, TenantContext tenant) : PageModel
         if (!ModelState.IsValid) return Page();
 
         tenant.Set(Tournament.OrganiserId);
+
+        // The plan has called forfeits "audited" since 046, which until now meant
+        // three columns on the match row. Those columns describe the result; they
+        // cannot describe a decision, and they could never have recorded a
+        // refused one (051 §7). The row commits inside this transaction, with
+        // the forfeit it explains.
+        Audit.Record(
+            db,
+            actor.AccountId,
+            AuditAction.ForfeitMatch,
+            DateTimeOffset.UtcNow,
+            organiserId: Tournament.OrganiserId,
+            resourceId: TournamentMatch.Id,
+            reason: Reason);
+
         await BracketBuilder.ForfeitAsync(
             db,
             TournamentMatch,

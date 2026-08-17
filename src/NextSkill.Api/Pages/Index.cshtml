@@ -1,40 +1,132 @@
 @page
 @model IndexModel
+@using System.Globalization
+@using NextSkill.Api.Shared.Persistence
+@using NextSkill.Domain.Tournaments
 @{
     ViewData["Title"] = "Start";
+    ViewData["Description"] = "Turnieje CS2 i CS 1.6 dla społeczności. Wyniki lecą prosto z serwera, nie ze zrzutu ekranu.";
+    var locale = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+    var quiet = Model.Live.Count == 0 && Model.Upcoming.Count == 0 && Model.Recent.Count == 0;
 }
 
 <div class="wrap section">
-    <p class="eyebrow">Faza budowy · <b>0 — fundament</b></p>
-    <h1>Design system działa</h1>
+    @* The thesis, stated once. Everything below is evidence for it. *@
+    <p class="eyebrow">CS2 · CS 1.6</p>
+    <h1>Wyniki z serwera, nie ze zrzutu ekranu</h1>
     <p class="lede">
-        Ta strona istnieje wyłącznie po to, żeby potwierdzić, że shell i tokeny renderują się
-        w prawdziwej aplikacji. Treść strony głównej nie została jeszcze ustalona —
-        wymaga grillowania (patrz <code>docs/BUILD-PLAN.md</code>, faza 4).
+        Turnieje na waszych serwerach, z ratingiem, który liczy się poza waszą społecznością.
+        Drabinka przesuwa się sama, kiedy serwer zgłosi wynik.
     </p>
 
-    <div class="row" style="margin-top:var(--s5)">
-        <span class="pill pill--ok"><span class="pill__dot"></span>Wynik potwierdzony</span>
-        <span class="pill pill--live"><span class="pill__dot"></span>Na żywo</span>
-        <span class="pill pill--warn">Wymaga decyzji</span>
-        <span class="pill">Demo <b>84 MB</b></span>
-    </div>
-
-    <div class="row" style="margin-top:var(--s4)">
-        <button class="btn btn--primary">Akcja główna</button>
-        <button class="btn">Akcja drugorzędna</button>
-        <button class="btn btn--ghost">Ghost</button>
-        <button class="btn btn--danger">Usuń drużynę</button>
-    </div>
-
-    <p class="label" style="margin-top:var(--s7)">Stan pusty</p>
-    <div class="empty">
-        <div class="empty__icon">◍</div>
-        <h4>Nie masz jeszcze drużyny</h4>
-        <p>Załóż własną albo wystaw się na liście szukających. Rating pojawi się po pierwszym meczu.</p>
-        <div class="row" style="justify-content:center">
-            <button class="btn btn--primary">Załóż drużynę</button>
-            <button class="btn">Szukam drużyny</button>
+    @if (quiet)
+    {
+        @* Day one really is empty, and pretending otherwise with fake activity
+           would be the one thing that costs trust immediately (020). *@
+        <div class="empty" style="margin-top:var(--s6)">
+            <div class="empty__icon">◍</div>
+            <h4>Jeszcze nic się nie dzieje</h4>
+            <p>Pierwszy turniej dopiero przed nami. Załóż drużynę już teraz — będziesz gotowy, gdy ruszy.</p>
+            <div class="row" style="justify-content:center">
+                <a class="btn btn--primary" asp-page="/Teams/Create" asp-route-culture="@locale">Załóż drużynę</a>
+                <a class="btn" asp-page="/Tournaments/Index" asp-route-culture="@locale">Zobacz turnieje</a>
+            </div>
         </div>
-    </div>
+    }
+
+    @if (Model.Announcements.Count > 0)
+    {
+        <section style="margin-top:var(--s7)" aria-labelledby="news-heading">
+            <p class="label" id="news-heading">Ogłoszenia</p>
+            <ul class="stack" style="margin-top:var(--s4)">
+                @foreach (var post in Model.Announcements)
+                {
+                    <li>
+                        <a asp-page="/News/Details" asp-route-culture="@locale" asp-route-slug="@post.Slug">@post.Title</a>
+                        <span class="dim"> · @post.PublishedAt.ToString("yyyy-MM-dd")</span>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+
+    @if (Model.Live.Count > 0)
+    {
+        <section style="margin-top:var(--s7)" aria-labelledby="live-heading">
+            <p class="label" id="live-heading">Teraz grają</p>
+            <div class="stack" style="margin-top:var(--s4)">
+                @foreach (var match in Model.Live)
+                {
+                    <a class="card" asp-page="/Matches/Details" asp-route-culture="@locale" asp-route-id="@match.Id">
+                        <span class="pill pill--live"><span class="pill__dot"></span>Na żywo</span>
+                        <p><b>@match.TeamA</b> @match.ScoreA : @match.ScoreB <b>@match.TeamB</b></p>
+                        <p class="dim">@match.Tournament</p>
+                    </a>
+                }
+            </div>
+        </section>
+    }
+
+    @if (Model.Upcoming.Count > 0)
+    {
+        <section style="margin-top:var(--s7)" aria-labelledby="upcoming-heading">
+            <p class="label" id="upcoming-heading">Nadchodzące</p>
+            <div class="stack" style="margin-top:var(--s4)">
+                @foreach (var tournament in Model.Upcoming)
+                {
+                    <a class="card" asp-page="/Tournaments/Details" asp-route-culture="@locale" asp-route-id="@tournament.Id">
+                        <p>
+                            <b>@tournament.Name</b>
+                            <span class="dim"> · @(tournament.Game == Game.Cs2 ? "CS2" : "CS 1.6")</span>
+                        </p>
+                        <p class="dim">
+                            @(tournament.Status == TournamentStatus.RegistrationOpen ? "Zapisy otwarte" : "W trakcie")
+                            · @tournament.Registered @(tournament.Registered == 1 ? "drużyna" : "drużyn")
+                            @if (tournament.StartsAt is { } startsAt)
+                            {
+                                <span> · @startsAt.ToString("yyyy-MM-dd HH:mm")</span>
+                            }
+                        </p>
+                    </a>
+                }
+            </div>
+        </section>
+    }
+
+    @if (Model.Recent.Count > 0)
+    {
+        <section style="margin-top:var(--s7)" aria-labelledby="recent-heading">
+            <p class="label" id="recent-heading">Ostatnie wyniki</p>
+            <div class="stack" style="margin-top:var(--s4)">
+                @foreach (var result in Model.Recent)
+                {
+                    <a class="card" asp-page="/Matches/Details" asp-route-culture="@locale" asp-route-id="@result.Id">
+                        <p><b>@result.Winner</b> @result.WinnerScore : @result.LoserScore @result.Loser</p>
+                        <p class="dim">@(result.EndedAt?.ToString("yyyy-MM-dd HH:mm") ?? "")</p>
+                    </a>
+                }
+            </div>
+        </section>
+    }
+
+    @if (Model.TopTeams.Count > 0)
+    {
+        <section style="margin-top:var(--s7)" aria-labelledby="top-heading">
+            <p class="label" id="top-heading">Czołówka CS2</p>
+            <ol class="stack" style="margin-top:var(--s4)">
+                @foreach (var team in Model.TopTeams)
+                {
+                    <li>
+                        @team.Rank.
+                        <a asp-page="/Teams/Details" asp-route-culture="@locale" asp-route-id="@team.Id">@team.Name</a>
+                        <span class="team__tag"> @team.Tag</span>
+                        <span class="dim"> · @team.Rating.ToString("F0")</span>
+                    </li>
+                }
+            </ol>
+            <p style="margin-top:var(--s4)">
+                <a asp-page="/Ranking/Index" asp-route-culture="@locale">Pełny ranking</a>
+            </p>
+        </section>
+    }
 </div>

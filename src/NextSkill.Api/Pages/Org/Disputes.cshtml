@@ -1,0 +1,64 @@
+@page
+@model NextSkill.Api.Pages.Org.DisputesModel
+@using Microsoft.Extensions.Localization
+@using NextSkill.Api.Localisation
+@inject IStringLocalizer<UiText> T
+@{
+    ViewData["Title"] = T["Disputes.Title"];
+}
+
+<div class="wrap-narrow section">
+    <p class="eyebrow">@T["Disputes.Eyebrow"]</p>
+    <h1>@T["Disputes.Title"]</h1>
+    <p class="lede">@T["Disputes.Intro"]</p>
+
+    @if (Model.Disputes.Count == 0)
+    {
+        @* Day one has no disputes, and that is the healthy state — so the empty
+           view says "nothing needs you", not "no data". *@
+        <p class="dim" style="margin-top:var(--s5)">@T["Disputes.Empty"]</p>
+    }
+
+    @foreach (var dispute in Model.Disputes)
+    {
+        <section class="card" style="margin-top:var(--s5)">
+            <p class="label">@dispute.Tournament</p>
+            <h2>@dispute.TeamA @T["Lobby.Versus"] @dispute.TeamB</h2>
+            <p class="lede">@dispute.ScoreA : @dispute.ScoreB</p>
+
+            @* The two reasons a match lands here are different facts and are
+               never merged: one is the machine's doubt about how the result
+               arrived, the other a human's claim that it is illegitimate. *@
+            @if (dispute.Integrity != NextSkill.Domain.Matches.MatchIntegrity.Confirmed)
+            {
+                <p>@T["Disputes.Integrity", dispute.Integrity.ToString()]</p>
+            }
+            @if (dispute.CaptainDisputed)
+            {
+                <p>@T["Disputes.CaptainClaim"]</p>
+                <p class="dim">@dispute.DisputeReason</p>
+            }
+
+            <form method="post" asp-page-handler="Dismiss" class="stack" style="margin-top:var(--s4)">
+                <input type="hidden" asp-for="Input.MatchId" value="@dispute.MatchId" />
+                <label for="dismiss-@dispute.MatchId">@T["Disputes.Reason"]</label>
+                <input id="dismiss-@dispute.MatchId" asp-for="Input.Reason" maxlength="500" required />
+                <button class="btn" type="submit">@T["Disputes.Dismiss.Action"]</button>
+            </form>
+
+            <form method="post" asp-page-handler="Reverse" class="stack" style="margin-top:var(--s4)">
+                <input type="hidden" asp-for="Input.MatchId" value="@dispute.MatchId" />
+                <label for="winner-@dispute.MatchId">@T["Disputes.Winner"]</label>
+                <select id="winner-@dispute.MatchId" asp-for="Input.WinnerTeamId">
+                    <option value="">@T["Disputes.Winner.None"]</option>
+                    <option value="@dispute.TeamAId">@dispute.TeamA</option>
+                    <option value="@dispute.TeamBId">@dispute.TeamB</option>
+                </select>
+                <label for="reverse-@dispute.MatchId">@T["Disputes.Reason"]</label>
+                <input id="reverse-@dispute.MatchId" asp-for="Input.Reason" maxlength="500" required />
+                <button class="btn" type="submit">@T["Disputes.Reverse.Action"]</button>
+                <p class="dim">@T["Disputes.Reverse.Warning"]</p>
+            </form>
+        </section>
+    }
+</div>

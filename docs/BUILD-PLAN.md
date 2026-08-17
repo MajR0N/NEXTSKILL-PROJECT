@@ -4,7 +4,7 @@ The design phase is complete (**43 decision records** in `docs/decisions/`, two 
 deliberately reopened). This is the implementation sequence, derived from
 [038 — build order](decisions/038-build-order.md).
 
-**Currently: Phase 4, roughly half built. 242 checks passing.** The marks below are audited
+**Currently: Phase 4, past the keystone. 287 checks passing.** The marks below are audited
 rather than asserted — see the note at the end of Phase 4 about what "◐" means here.
 
 **Status legend:** ☐ pending · ◐ in progress · ☑ done · ⊘ blocked — nothing to test until the slice it belongs to exists · ➡ deliberately moved
@@ -246,7 +246,11 @@ endpoint, request, handler and validator together.
   - ☑ Server-rendered on live data; provisional teams listed separately; `±RD` and confidence bar shown openly
   - ☑ **Current season comes from live data** — a future or closed season is ignored, and no active season means the page invents no label ([021](decisions/021-site-structure.md))
   - ☑ **Player ranking** — OpenSkill's conservative `μ − 3σ` score is derived at read time; provisional players are visible but receive no rank ([025](decisions/025-rating-system.md))
-  - ⊘ Movement arrows (▲▼) and form strips (W/L) — blocked on the Matches slice because both need match history; the CSS alone is not a feature
+  - ☑ Movement arrows (▲▼) and form strips (W/L) — two queries per page, never one per row. The
+    arrow is **last rating movement, not rank movement**, and the label says so: real rank movement
+    needs the rank as it stood on a past date, which nothing stores. An honest cheaper fact beats an
+    expensive one that is quietly approximate. Never the glyph alone — the direction survives without
+    shape or colour ([019](decisions/019-visual-identity.md))
   - ☑ **Protected cursor pagination and literal search** — 20 rows per page across ranked/provisional sections; cursor state is tamper-evident, filters remain shareable, and `%`/`_` are text rather than wildcard operators ([039](decisions/039-public-api.md))
 - ◐ **Accounts** — authentication, profile and destructive account mutations work; export and production messaging remain
   - ☑ Argon2id, session row + signed cookie, revocation, rate limiting, identical answers for unknown address and wrong password
@@ -255,7 +259,7 @@ endpoint, request, handler and validator together.
   - ☑ Outbound messaging seam that **fails closed** — production refuses to start without a real sender
   - ⊘ A real email/SMS provider, and deliverability (SPF/DKIM/DMARC) — blocked on the production provider, sending domain and credentials ([043](decisions/043-page-contents.md))
   - ☑ **Profile pages** ([029](decisions/029-profile-login-footer.md)) — public `/players/{id}` and private `/me`; ratings remain split by game, provisional state is explicit, team history and live LFT state are shown, and the public query selects an allow-list that cannot expose email, IP, token hashes or provider IDs
-    - ⊘ Recent player matches and achievements — blocked on immutable match-participant history. Current team membership cannot prove who actually played an old match, so the profile does not fabricate it
+    - ☑ Recent player matches — built on `match_participants`, the immutable history 029 was waiting for. Each row states **how** it is known: *potwierdzony w grze* for a bind the server proved, *zgłoszony przez kapitana* for a declaration. Nothing is inferred from today's roster. Achievements still wait on placement standings
   - ☑ **`setinfo` token rotation** — 256-bit console-safe token, only SHA-256 stored; the copy-ready `setinfo _ns "…"` command is shown once under `no-store`, every rotation immediately invalidates the previous token, and the POST is CSRF-protected ([011](decisions/011-accounts-and-login.md))
   - ☑ **Steam / Discord linking** — Steam OpenID assertions are verified server-to-server; Discord uses authorization code + the minimum `identify` scope and never stores provider tokens. Correlation state is protected, tied to the account and live session, and backed by an HttpOnly one-use cookie; link/unlink starts are CSRF-protected; unique database indexes ensure one provider identity belongs to only one NEXTSKILL account even under concurrent callbacks. Discord activates when its application ID/secret are supplied ([011](decisions/011-accounts-and-login.md))
   - ☑ **Log out everywhere** — the CSRF-protected `/me` action deletes every server-side session for the account in one database statement, clears the initiating cookie and confirms completion; two-browser coverage proves both sessions lose private-page access immediately
@@ -267,7 +271,11 @@ endpoint, request, handler and validator together.
   - ☑ Edit (rename, re-tag, city) and **disband** — soft, tag stays reserved, confirmed by typing the tag ([045](decisions/045-teams-and-rosters.md))
   - ☑ **Roster is 5 players + 3 substitutes + 2 coaches = 10 places**, capped *per slot*. Coaches are **never fieldable**; pending invites occupy a place; moving between slots respects the destination cap ([045](decisions/045-teams-and-rosters.md))
   - ⊘ Team logos — blocked on [044](decisions/044-visual-direction.md); uploads also require image validation, storage and moderation decisions
-  - ⊘ **Team page expansion** — design is closed in [049](decisions/049-team-page.md): one shareable per-game view, integrity-aware history/record, accessible rating trend, trusted trophies and intentional recruitment openings. History/trend/trophies wait on the Matches result/ledger/completion seams; openings/applications wait on the LFT recruitment model
+  - ◐ **Team page expansion** ([049](decisions/049-team-page.md)) — **history and trend built**
+    - One shareable per-game view, with the game in the URL so a pasted link shows what the sender saw
+    - Integrity-aware record: only `Confirmed` results count, and the page **states how many it is holding back**. A record that quietly omits matches is one nobody can reconcile against their own memory
+    - The trend **is a table**, reading `rating_changes` directly — 049 asked for an accessible trend, so a chart over it is a 5c enhancement and a chart instead of it would be a number only sighted mouse users can read
+    - ⊘ **Trophies** still blocked: a top-three placement needs final standings, and nothing computes placement beyond the bracket winner. Openings/applications still wait on the LFT recruitment model
   - ☑ **Un-disbanding** — only a captain active at the exact disband moment may restore; exact-tag confirmation keeps the same team id and tag, leaves every old tenure closed, and starts a new roster with only the restoring captain. A transaction and row lock make retries and competing restores safe ([045](decisions/045-teams-and-rosters.md))
 - ◐ **Tournaments** — lifecycle, registration and seeding done ([046](decisions/046-tournament-lifecycle.md))
   - ☑ State machine as a pure function; **`Draft → Running` refused**, `Completed`/`Cancelled` terminal
@@ -286,7 +294,8 @@ endpoint, request, handler and validator together.
   - ☑ Byes resolved at generation, never rated, advanced into the correct slot
   - ☑ Advancement in **one** place, integrity-gated ([035](decisions/035-match-result-integrity.md))
   - ☑ `/t/{id}/bracket` — wide canvas, its own horizontal scroll ([041](decisions/041-layout-system.md))
-  - ☐ Advancing on a **reported result** — waits on the match slice
+  - ☑ Advancing on a **reported result** — `map_end` now stores the winner and calls
+    `AdvanceAsync`, gated on integrity, on not-already-decided, and on a real winner
   - ☐ Bracket reset triggered live; mobile round-by-round view ([023](decisions/023-bracket.md))
 > ### The remaining slices are ordered, and the order is load-bearing
 >
@@ -302,48 +311,100 @@ endpoint, request, handler and validator together.
     accident
   - Every slice below uses `IStringLocalizer` from its first line; existing pages retrofit as touched.
     Three checks cover direct neutral fallback, the rendered-shell seam and a real German route
-- ☐ **Server registration** ([051](decisions/051-phase-4-remainder.md) §2, closes half of [048](decisions/048-organiser-server-configuration.md))
-  - `GameServer` is a real table with an HMAC secret and a `Verified` flag — and **there is no way
-    to create one**. Servers exist only where tests insert them
+- ☑ **Server registration** ([051](decisions/051-phase-4-remainder.md) §2, closes half of [048](decisions/048-organiser-server-configuration.md))
+  - `/org/servers` lists authorised server health and lets an organiser owner/admin register a
+    normalised `host:port`; tenant-id tampering is refused and the database prevents duplicate
+    credentials for the same endpoint
   - **We never dial a game server.** Organiser registers `host:port`, gets a one-time secret,
-    pastes it into the plugin config; the **first correctly signed heartbeat sets `Verified`**
-  - Ends Phase 4 built and *provably unusable by a real organiser* until Phase 6. Marked honestly
+    pastes it into the plugin config; the secret is 256-bit, shown on one `no-store` response and
+    omitted from every later health projection; the **first correctly signed heartbeat sets
+    `Verified`**, while rejected traffic changes nothing
+  - ⊘ Real-organiser verification remains blocked until the real plugin ships in Phase 6; the
+    simulator proves the complete registration → signed-heartbeat transition now
   - ⚠ `GameServer.HmacSecret` is still plaintext — its `ponytail:` ceiling says encrypt with an
     out-of-DB key **before production** ([012](decisions/012-security.md))
-- ☐ **Veto & lobby** — *before* matches, not after ([028](decisions/028-veto-and-lobby.md), [051](decisions/051-phase-4-remainder.md) §1)
+- ☑ **Veto & lobby** — *before* matches, not after ([028](decisions/028-veto-and-lobby.md), [051](decisions/051-phase-4-remainder.md) §1)
   - **Server-rendered with form posts.** [028](decisions/028-veto-and-lobby.md)'s own check #5 already
     demands full correct state from a plain fetch, so this version must exist regardless; SSE in 5c
     becomes a pure view layer
+  - Captains alone confirm presence and take the frozen preset's turns; row locks, append-only
+    actions and server-side legality reject out-of-turn and reused-map posts
   - **Turn timer resolves lazily on read**, derived from `TurnStartedAt` — no thread, survives a
-    restart, replays identically. `ponytail:` ceiling recorded
+    restart, and one read makes at most one random legal move. `ponytail:` ceiling recorded
   - `<meta http-equiv="refresh" content="5">` on the veto page only, deleted when SSE lands
-  - Writes `Match.Map`, which is what unblocks the config endpoint
-- ☐ **Matches** — the keystone ([050](decisions/050-match-results-and-ratings.md)). *The ingest half
-  works and is proven end to end. What is missing is larger than "the web surface":*
-  - ☐ `map_end` sets `WinnerTeamId` and calls `BracketBuilder.AdvanceAsync` — **today it does
-    neither**, and `AdvanceAsync`'s only production caller is bye resolution
-  - ☐ **`MatchParticipant` + `Provenance`** — `Declared` from the lineup frozen at check-in,
-    upgraded to `Bound` by a `player_bound` event. Both count toward a player rating, because
-    CS 1.6 may never bind reliably (**V3**) and it is the moat
-  - ☐ **Lineup captured at check-in** — `IsFieldable` admits 8 for a lineup of 5; check-in never
-    asked which. No picker when there is nothing to pick
-  - ☐ **Rating ledger** — append-only, unique on `(MatchId, SubjectId, Game)`, unrated rows carry
-    `ExcludedBecause`'s reason. **Nothing in the app has ever written a `Rating` row**
-  - ☐ **Rating sweeper** — `BackgroundService`, same shape as `DiscordAnnouncementWorker`, ordered
-    `(EndedAt, Id)` because Glicko-2 is rating-period based
-  - ☐ **Confirmation accelerates, dispute holds** — both touch the rating, neither touches the
-    bracket. `organiser.trusted` finally means something
-  - ☐ **Bind / per-match link code** — in, so the simulator proves `Declared → Bound` before Phase 6
+  - BO1/BO3/BO5 rules preserve pick order, let the non-picker choose sides and append the decider;
+    completion freezes ordered `MatchMap` rows plus `Match.Map` in the same transaction
+  - The plugin config endpoint now refuses an incomplete veto and emits only those frozen maps and
+    sides — no dust2/CT fallback and no veto rules on the wire
+  - Tournament generation currently freezes the starter seven-map pool and BO1 onto a new veto;
+    the already-supported BO3/BO5 choice becomes a per-stage organiser input with the Matches/admin seam
+- ☑ **Matches** — the keystone ([050](decisions/050-match-results-and-ratings.md)), **built and
+  proven end to end 2026-08-17. 11 new checks.** *The definition-of-done sentence at the top of
+  this phase is now true in code: a bracket advances itself from a result the server reported.*
+  - ☑ `map_end` sets `WinnerTeamId` and calls `BracketBuilder.AdvanceAsync` — gated three ways
+    (integrity, not-already-decided, a real winner), so a BO3's second map cannot re-advance and
+    equal scores advance nobody rather than inventing someone. `ponytail:` ceiling recorded — the
+    winner comes from *this* map, and series scoring lands with the per-stage `BestOf` input
+  - ☑ **`MatchParticipant` + `Provenance`** — `Declared` at `match_loaded`, promoted to `Bound` by
+    a `player_bound` event that **carries both factors**. One row per `(match, account)` by unique
+    index, so a bind promotes and never inserts. Both provenances count toward a player rating
+  - ☑ **Lineup defaults automatically** — starters before substitutes, then seniority, capped at
+    the format size; coaches excluded through `IsFieldable` alone. A retried `match_loaded` mints
+    no second lineup. **Layer 2 (the check-in picker) deliberately deferred** — it is strictly
+    additive, feeds this same writer, and costs nothing extra later
+  - ☑ **Rating ledger** — `rating_changes`, append-only, unique on `(MatchId, SubjectId, Game)`.
+    Unrated rows carry `ExcludedBecause` verbatim and *no* movement, so "no change" and "changed
+    by zero" stay distinguishable. The index is **proven by a direct duplicate insert**, not
+    assumed. `AppliedAt` ships from day one, so [051](decisions/051-phase-4-remainder.md) §4's
+    season freeze needs no migration
+  - ☑ **Rating sweeper** — scoped `RatingSweeper.SweepNextAsync` plus a thin `BackgroundService`,
+    same shape as `DiscordAnnouncementWorker`. Split so the checks drive it a step at a time
+    instead of racing a timer. Ordered `(EndedAt, Id)`, over a partial index of matches still owed
+    a rating. **`db.Ratings` now has a writer** — the ranking pages were live data over a table
+    that had never been written to
+  - ☑ **Confirmation accelerates, dispute holds** — captain-only, CSRF-protected, refused once the
+    sweeper has settled the match. A dispute pauses the sweep, notifies organiser staff and
+    **leaves the bracket alone**. `organiser.trusted` skips the wait but **never the integrity
+    gate** — trust is about intent, integrity is about receipt
+  - ☑ **Challenge window = 2 hours** ([007](decisions/007-server-hosting-model.md) left this open;
+    decided 2026-08-17). It is the only branch that ever waits: agreement closes it instantly and
+    a trusted organiser skips it
+  - ☑ **Bind / per-match link code** — the code lives on the participant row rather than in a table
+    of its own, so single-use falls out of `Provenance` and there is no consumed flag to forget.
+    The simulator proves `Declared → Bound` **and** proves each factor alone is refused
+  - ☑ A dispute was **parked** when this shipped, and the organiser panel below closed that loop
+    the same day. An expiry timer was rejected outright — it would silently overrule a human on a
+    schedule nobody decided
   - ➡ **Demo upload moves to Phase 6** with the plugin that produces one. UI treats demos as
     nullable from the start ([024](decisions/024-demos.md))
-- ☐ **Audit log** ([051](decisions/051-phase-4-remainder.md) §7) — three decided docs require one and
-  there are 18 `DbSet`s, none of them it. A **denied** attempt has no row to attribute it to, which
-  is what forces a table. Privileged decisions only this phase; `retention_class` column from the start
-- ☐ **Home `/`** — still the scaffold. [043](decisions/043-page-contents.md) decided its contents
-  (live matches, pinned announcements, upcoming, recent results, top teams) and none of it is built
-- ☐ **Notifications** — rows are written on every invite and roster change, and **there is no bell
-  to read them** ([043](decisions/043-page-contents.md)). Invites are only findable because the
-  teams page lists them as a stopgap. Server-rendered count in the layout; polling is 5c
+- ☑ **Audit log** ([051](decisions/051-phase-4-remainder.md) §7) — **built 2026-08-17**
+  - `audit_entries`: actor · organiser · action · resource · reason · **outcome** · retention ·
+    occurred_at. `Outcome` is the column that forces the table to exist — a **denied** attempt
+    changes no row, so per-row attribution has nothing to attach itself to
+  - **Append-only is enforced by PostgreSQL**, not by convention: a trigger raises on `UPDATE`.
+    `DELETE` is deliberately left open, because `retention_class` exists so security rows can be
+    swept later — editing history and expiring it are different acts
+  - `Audit.Record` **adds but never saves**, so the row commits in the same transaction as the
+    decision it describes. A forfeit cannot succeed without its record, nor a record survive a
+    rollback
+  - Wired to the two privileged decisions that already existed: **forfeit** (which the plan has
+    called "audited" since [046](decisions/046-tournament-lifecycle.md) while meaning three columns
+    on the match) and **server registration**, allowed *and* refused
+  - Checks fold into the existing forfeit and server suites rather than duplicating their setup:
+    the row carries actor/tenant/outcome/reason, a refused cross-tenant attempt is recorded with
+    no resource, **an `UPDATE` is refused by the database**, and **no secret reaches the log**
+  - ⊘ Authentication events deferred with the staff panel that would read them — an append-only log
+    nobody can view is storage rather than security, and a row per login accrues GDPR weight
+    against the IP minimisation that already shipped. `Retention` ships now so they need no migration
+- ☑ **Home `/`** — the design-system scaffold is gone. Live matches, pinned announcements,
+  upcoming events, recent results and the CS2 top five, each server-rendered with its own empty
+  state, and a genuinely quiet day says *"nothing is happening yet"* rather than faking activity
+  ([043](decisions/043-page-contents.md), [020](decisions/020-motion-and-ux.md))
+- ☑ **Notifications** — `/notifications` plus a **server-rendered** unread count in the headbar.
+  Rows had been written on every invite and roster change since the teams slice with nothing able
+  to read them; invites were findable only because the teams page listed them as a stopgap.
+  Reading the inbox is what marks it read. Polling stays a 5c enhancement on a number that is
+  already correct without JavaScript ([043](decisions/043-page-contents.md), [018](decisions/018-frontend-architecture.md))
 - ☐ **LFT board + recruitment** ([056](decisions/056-lft-board.md))
   - One server-rendered two-sided board; defaults to **CS2 / teams recruiting**, with shareable
     game, view and explicit filter state. Freshness orders; rating never buys prominence
@@ -357,17 +418,44 @@ endpoint, request, handler and validator together.
     block, fourteen-day failed-request retention and thirty-day mutual-contact grant
   - Add `/me/recruitment`, lifecycle notifications, stable profile/team share links, and
     `noindex, follow` on the volatile board
-- ☐ **News/CMS** — `DisableHtml()` **plus** `HtmlRenderer.LinkRewriter` with an http/https/relative
-  allow-list. Tested: `DisableHtml()` alone lets `javascript:`, `vbscript:` and `data:` through
-  ([051](decisions/051-phase-4-remainder.md) §8)
-- ☐ **Seasons archive** — frozen by **timestamp, not snapshot**: filter the ledger on
-  `AppliedAt <= Season.ClosedAt`. `Season` gains `ClosedAt`; it currently records *that* it closed
-  but not *when* ([051](decisions/051-phase-4-remainder.md) §4)
-- ☐ **Search** — one headbar search, one server-rendered results page, `GET /search?q=`, works with
-  JS off; typeahead is 5c. **[043](decisions/043-page-contents.md)'s SQL does not execute** —
-  `unaccent()` is not `IMMUTABLE`, so it needs an `f_unaccent` wrapper before it can be indexed
-- ☐ **Organiser panel** — servers, disputes, staff. Now load-bearing: [050](decisions/050-match-results-and-ratings.md)'s
-  referee reversal has nowhere to happen without it
+- ☑ **News/CMS** — `/news` and `/news/{slug}`, scheduled posts invisible until their time
+  - `DisableHtml()` **plus a scheme allow-list** (http, https, mailto, relative, anchor). Allow-list
+    rather than block-list, because the dangerous schemes are open-ended and the useful ones are not
+  - **Filtering happens on the parsed document, not on `HtmlRenderer.LinkRewriter` alone.** The hook
+    was tried first and did *not* fire for every link shape: `javascript:` was caught while a
+    scheme-relative `//evil.example` reached the output untouched. A defence that appears to work
+    because the tested case happened to be covered is the worst kind
+  - ⚠ **The check caught a real bug in the first version of the filter**: `//evil.example` also
+    starts with `/`, so testing "is it relative?" before "is it scheme-relative?" waved it straight
+    through ([051](decisions/051-phase-4-remainder.md) §8, [040](decisions/040-threat-model.md))
+- ☑ **Seasons archive** — `/seasons` and `/seasons/{n}`, frozen by **timestamp, not snapshot**
+  - `Season.ClosedAt` ships, and a **database CHECK constraint** refuses to close a season without
+    recording when. Nothing in the app closes one yet; the constraint exists so that whatever
+    eventually does cannot skip it — and it immediately caught two existing checks doing exactly that
+  - The archive is the ledger read as at that instant, which is how
+    [021](decisions/021-site-structure.md)'s *"never recomputed"* and
+    [025](decisions/025-rating-system.md)'s *"derived at read time"* both become true at once.
+    Proven by two seasons around the same results: the one closing before them must not contain them
+- ☑ **Search** — headbar form + `GET /search?q=`, teams/players/tournaments, works with JS off
+  - **[043](decisions/043-page-contents.md)'s SQL genuinely did not execute.** `unaccent()` is
+    `STABLE`, so PostgreSQL refuses to index any expression containing it. An `IMMUTABLE`
+    `f_unaccent` wrapper ships with the migration, plus trigram indexes over all three tables
+  - Applied to **both sides** of the comparison, so `lodz` finds `Łódź` and the reverse — a one-sided
+    fix looks correct in whichever direction it was tested. `%` and `_` stay literal text
+  - Drafts stay sealed (the search goes through `PublicTournaments`) and erased accounts are not
+    findable, since erasure that leaves you searchable is not erasure
+- ◐ **Organiser panel** — servers ☑, **disputes ☑**, staff ☐
+  - `/org/disputes` lists contested matches for organisers the actor may referee, separating the
+    machine's doubt (`Integrity`) from a captain's claim (`DisputedAt`) rather than merging two
+    different facts
+  - **Dismiss** releases the parked rating; **reverse** records the corrected winner and rebuilds
+    every rating from the ledger. Both are audited, both are refused-and-audited for anyone else,
+    and **neither touches the bracket**
+  - Reversal supersedes rather than deletes, so the old numbers stay answerable, and the ledger's
+    unique index gained a `superseded_at IS NULL` filter so a replayed generation may coexist with
+    the one it replaces. `ponytail:` ceiling — the replay is platform-wide per reversal; upgrade
+    path is a per-season snapshot, and [051](decisions/051-phase-4-remainder.md) §4 already gives
+    seasons a closing timestamp
 - ☐ **Staff panel** — users, orgs (the `trusted` toggle), audit, maintenance mode
 
 > ### What ◐ means here
@@ -388,9 +476,9 @@ endpoint, request, handler and validator together.
 - ☑ Open redirect — `//evil.com`, absolute URLs, `javascript:` and `/\` all rejected
 - ⊘ Sort allowlist — `?sort=id;DROP` rejected, never interpolated. **Nothing to test yet**: no page takes a sort parameter
 - ➡ Zip bomb aborted; archive filenames never trusted. **Moves to Phase 6** with demo upload — the endpoint shares no state with anything Phase 4 designs, and its specifics (headers, zip layout, size ceiling) are what the real plugin will settle ([024](decisions/024-demos.md), [050](decisions/050-match-results-and-ratings.md) §6)
-- ☐ **Stored XSS in news markdown** — `DisableHtml()` alone is **not sufficient**, proven against Markdig 1.3.2: `javascript:`, `vbscript:` and `data:` URLs survive it in `href`/`src`. A post with a `javascript:` link renders with the target removed; `https:`, relative and anchor links survive ([051](decisions/051-phase-4-remainder.md) §8)
+- ☑ **Stored XSS in news markdown** — closed and proven against Markdig 1.3.2, in the renderer *and* end to end through the real page. `javascript:`, `vbscript:`, `data:` and scheme-relative targets are emptied while the link text survives; `https:`, `mailto:`, relative and anchor links pass. Raw HTML is escaped rather than stripped, so an event handler appears as inert text inside an escaped tag — the check asserts no **tag** is emitted, which is the thing that actually matters ([051](decisions/051-phase-4-remainder.md) §8)
 - ☐ **Recruitment spam** — a team cannot exceed 10 open interests, nor approach the same player twice ([051](decisions/051-phase-4-remainder.md) §5). Without this, `TeamInterest` reopens the 200-invite hole [045](decisions/045-teams-and-rosters.md) deliberately closed
-- ☐ No secret appears in any log — **genuinely untested**, and testable today: HMAC secrets, reset tokens and TOTP secrets all exist
+- ◐ No secret appears in any log — **the audit log is now covered**: a server registration writes a row identifying the endpoint by its public address, and the check asserts the freshly minted HMAC secret is absent from it. Application logs, reset tokens and TOTP secrets remain untested
 - ☑ CSRF — an untokened POST is refused ([011](decisions/011-accounts-and-login.md))
 - ☑ Account enumeration — unknown address and wrong password are indistinguishable by **message and by timing**, on both login and password reset
 - ☑ Brute force — **token-bucket** limiter on every auth POST, page views never counted ([047](decisions/047-two-factor.md))

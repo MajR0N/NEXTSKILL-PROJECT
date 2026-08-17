@@ -119,6 +119,26 @@ public sealed record PlayerBoundPayload
     /// inherent trust</b> — on CS 1.6 it is spoofable (decision 010).
     /// </summary>
     public required string InGameId { get; init; }
+
+    /// <summary>
+    /// Factor 1, forwarded verbatim from the player's client config.
+    ///
+    /// <b>The plugin does not judge it.</b> Only the panel holds the hash, and
+    /// the panel is the only side of this wire we control — a plugin that
+    /// decided for itself who is bound would need the roster's secrets on every
+    /// organiser's game server, which is the exact exposure 011's
+    /// <c>setinfo</c>-leak section is about.
+    /// </summary>
+    public required string SetinfoToken { get; init; }
+
+    /// <summary>
+    /// Factor 2: the ephemeral, single-use, slot-scoped code the player read off
+    /// the match lobby and typed in game (decision 011).
+    ///
+    /// Both factors or no bind. A harvested token is worthless without this, and
+    /// a code handed to a ringer is worthless without the victim's config.
+    /// </summary>
+    public required string LinkCode { get; init; }
 }
 
 /// <summary>Series finished. Sent after the last <see cref="MapEndPayload"/>.</summary>

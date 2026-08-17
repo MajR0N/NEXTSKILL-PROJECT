@@ -1,0 +1,41 @@
+@page
+@model NextSkill.Api.Pages.Seasons.IndexModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Sezony";
+    var locale = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+}
+
+<div class="wrap-narrow section">
+    <p class="eyebrow">Archiwum</p>
+    <h1>Sezony</h1>
+    <p class="lede">Zamknięty sezon nie zmienia się już nigdy — nawet jeśli później ktoś poprawi wynik meczu.</p>
+
+    @if (Model.Seasons.Count == 0)
+    {
+        <div class="empty" style="margin-top:var(--s5)">
+            <div class="empty__icon">◍</div>
+            <h4>Nie ma jeszcze żadnego sezonu</h4>
+            <p>Sezon grupuje turnieje i zamyka tabelę na stałe.</p>
+        </div>
+    }
+    else
+    {
+        <ul class="stack" style="margin-top:var(--s5)">
+            @foreach (var season in Model.Seasons)
+            {
+                <li class="card">
+                    <a asp-page="/Seasons/Details" asp-route-culture="@locale" asp-route-number="@season.Number">
+                        <b>@season.Name</b>
+                    </a>
+                    <p class="dim">
+                        @season.StartsAt.ToString("yyyy-MM-dd") —
+                        @(season.EndsAt?.ToString("yyyy-MM-dd") ?? "trwa")
+                        @if (season.Closed) { <span> · zamknięty</span> }
+                        else if (season.Active) { <span> · aktywny</span> }
+                    </p>
+                </li>
+            }
+        </ul>
+    }
+</div>

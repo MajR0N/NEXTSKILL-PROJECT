@@ -139,6 +139,58 @@ else
                     }
                 }
             </section>
+
+            @* ── match history (029, 050) ────────────────────────────────
+               029 refused to infer who played an old match from CURRENT team
+               membership, and was right — so this section simply did not exist
+               until participant rows were frozen at match load. *@
+            <section aria-labelledby="matches-heading" style="margin-top:var(--s7)">
+                <p class="label" id="matches-heading">Ostatnie mecze</p>
+
+                @if (Model.RecentMatches.Count == 0)
+                {
+                    <p class="dim" style="margin-top:var(--s4)">
+                        Brak zapisanych meczów. Historia zaczyna się od pierwszego meczu wczytanego na serwerze.
+                    </p>
+                }
+                else
+                {
+                    <div class="table-scroll" style="margin-top:var(--s4)">
+                        <table class="table">
+                            <caption class="visually-hidden">Mecze rozegrane przez gracza</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Wynik</th>
+                                    <th scope="col">Mecz</th>
+                                    <th scope="col">Źródło</th>
+                                    <th scope="col">Data</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in Model.RecentMatches)
+                                {
+                                    <tr>
+                                        <td><b>@(row.Won ? "W" : "L")</b></td>
+                                        <td>
+                                            <a asp-page="/Matches/Details" asp-route-culture="@locale" asp-route-id="@row.MatchId">
+                                                @row.Team — @row.Opponent
+                                            </a>
+                                            <span class="dim"> · @DetailsModel.GameName(row.Game)</span>
+                                        </td>
+                                        <td class="dim">
+                                            @* The distinction 050 exists to keep visible: a
+                                               captain's attributable claim is not the same
+                                               fact as the server proving it in game. *@
+                                            @(row.Bound ? "potwierdzony w grze" : "zgłoszony przez kapitana")
+                                        </td>
+                                        <td class="dim">@(row.EndedAt?.ToString("yyyy-MM-dd") ?? "—")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </section>
         </div>
 
         <aside>

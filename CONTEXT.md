@@ -3,9 +3,15 @@
 The shared, general-purpose document. Anything true across the whole project lives here.
 Anything specific to one decision lives in `docs/` as its own file.
 
-**Status:** **building.** Phases 0–3 complete; **Phase 4 (web platform) in progress**.
-**242 checks passing** against a real PostgreSQL, including in-process end-to-end runs of the
+**Status:** **building.** Phases 0–3 complete; **Phase 4 (web platform) past its keystone**.
+**287 checks passing** against a real PostgreSQL, including in-process end-to-end runs of the
 plugin pipeline, the tournament and bracket flow, and the whole authentication surface.
+
+> **The definition-of-done sentence is now true in code (2026-08-17):** a bracket advances
+> itself from a result the server reported, and that result settles into a rating. Phases 0–3
+> built the rating engines, the wire contract and the integrity rules while none of them was
+> connected to anything; [050](docs/decisions/050-match-results-and-ratings.md) is the join,
+> and it is built.
 
 ### What actually runs today
 
@@ -18,6 +24,17 @@ plugin pipeline, the tournament and bracket flow, and the whole authentication s
 | Ranking — team + player views, provisional separation, search and cursor pagination | [025](docs/decisions/025-rating-system.md) |
 | Player profiles — public ratings/team/LFT history plus a private account and security surface | [029](docs/decisions/029-profile-login-footer.md) |
 | Plugin API — HMAC-signed ingest, sequencing, reconciliation, integrity gates | [009](docs/decisions/009-api-contract.md), [035](docs/decisions/035-match-result-integrity.md) |
+| Organiser servers — tenant-authorised `host:port` registration, one-time HMAC secret, write-only health view, and verification by the first valid signed heartbeat | [007](docs/decisions/007-server-hosting-model.md), [048](docs/decisions/048-organiser-server-configuration.md), [051](docs/decisions/051-phase-4-remainder.md) |
+| Match lobby and web veto — captain readiness, durable legal turns, lazy 30-second expiry, BO1/BO3/BO5 map-and-side output, and plugin config from the frozen result | [028](docs/decisions/028-veto-and-lobby.md), [051](docs/decisions/051-phase-4-remainder.md) |
+| **Match results → ratings** — a reported `map_end` stores the winner and advances the bracket; lineups declare themselves at `match_loaded`; a `player_bound` event carrying **both** factors promotes `Declared` → `Bound`; an append-only ledger and a background sweeper settle teams (Glicko-2) and players (OpenSkill) in `(EndedAt, Id)` order. Captains confirm or dispute; `organiser.trusted` skips the wait but never the integrity gate | [050](docs/decisions/050-match-results-and-ratings.md), [025](docs/decisions/025-rating-system.md), [035](docs/decisions/035-match-result-integrity.md) |
+| **Referee decisions** — `/org/disputes` dismisses a captain's claim or reverses a result, and a reversal supersedes the ledger and replays every rating from history | [036](docs/decisions/036-authorization.md), [050](docs/decisions/050-match-results-and-ratings.md) |
+| **Audit log** — append-only *enforced by PostgreSQL*, recording actor, resource, reason and **outcome**, so a **denied** privileged attempt leaves a row even though it changed nothing | [012](docs/decisions/012-security.md), [036](docs/decisions/036-authorization.md), [051](docs/decisions/051-phase-4-remainder.md) |
+| **Home page** — live matches, announcements, upcoming events, recent results and the CS2 top five, each with a designed empty state | [043](docs/decisions/043-page-contents.md), [020](docs/decisions/020-motion-and-ux.md) |
+| **Notifications** — an inbox and a server-rendered unread count; invites and referee alerts are finally readable | [043](docs/decisions/043-page-contents.md) |
+| **Search** — one GET form over teams, players and tournaments, accent-insensitive both ways via an `IMMUTABLE` `f_unaccent` wrapper and trigram indexes; works with JavaScript off | [043](docs/decisions/043-page-contents.md), [051](docs/decisions/051-phase-4-remainder.md) |
+| **Seasons archive** — `/seasons/{n}` read as at the closing instant, with a database constraint refusing to close a season without recording when | [021](docs/decisions/021-site-structure.md), [051](docs/decisions/051-phase-4-remainder.md) |
+| **News** — `/news`, scheduled posts invisible until due, markdown with raw HTML disabled and a link-scheme allow-list applied to the parsed document | [015](docs/decisions/015-admin-panel.md), [040](docs/decisions/040-threat-model.md), [051](docs/decisions/051-phase-4-remainder.md) |
+| **Competitive history** — integrity-aware team record and ledger-backed rating trend; player match history labelled by provenance | [049](docs/decisions/049-team-page.md), [029](docs/decisions/029-profile-login-footer.md) |
 
 ### The three things that most need saying
 
@@ -27,8 +44,19 @@ plugin pipeline, the tournament and bracket flow, and the whole authentication s
    touched, and no en/ru/de translation catalog exists yet.
 2. **The product ships monochrome on purpose** until [044](docs/decisions/044-visual-direction.md)
    closes. Colour is an open question, not an oversight.
-3. **Matches, veto, the panels and the home page are not built.** See
-   [BUILD-PLAN](docs/BUILD-PLAN.md) for the itemised list, which is kept honest rather than
+3. **What is left is a short list, and it is named.** Match completion, ratings, the referee's desk,
+   the home page, notifications, search, seasons, news and competitive history all run end to end.
+   Still missing:
+   - **The LFT board and recruitment** ([056](docs/decisions/056-lft-board.md)) — the largest
+     remaining slice, and entirely unbuilt.
+   - **The staff panel** — users, the `trusted` toggle, reading the audit log, maintenance mode.
+     Until it exists the audit log is written and never read, which is storage rather than security.
+   - **Team trophies**, blocked on placement standings: nothing computes a top-three finish beyond
+     the bracket winner.
+   - The organiser panel holds only the server inventory and the dispute desk, and the inventory
+     stays unusable by a real organiser until the Phase 6 plugin can send a signed heartbeat.
+
+   See [BUILD-PLAN](docs/BUILD-PLAN.md) for the itemised list, which is kept honest rather than
    flattering.
 
 ### Team-page language
@@ -434,6 +462,13 @@ verified before code depends on it — per project instruction, test before ackn
 | V6 | CS2 can expose authoritative final match state for reconciliation | [035](docs/decisions/035-match-result-integrity.md) | Inspect what a map-end payload can contain |
 | V7 | Steam OpenID 2.0 remains available with no announced sunset | [011](docs/decisions/011-accounts-and-login.md) | Re-check Steamworks docs periodically |
 
-**V1 is the highest priority.** If other players can read a `setinfo` token, it is not a
-secret, the second factor collapses to a public identifier, and
-[011](docs/decisions/011-accounts-and-login.md) needs redesigning.
+**V3 is the highest priority**, and this paragraph used to say V1 — which its own table above
+had already marked resolved on 2026-08-10. Corrected 2026-08-17.
+
+If `setinfo` behaves differently on **non-Steam clients**, binding is unreliable in exactly the
+game NEXTSKILL is differentiated by, and most active CS 1.6 servers admit those clients. It does
+not break the second factor the way V1 would have — [050](docs/decisions/050-match-results-and-ratings.md)
+deliberately rates `Declared` participants as well as `Bound` ones, precisely so an unreliable
+bind cannot mean *no player ratings in CS 1.6*. What it costs is the provenance being honest
+rather than impressive. V2b and V4 sit behind it and are answered by the same evening on a real
+server.

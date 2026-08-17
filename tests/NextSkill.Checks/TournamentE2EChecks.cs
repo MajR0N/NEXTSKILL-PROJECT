@@ -103,7 +103,8 @@ public static class TournamentE2EChecks
                 {
                     Id = closedSeasonId, Number = nextSeasonNumber + 2, Name = $"Closed {stamp}",
                     StartsAt = new DateTimeOffset(2029, 1, 1, 0, 0, 0, TimeSpan.Zero),
-                    EndsAt = new DateTimeOffset(2031, 1, 1, 0, 0, 0, TimeSpan.Zero), Closed = true,
+                    EndsAt = new DateTimeOffset(2031, 1, 1, 0, 0, 0, TimeSpan.Zero),
+                    Closed = true, ClosedAt = new DateTimeOffset(2031, 1, 1, 0, 0, 0, TimeSpan.Zero),
                 });
             db.SaveChanges();
         }
@@ -823,7 +824,9 @@ public static class TournamentE2EChecks
         {
             using (var db = Db())
             {
-                db.Seasons.Single(s => s.Id == openSeasonId).Closed = true;
+                var closing = db.Seasons.Single(s => s.Id == openSeasonId);
+                closing.Closed = true;
+                closing.ClosedAt = DateTimeOffset.UtcNow;
                 db.SaveChanges();
             }
 
@@ -955,6 +958,30 @@ public static class TournamentE2EChecks
                 "the registration records that the team left the whole event");
             that(db.Ratings.Count(r => r.TeamId == teamId || r.TeamId == thinTeamId) == ratingCountBefore,
                 "an administrative win must never move either team's rating");
+
+            // "Audited" used to mean the three match columns above. 051 §7 is
+            // explicit that per-row attribution cannot be stretched this far —
+            // it describes a RESULT, not a decision, and it can never describe a
+            // refused one.
+            var audit = db.AuditEntries.AsNoTracking()
+                .Where(a => a.ResourceId == checkInMatchId && a.Action == AuditAction.ForfeitMatch)
+                .ToList();
+            that(audit.Count == 1, $"a forfeit must write exactly one audit row, got {audit.Count}");
+            that(audit[0].ActorAccountId == otherCaptainAccount &&
+                 audit[0].OrganiserId == orgId &&
+                 audit[0].Outcome == AuditOutcome.Allowed &&
+                 audit[0].Reason == "Roster unavailable",
+                "the audit row carries actor, tenant, outcome and reason (012 §7, 036)");
+
+            // Append-only is a DATABASE guarantee, not a habit of the code.
+            var refused = false;
+            try
+            {
+                db.Database.ExecuteSqlRaw(
+                    "UPDATE audit_entries SET reason = 'tampered' WHERE id = {0}", audit[0].Id);
+            }
+            catch (Npgsql.PostgresException) { refused = true; }
+            that(refused, "PostgreSQL itself must refuse to edit an audit row — staff read it, nobody edits it");
         });
 
         // Clean up so repeated runs stay honest.

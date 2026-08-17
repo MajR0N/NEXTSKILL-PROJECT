@@ -141,6 +141,16 @@ public static class AccessChecks
                 "a captain must not dispute a match they did not play");
         });
 
+        check("only the participant captain may act in that team's veto turn", () =>
+        {
+            that(AccessPolicy.Can(Captain(teamA), Operation.ActInVeto, new ResourceRef(TeamId: teamA)),
+                "the participant captain may ready and choose for their own team");
+            that(!AccessPolicy.Can(Member(teamA), Operation.ActInVeto, new ResourceRef(TeamId: teamA)),
+                "an ordinary roster member must remain a spectator");
+            that(!AccessPolicy.Can(Captain(teamA), Operation.ActInVeto, new ResourceRef(TeamId: teamB)),
+                "captaincy must not carry into the opponent's turn");
+        });
+
         // ── the default ──────────────────────────────────────────────────
         check("an ordinary player with no roles can do nothing privileged", () =>
         {

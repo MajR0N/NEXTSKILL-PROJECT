@@ -9,7 +9,9 @@
 @using System.Globalization
 @using Microsoft.Extensions.Localization
 @using NextSkill.Api.Localisation
+@using NextSkill.Api.Features.Notifications
 @inject IStringLocalizer<UiText> Text
+@inject NotificationBell Bell
 @{
     // The URL is the source of truth for language (018). RequestLocalization
     // has already resolved it by the time the layout renders.
@@ -70,8 +72,25 @@
             <a asp-page="/Index" asp-route-culture="@locale">@Text["Navigation.Lft"]</a>
             <span class="headbar__spacer"></span>
 
+            @* One search box, and it is a plain GET form. Typeahead is a Phase 5
+               island on top of this, never instead of it (018, 043). *@
+            <form method="get" action="/@locale/search" role="search" style="display:inline">
+                <label class="visually-hidden" for="headbar-search">@Text["Search.Label"]</label>
+                <input id="headbar-search" name="q" maxlength="60" placeholder="@Text["Search.Label"]"
+                       style="padding:6px 10px;font-size:13px;width:150px" />
+            </form>
+
             @if (User.Identity?.IsAuthenticated == true)
             {
+                @* Server-rendered, because 018 makes working without JavaScript
+                   a hard rule — a count that needs a script is absent exactly
+                   where it matters. Polling is a Phase 5 enhancement on a number
+                   that is already right. *@
+                var unread = await Bell.UnreadCountAsync(User);
+                <a asp-page="/Notifications/Index" asp-route-culture="@locale"
+                   aria-label="@Text["Notifications.Aria", unread]">
+                    @Text["Notifications.Bell"]@(unread > 0 ? $" ({unread})" : "")
+                </a>
                 <a asp-page="/Account/Profile" asp-route-culture="@locale">@User.Identity.Name</a>
                 @* Logout is a POST, so it cannot be triggered by an <img src> on
                    someone else's page — and Razor Pages signs the form for us. *@

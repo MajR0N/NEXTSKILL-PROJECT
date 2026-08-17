@@ -616,6 +616,59 @@ catch (Exception ex)
 }
 
 Console.WriteLine();
+Console.WriteLine("SERVER REGISTRATION · one-time secret, heartbeat verification  (decisions 007, 051)");
+try
+{
+    NextSkill.Checks.ServerRegistrationChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  server-registration checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
+Console.WriteLine("VETO & LOBBY · durable web state, captain turns  (decisions 028, 051)");
+try
+{
+    NextSkill.Checks.VetoRulesChecks.Run(Check, That);
+    NextSkill.Checks.VetoLobbyChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  veto/lobby checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
+Console.WriteLine("NEWS · stored XSS, closed for real  (decisions 040, 051)");
+try
+{
+    NextSkill.Checks.NewsChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  news checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
+Console.WriteLine("MATCH RESULTS & RATINGS · the ledger, the sweeper, the bind  (decision 050)");
+try
+{
+    NextSkill.Checks.MatchResultChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  match result / rating checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
 Console.WriteLine("END-TO-END · simulator vs the real pipeline  (decisions 034, 038)");
 try
 {

@@ -1,0 +1,38 @@
+@page
+@model NextSkill.Api.Pages.News.IndexModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Aktualności";
+    var locale = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+}
+
+<div class="wrap-narrow section">
+    <p class="eyebrow">Aktualności</p>
+    <h1>Co nowego</h1>
+
+    @if (Model.Posts.Count == 0)
+    {
+        <div class="empty" style="margin-top:var(--s5)">
+            <div class="empty__icon">◍</div>
+            <h4>Jeszcze nic nie opublikowaliśmy</h4>
+            <p>Tu trafią ogłoszenia o sezonach, turniejach i zmianach w zasadach.</p>
+        </div>
+    }
+    else
+    {
+        <ul class="stack" style="margin-top:var(--s5)">
+            @foreach (var post in Model.Posts)
+            {
+                <li class="card">
+                    <a asp-page="/News/Details" asp-route-culture="@locale" asp-route-slug="@post.Slug">
+                        <b>@post.Title</b>
+                    </a>
+                    <p class="dim">
+                        @post.PublishedAt.ToString("yyyy-MM-dd")
+                        @if (post.Pinned) { <span> · przypięte</span> }
+                    </p>
+                </li>
+            }
+        </ul>
+    }
+</div>

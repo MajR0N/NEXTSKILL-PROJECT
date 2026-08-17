@@ -35,6 +35,7 @@ public enum Operation
     RestoreTeam,            // captain whose tenure ended at the disband moment
     ConfirmResult,          // captain agrees the score
     DisputeResult,          // captain contests the score
+    ActInVeto,              // participant captain readies and takes veto turns
 
     // platform scope
     ModerateUsers,
@@ -171,7 +172,7 @@ public static class AccessPolicy
             // Confirming and disputing a result are the corroboration that
             // anti-match-fixing rests on (007), so they belong to the captain
             // of a team that actually played.
-            Operation.ConfirmResult or Operation.DisputeResult => teamRole == TeamRole.Captain,
+            Operation.ConfirmResult or Operation.DisputeResult or Operation.ActInVeto => teamRole == TeamRole.Captain,
 
             _ => false,   // unknown operation: deny. Fail closed.
         };

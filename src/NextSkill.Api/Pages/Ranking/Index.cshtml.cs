@@ -64,7 +64,23 @@ public class IndexModel(NextSkillDb db, IDataProtectionProvider dataProtection) 
         double Rating,
         double Deviation,
         int MatchesPlayed,
-        bool Provisional)
+        bool Provisional,
+
+        /// <summary>
+        /// Which way the last settled result moved this rating: 1, -1, or null
+        /// when nothing has settled yet.
+        ///
+        /// <b>This is last-rating-movement, not rank movement</b>, and the label
+        /// says so. Real rank movement needs the rank as it stood on some past
+        /// date, which nothing stores — deriving it from the ledger would mean
+        /// replaying every subject's history to rebuild a leaderboard per
+        /// comparison date. Showing an honest cheaper fact beats showing an
+        /// expensive one that is quietly approximate.
+        /// </summary>
+        int? Movement = null,
+
+        /// <summary>Most recent decided results, newest first: W and L only.</summary>
+        string? Form = null)
     {
         /// <summary>Generated monogram, so a brand-new team never shows a grey placeholder (019).</summary>
         public string Initials => string.Concat(
@@ -245,6 +261,8 @@ public class IndexModel(NextSkillDb db, IDataProtectionProvider dataProtection) 
                 Provisional: x.Provisional));
         }
 
+        mapped = await WithMovementAndFormAsync(mapped, rowScope);
+
         // Provisional subjects are rated internally but kept OFF the ranked
         // list — this stops "played two matches, ranked #1" (025). They are
         // shown separately rather than hidden, so newcomers can see progress.
@@ -259,6 +277,71 @@ public class IndexModel(NextSkillDb db, IDataProtectionProvider dataProtection) 
                 Version: 1, Scope, Game, Query: Q,
                 last.Provisional, last.Score, last.Id, rankedSeen));
         }
+    }
+
+    /// <summary>
+    /// Fills in the movement arrow and the form strip for one rendered page.
+    ///
+    /// <b>Two queries for the whole page, never one per row.</b> An N+1 here
+    /// would be twenty round trips on the most-visited page in the product
+    /// (016, 043).
+    ///
+    /// ponytail: both queries fetch every qualifying row for the twenty subjects
+    /// on this page and reduce in memory. Ceiling: a team with hundreds of
+    /// settled matches pulls all of them to show five characters. Upgrade path:
+    /// PostgreSQL <c>DISTINCT ON (subject_id)</c> for the arrow and a lateral
+    /// join for the strip — both are raw SQL, and neither is worth writing
+    /// before a profiler asks.
+    /// </summary>
+    private async Task<List<Row>> WithMovementAndFormAsync(List<Row> rows, RankingScope rowScope)
+    {
+        if (rows.Count == 0) return rows;
+
+        var ids = rows.Select(r => r.Id).ToList();
+
+        var movements = (await db
+                .PublicRatingMovements(ids, subjectIsTeam: rowScope == RankingScope.Teams, Game)
+                .OrderByDescending(r => r.AppliedAt)
+                .Select(r => new { r.SubjectId, r.ValueBefore, r.ValueAfter })
+                .AsNoTracking()
+                .ToListAsync())
+            .GroupBy(r => r.SubjectId)
+            .ToDictionary(
+                g => g.Key,
+                g => Math.Sign(g.First().ValueAfter!.Value - g.First().ValueBefore!.Value));
+
+        // Form is a team fact. A player's record is per-match participation and
+        // belongs on their profile, not squeezed into a leaderboard row.
+        var form = new Dictionary<Guid, string>();
+        if (rowScope == RankingScope.Teams)
+        {
+            var results = await db.PublicTeamResults(ids)
+                .OrderByDescending(m => m.EndedAt)
+                .Select(m => new { m.TeamAId, m.TeamBId, m.WinnerTeamId })
+                .AsNoTracking()
+                .ToListAsync();
+
+            foreach (var id in ids)
+            {
+                var letters = results
+                    .Where(m => m.TeamAId == id || m.TeamBId == id)
+                    .Take(5)
+                    .Select(m => m.WinnerTeamId == id ? 'W' : 'L')
+                    .ToArray();
+
+                if (letters.Length > 0) form[id] = new string(letters);
+            }
+        }
+
+        return rows
+            .Select(r => r with
+            {
+                Movement = movements.TryGetValue(r.Id, out var direction) && direction != 0
+                    ? direction
+                    : null,
+                Form = form.GetValueOrDefault(r.Id),
+            })
+            .ToList();
     }
 
     private static string LiteralContainsPattern(string query) =>

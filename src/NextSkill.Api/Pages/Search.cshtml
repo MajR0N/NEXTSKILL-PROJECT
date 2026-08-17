@@ -1,0 +1,76 @@
+@page
+@model NextSkill.Api.Pages.SearchModel
+@using System.Globalization
+@{
+    ViewData["Title"] = Model.Q is null ? "Szukaj" : $"Szukaj: {Model.Q}";
+    var locale = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+}
+
+<div class="wrap-narrow section">
+    <h1>Szukaj</h1>
+
+    @* A plain GET form: shareable as a URL, followable by a crawler, and
+       working with JavaScript off (018). *@
+    <form method="get" class="row" style="margin-top:var(--s5)">
+        <label class="visually-hidden" for="q">Czego szukasz?</label>
+        <input id="q" name="q" value="@Model.Q" maxlength="60" autofocus
+               placeholder="Drużyna, gracz albo turniej" />
+        <button class="btn btn--primary" type="submit">Szukaj</button>
+    </form>
+
+    @if (Model.Searched && Model.Total == 0)
+    {
+        <div class="empty" style="margin-top:var(--s6)">
+            <div class="empty__icon">◍</div>
+            <h4>Nic nie znaleziono dla „@Model.Q”</h4>
+            <p>Spróbuj krótszego fragmentu nazwy albo tagu. Polskie znaki nie mają znaczenia — „lodz” znajdzie „Łódź”.</p>
+        </div>
+    }
+
+    @if (Model.Teams.Count > 0)
+    {
+        <section style="margin-top:var(--s6)" aria-labelledby="teams-heading">
+            <p class="label" id="teams-heading">Drużyny</p>
+            <ul class="stack" style="margin-top:var(--s4)">
+                @foreach (var hit in Model.Teams)
+                {
+                    <li>
+                        <a asp-page="/Teams/Details" asp-route-culture="@locale" asp-route-id="@hit.Id">@hit.Title</a>
+                        <span class="team__tag"> @hit.Subtitle</span>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+
+    @if (Model.Players.Count > 0)
+    {
+        <section style="margin-top:var(--s6)" aria-labelledby="players-heading">
+            <p class="label" id="players-heading">Gracze</p>
+            <ul class="stack" style="margin-top:var(--s4)">
+                @foreach (var hit in Model.Players)
+                {
+                    <li>
+                        <a asp-page="/Players/Details" asp-route-culture="@locale" asp-route-id="@hit.Id">@hit.Title</a>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+
+    @if (Model.Tournaments.Count > 0)
+    {
+        <section style="margin-top:var(--s6)" aria-labelledby="tournaments-heading">
+            <p class="label" id="tournaments-heading">Turnieje</p>
+            <ul class="stack" style="margin-top:var(--s4)">
+                @foreach (var hit in Model.Tournaments)
+                {
+                    <li>
+                        <a asp-page="/Tournaments/Details" asp-route-culture="@locale" asp-route-id="@hit.Id">@hit.Title</a>
+                        <span class="dim"> · @hit.Subtitle</span>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+</div>
