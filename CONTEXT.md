@@ -4,7 +4,7 @@ The shared, general-purpose document. Anything true across the whole project liv
 Anything specific to one decision lives in `docs/` as its own file.
 
 **Status:** **building.** Phases 0–3 complete; **Phase 4 (web platform) past its keystone**.
-**308 checks passing** against a real PostgreSQL, including in-process end-to-end runs of the
+**316 checks passing** against a real PostgreSQL, including in-process end-to-end runs of the
 plugin pipeline, the tournament and bracket flow, and the whole authentication surface.
 
 > **The definition-of-done sentence is now true in code (2026-08-17):** a bracket advances
@@ -37,6 +37,8 @@ plugin pipeline, the tournament and bracket flow, and the whole authentication s
 | **Competitive history** — integrity-aware team record and ledger-backed rating trend; player match history labelled by provenance | [049](docs/decisions/049-team-page.md), [029](docs/decisions/029-profile-login-footer.md) |
 | **Staff panel** — `/admin/*`: the `trusted` flag finally has a user interface, bans end every live session and are refused for staff and the owner, and the audit log has a reader with a denied-only filter | [015](docs/decisions/015-admin-panel.md), [036](docs/decisions/036-authorization.md) |
 | **LFT board** — `/lft`, two explicit sides, freshness-ordered with rating never buying prominence; a team approach always names a real opening; ten pending per side; mutual acceptance reveals one verified contact each way for 30 days, and there is no recruitment chat | [056](docs/decisions/056-lft-board.md) |
+| **Secrets encrypted at rest** — the signing credential, the TOTP seed and the per-match link code are encrypted with a key held **outside** the database; none can be hashed, since each must be replayed. A startup backfill closes the pre-encryption window | [012](docs/decisions/012-security.md) |
+| **Rate limiting behind a proxy** — the auth limiter partitions on the visitor's address, recovered from `X-Forwarded-For` **only** for requests arriving from a configured network. Empty configuration leaves it inert | [011](docs/decisions/011-accounts-and-login.md), [042](docs/decisions/042-hosting.md) |
 
 ### The three things that most need saying
 

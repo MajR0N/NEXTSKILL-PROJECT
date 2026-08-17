@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Globalization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Localization.Routing;
 using Microsoft.AspNetCore.RateLimiting;
@@ -102,6 +103,11 @@ else
 // The pending-login state between password and second factor (047).
 builder.Services.AddScoped<TwoFactorLogin>();
 
+// Encryption at rest for the two secrets that must stay RECOVERABLE — the
+// server signing key and the TOTP seed. Everything else that can be hashed
+// already is (012).
+builder.Services.AddSingleton<SecretProtector>();
+
 // Optional external identities remain LINKS to the native account (011), never
 // alternate login methods. Steam OpenID needs no secret; Discord activates when
 // its application credentials are supplied through configuration.
@@ -163,6 +169,19 @@ builder.Services.AddHsts(o =>
     o.IncludeSubDomains = true;
 });
 
+// Behind Cloudflare, every request arrives from a Cloudflare edge address, so
+// the limiter below would partition the entire internet into ONE bucket and let
+// a single attacker lock everyone out of logging in (011, 042). The forwarded
+// header is only honoured for requests that actually came from a configured
+// network — an unconditional read would let anyone mint a fresh bucket per
+// request, which is strictly worse than the bug being fixed.
+//
+// Configured empty by default: a direct-connect deployment trusts nothing and
+// keeps using the socket address.
+builder.Services.Configure<ForwardedHeadersOptions>(o => TrustedProxies.Configure(
+    o,
+    builder.Configuration.GetSection("Hosting:TrustedProxies").Get<string[]>() ?? []));
+
 // Rate limiting on login and registration (011). Built into ASP.NET Core, so
 // this is configuration rather than a hand-rolled bucket that gets it wrong.
 var ipPartitionKey = RandomNumberGenerator.GetBytes(32);
@@ -191,11 +210,10 @@ builder.Services.AddRateLimiter(o =>
         // fumbles a TOTP code never notices — refilling at one per ten seconds,
         // so a sustained attack gets six attempts a minute rather than hundreds.
         //
-        // ponytail: partitions on the socket address. Ceiling: behind Cloudflare
-        // (042) that is CLOUDFLARE'S address, so every visitor shares one bucket
-        // and one attacker locks out the entire site. Upgrade path: resolve the
-        // real client IP from CF-Connecting-IP with Cloudflare's ranges as known
-        // proxies — required BEFORE this goes near production.
+        // Partitions on the visitor's address. Behind a configured trusted
+        // proxy that is the forwarded client address, not the edge's — see
+        // TrustedProxies, and note that UseForwardedHeaders must run BEFORE
+        // UseRateLimiter or this reads the proxy again.
         return RateLimitPartition.GetTokenBucketLimiter(
             IpAbuseKeys.For(ctx.Connection.RemoteIpAddress, ipPartitionKey),
             _ => new TokenBucketRateLimiterOptions
@@ -267,6 +285,11 @@ builder.Services.Configure<RequestLocalizationOptions>(o =>
 
 var app = builder.Build();
 
+// FIRST, before anything reads an address or a scheme. The rate limiter, the
+// HTTPS redirect and HSTS all reason about the request as the visitor made it,
+// not as the proxy relayed it (011, 042). Inert when no proxy is trusted.
+app.UseForwardedHeaders();
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
@@ -318,6 +341,20 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<NextSkillDb>();
     await PlatformSeed.EnsureAsync(db);
+
+    // Encrypt anything still stored in the clear from before SecretProtector
+    // existed. A migration cannot do this — it has no access to the key ring —
+    // so startup is the only place it can happen. Idempotent: a second boot
+    // finds nothing to encrypt.
+    var encrypted = await scope.ServiceProvider
+        .GetRequiredService<SecretProtector>()
+        .BackfillAsync(db);
+
+    if (encrypted > 0)
+    {
+        app.Logger.LogInformation(
+            "Encrypted {Count} stored secrets that predated encryption at rest.", encrypted);
+    }
 }
 
 // A bare "/" carries no locale. Redirect to the best match rather than

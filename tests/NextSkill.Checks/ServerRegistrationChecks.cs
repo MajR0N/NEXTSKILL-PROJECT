@@ -101,8 +101,17 @@ public static class ServerRegistrationChecks
             var server = db.Servers.AsNoTracking().Single(s => s.Host == "cs.example.test" && s.Port == 27015);
             registeredServerId = server.Id;
             that(!server.Verified, "display data alone must never verify a server");
-            that(server.HmacSecret == secret && secret.Length >= 32,
-                "the displayed high-entropy secret must be the credential used to sign the first heartbeat");
+            that(secret.Length >= 32,
+                "the displayed credential must be high-entropy");
+
+            // Encrypted at rest (012). The heartbeat check further down proves
+            // the stored value is still the working credential — which is the
+            // property that actually matters, and the one an equality assertion
+            // against the plaintext was only ever standing in for.
+            that(server.HmacSecret != secret,
+                "the database must NOT hold the plaintext signing credential");
+            that(NextSkill.Api.Shared.Auth.SecretProtector.IsProtected(server.HmacSecret),
+                "and the stored value must be recognisably encrypted");
 
             // 036 lists server registration among the actions requiring a
             // recorded human decision, and 012 §7 adds "never the secret

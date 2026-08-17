@@ -643,6 +643,19 @@ catch (Exception ex)
 }
 
 Console.WriteLine();
+Console.WriteLine("SECRETS AT REST & IN LOGS · the production debts  (decisions 012, 042)");
+try
+{
+    NextSkill.Checks.SecretHandlingChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  secret-handling checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
 Console.WriteLine("LFT & RECRUITMENT · freshness, caps, consent  (decision 056)");
 try
 {

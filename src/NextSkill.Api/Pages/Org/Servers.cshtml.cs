@@ -24,6 +24,7 @@ namespace NextSkill.Api.Pages.Org;
 public class ServersModel(
     NextSkillDb db,
     TenantContext tenant,
+    SecretProtector secrets,
     IStringLocalizer<UiText> text) : PageModel
 {
     public sealed class RegistrationInput
@@ -106,7 +107,10 @@ public class ServersModel(
             Port = Input.Port,
             Game = Input.Game,
             Verified = false,
-            HmacSecret = secret,
+            // Encrypted before it is ever written. The plaintext lives only long
+            // enough to render one no-store response, exactly as it did before
+            // — what changes is that the database no longer holds it (012).
+            HmacSecret = secrets.Protect(secret),
             CreatedAt = DateTimeOffset.UtcNow,
         };
 

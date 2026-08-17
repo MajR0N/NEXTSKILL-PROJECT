@@ -19,7 +19,7 @@ namespace NextSkill.Api.Pages.Account;
 /// whole point: a half-finished login must not be a login.
 /// </summary>
 [EnableRateLimiting(Sessions.AuthRateLimitPolicy)]
-public class ChallengeModel(NextSkillDb db, TwoFactorLogin pending, ISmsSender sms) : PageModel
+public class ChallengeModel(NextSkillDb db, TwoFactorLogin pending, ISmsSender sms, SecretProtector secrets) : PageModel
 {
     [BindProperty]
     [Required(ErrorMessage = "Podaj kod.")]
@@ -60,7 +60,10 @@ public class ChallengeModel(NextSkillDb db, TwoFactorLogin pending, ISmsSender s
             ? await RecoveryCodes.RedeemAsync(db, accountId, Code)
             : Method switch
             {
-                TwoFactorMethod.Totp => Totp.Verify(account.TwoFactorSecret ?? "", Code, DateTimeOffset.UtcNow),
+                // Decrypted for exactly as long as deriving one code takes. An
+                // unrecoverable secret verifies nothing, which fails closed (012).
+                TwoFactorMethod.Totp => Totp.Verify(
+                    secrets.Reveal(account.TwoFactorSecret) ?? "", Code, DateTimeOffset.UtcNow),
                 TwoFactorMethod.Sms => await OneTimeCodes.RedeemAsync(db, accountId, OneTimeCodePurpose.SmsSignIn, Code),
                 _ => false,
             };

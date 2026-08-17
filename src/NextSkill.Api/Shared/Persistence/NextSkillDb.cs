@@ -344,7 +344,9 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
 
         b.Entity<MatchParticipant>(e =>
         {
-            e.Property(x => x.LinkCode).HasMaxLength(8);
+            // Sized for the ENCRYPTED form, not the four characters a player
+            // reads off the page (012).
+            e.Property(x => x.LinkCode).HasMaxLength(512);
 
             // One row per person per match. A `player_bound` event PROMOTES the
             // declared row; it must never insert a second one, or a player would

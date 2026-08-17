@@ -56,14 +56,24 @@ public sealed class PluginAuthFilter : IEndpointFilter
 
         // Unknown server and bad signature return the SAME response. Otherwise
         // an attacker could enumerate which server ids exist.
-        if (server?.HmacSecret is null)
+        // Decrypted here and nowhere else. A key the database does not hold is
+        // the whole point: a stolen dump no longer contains a signing
+        // credential (012). An unrecoverable value fails closed as a 401,
+        // exactly like a wrong signature.
+        var secret = http.RequestServices.GetRequiredService<SecretProtector>()
+            .Reveal(server?.HmacSecret);
+
+        // Unknown server, unreadable credential and bad signature all return the
+        // SAME response. Otherwise an attacker could enumerate which server ids
+        // exist.
+        if (secret is null)
             return Problem(http, 401, "unauthorised", "Signature verification failed.");
 
         var result = RequestSignature.Verify(
             rawBody,
             http.Request.Headers[WireContract.SignatureHeader].FirstOrDefault(),
             http.Request.Headers[WireContract.TimestampHeader].FirstOrDefault(),
-            server.HmacSecret,
+            secret,
             clock.GetUtcNow());
 
         if (result != SignatureResult.Valid)

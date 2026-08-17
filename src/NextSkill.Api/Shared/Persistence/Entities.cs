@@ -97,11 +97,12 @@ public class Account
     /// <summary>
     /// Base32 TOTP secret.
     ///
-    /// ponytail: plaintext, exactly like <see cref="GameServer.HmacSecret"/>.
-    /// Ceiling: a database dump lets an attacker generate valid codes for every
-    /// account — it defeats the second factor entirely, though it does not by
-    /// itself get past the password. Upgrade path: encrypt at rest with a key
-    /// held OUTSIDE the database, before this goes near production (012).
+    /// <b>Encrypted at rest</b>, exactly like <see cref="GameServer.HmacSecret"/>
+    /// and for the same reason: deriving the current code means replaying the
+    /// seed, so it cannot be hashed. Without encryption a database dump would
+    /// let an attacker generate valid codes for every account — defeating the
+    /// second factor entirely, though not by itself getting past the password
+    /// (012, 047).
     /// </summary>
     public string? TwoFactorSecret { get; set; }
 
@@ -269,11 +270,11 @@ public class GameServer : ITenantOwned
     /// <summary>
     /// Shared secret for HMAC request signing (decisions 009, 012).
     ///
-    /// ponytail: stored in plaintext for local development only. Ceiling: a
-    /// database dump currently exposes every server's signing secret. Upgrade
-    /// path: encrypt at rest with a key held OUTSIDE the database, before this
-    /// ever touches production — 012 requires it, and the column is here now so
-    /// the migration cost is paid once.
+    /// <b>Encrypted at rest</b> via <see cref="Shared.Auth.SecretProtector"/>,
+    /// with a key ASP.NET Data Protection holds outside the database — so a
+    /// stolen dump no longer contains a usable signing credential (012).
+    /// It cannot be hashed: verifying a plugin's signature means replaying it.
+    ///
     /// Shown to the organiser exactly once, at registration, and never again.
     /// </summary>
     public string? HmacSecret { get; set; }
@@ -677,17 +678,17 @@ public class MatchParticipant : ITenantOwned
     /// Factor 2 of 011's binding: shown to this one player in the lobby, typed
     /// in game, and good for exactly one bind.
     ///
-    /// ponytail: stored as plaintext, unlike every other secret in this schema —
-    /// and deliberately. It is four characters, so a hash would be brute-forced
-    /// in microseconds and would buy nothing except the inability to show the
-    /// player their own code. Its security is structural, not cryptographic: it
-    /// is useless without the account's <c>setinfo</c> token, scoped to one
-    /// slot in one match, and consumed by the first successful bind — after
-    /// which <see cref="Provenance"/> itself is the used marker, so there is no
-    /// separate consumed flag to forget to set. Ceiling: a database reader can
-    /// see live codes. Upgrade path: none needed while factor 1 stands; if
-    /// binding ever becomes single-factor, this must become a hash and the code
-    /// must get real entropy.
+    /// <b>Encrypted at rest</b>, not hashed. Hashing is impossible here — the
+    /// player has to be shown their own code — but a database reader has no
+    /// business seeing live ones either, and once
+    /// <see cref="Shared.Auth.SecretProtector"/> existed for the HMAC and TOTP
+    /// secrets there was no reason left to leave this in the clear.
+    ///
+    /// Its real security remains structural rather than cryptographic: four
+    /// characters are useless without the account's <c>setinfo</c> token, the
+    /// code is scoped to one slot in one match, and the first successful bind
+    /// consumes it — after which <see cref="Provenance"/> itself is the used
+    /// marker, so there is no separate consumed flag to forget to set.
     /// </summary>
     public string? LinkCode { get; set; }
 

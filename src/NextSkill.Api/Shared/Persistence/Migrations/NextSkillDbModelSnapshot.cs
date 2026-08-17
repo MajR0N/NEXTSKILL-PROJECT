@@ -692,8 +692,8 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnName("created_at");
 
                     b.Property<string>("LinkCode")
-                        .HasMaxLength(8)
-                        .HasColumnType("character varying(8)")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
                         .HasColumnName("link_code");
 
                     b.Property<Guid>("MatchId")

@@ -21,7 +21,7 @@ namespace NextSkill.Api.Pages.Account;
 /// </summary>
 [Authorize]
 [EnableRateLimiting(Sessions.AuthRateLimitPolicy)]
-public class TwoFactorModel(NextSkillDb db, ISmsSender sms) : PageModel
+public class TwoFactorModel(NextSkillDb db, ISmsSender sms, SecretProtector secrets) : PageModel
 {
     [BindProperty]
     [Required(ErrorMessage = "Podaj kod z aplikacji.")]
@@ -133,7 +133,12 @@ public class TwoFactorModel(NextSkillDb db, ISmsSender sms) : PageModel
         var account = await db.Accounts.FirstAsync(a => a.Id == accountId);
 
         account.TwoFactorMethod = method;
-        account.TwoFactorSecret = secret;
+
+        // Encrypted at rest. A TOTP secret cannot be hashed — the server has to
+        // replay it to derive the current code — so the only defence against a
+        // stolen dump minting valid second factors is a key the database does
+        // not hold (012, 047).
+        account.TwoFactorSecret = secret is null ? null : secrets.Protect(secret);
         account.TwoFactorEnabledAt = DateTimeOffset.UtcNow;
 
         if (phone is not null)

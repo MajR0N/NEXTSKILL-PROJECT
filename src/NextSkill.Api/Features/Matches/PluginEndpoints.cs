@@ -63,7 +63,8 @@ public static class PluginEndpoints
         });
 
         // ── the plugin PUSHES events, and retries until we say 200 ───────
-        group.MapPost("/matches/{matchId:guid}/events", async (Guid matchId, NextSkillDb db, HttpContext http) =>
+        group.MapPost("/matches/{matchId:guid}/events", async (
+            Guid matchId, NextSkillDb db, SecretProtector secrets, HttpContext http) =>
         {
             var raw = (byte[])http.Items[PluginAuthFilter.RawBodyItem]!;
 
@@ -126,7 +127,7 @@ public static class PluginEndpoints
 
                 // Who is playing, frozen now — not at bracket generation, where
                 // rounds 2+ have no teams yet to snapshot (050 §2).
-                await MatchParticipants.DeclareAsync(db, match, http.RequestAborted);
+                await MatchParticipants.DeclareAsync(db, match, secrets, http.RequestAborted);
 
                 await DiscordAnnouncements.EnqueueMatchStartedAsync(
                     db, match, http.RequestAborted);
@@ -141,7 +142,7 @@ public static class PluginEndpoints
                 bind = Guid.TryParse(payload.AccountId, out var accountId) &&
                        await MatchParticipants.TryBindAsync(
                            db, matchId, accountId, payload.SetinfoToken, payload.LinkCode,
-                           http.RequestAborted)
+                           secrets, http.RequestAborted)
                     ? "bound"
                     // Deliberately one answer for every failure mode. Saying
                     // which factor was wrong would turn this into an oracle for

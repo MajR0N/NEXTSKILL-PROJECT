@@ -23,7 +23,8 @@ public static class MatchParticipants
     /// plugin retries, and a retried <c>match_loaded</c> must not mint a second
     /// set of link codes for people who already have one.
     /// </summary>
-    public static async Task DeclareAsync(NextSkillDb db, Match match, CancellationToken ct = default)
+    public static async Task DeclareAsync(
+        NextSkillDb db, Match match, Shared.Auth.SecretProtector secrets, CancellationToken ct = default)
     {
         if (match.TeamAId is null && match.TeamBId is null) return;
 
@@ -68,7 +69,7 @@ public static class MatchParticipants
                     TeamId = team,
                     Slot = member.Slot,
                     Provenance = ParticipantProvenance.Declared,
-                    LinkCode = NewLinkCode(),
+                    LinkCode = secrets.Protect(NewLinkCode()),
                     CreatedAt = DateTimeOffset.UtcNow,
                 });
             }
@@ -90,6 +91,7 @@ public static class MatchParticipants
         Guid accountId,
         string setinfoToken,
         string linkCode,
+        Shared.Auth.SecretProtector secrets,
         CancellationToken ct = default)
     {
         // Factor 3 of 011's check list, and the cheapest: is this person even on
@@ -112,10 +114,14 @@ public static class MatchParticipants
         if (storedHash is null || !Shared.Auth.SetinfoTokens.Verify(setinfoToken, storedHash))
             return false;
 
+        // Decrypted for the comparison and nothing else. An unrecoverable code
+        // binds nobody, which fails closed.
+        if (secrets.Reveal(participant.LinkCode) is not { } expected) return false;
+
         // Fixed-time, like the token: a four-character code is short enough that
         // an ordinary string compare leaks its prefix to a patient caller.
         if (!CryptographicOperations.FixedTimeEquals(
-                System.Text.Encoding.UTF8.GetBytes(participant.LinkCode),
+                System.Text.Encoding.UTF8.GetBytes(expected),
                 System.Text.Encoding.UTF8.GetBytes(linkCode)))
             return false;
 

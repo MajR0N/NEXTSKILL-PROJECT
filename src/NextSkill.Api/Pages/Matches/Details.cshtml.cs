@@ -18,7 +18,8 @@ namespace NextSkill.Api.Pages.Matches;
 /// The durable, server-rendered match lobby. Live transport will enhance this
 /// page later; a plain fetch remains the complete state interface (028, 051).
 /// </summary>
-public class DetailsModel(NextSkillDb db, TenantContext tenant, TimeProvider clock) : PageModel
+public class DetailsModel(
+    NextSkillDb db, TenantContext tenant, TimeProvider clock, SecretProtector secrets) : PageModel
 {
     public sealed class VetoInput
     {
@@ -207,13 +208,16 @@ public class DetailsModel(NextSkillDb db, TenantContext tenant, TimeProvider clo
         // Scoped to the caller's OWN account id, which is what makes the escape
         // hatch safe here — the same reasoning Actors.cs uses. It can only ever
         // return the code belonging to the person asking.
-        MyLinkCode = await db.MatchParticipants
+        var stored = await db.MatchParticipants
             .IgnoreQueryFilters()
             .Where(p => p.MatchId == match.Id &&
                         p.AccountId == actor.AccountId &&
                         p.Provenance == ParticipantProvenance.Declared)
             .Select(p => p.LinkCode)
             .FirstOrDefaultAsync(cancellationToken);
+
+        // Decrypted only to render it to its owner, on a no-store response.
+        MyLinkCode = secrets.Reveal(stored);
 
         if (MyLinkCode is not null)
             Response.Headers.CacheControl = "no-store";

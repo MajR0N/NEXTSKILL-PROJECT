@@ -466,8 +466,15 @@ public static class MatchResultChecks
                 $"a 1v1 with two rostered captains should declare two players, got {participants.Count}");
             that(participants.All(p => p.Provenance == ParticipantProvenance.Declared),
                 "nothing is proven yet, so every row starts Declared");
-            that(participants.All(p => p.LinkCode is { Length: 4 }),
+            // Stored encrypted (012), so the length check is on the revealed
+            // value — what the player would actually be shown.
+            using var scope = factory.Services.CreateScope();
+            var protector = scope.ServiceProvider.GetRequiredService<SecretProtector>();
+
+            that(participants.All(p => protector.Reveal(p.LinkCode) is { Length: 4 }),
                 "each declared player gets factor 2 of their binding");
+            that(participants.All(p => p.LinkCode is { Length: > 4 }),
+                "and the DATABASE holds the encrypted form, not the four characters");
 
             // The retry the plugin will absolutely make.
             sim.MatchLoaded(liveMatchId, 1).GetAwaiter().GetResult();
@@ -481,8 +488,13 @@ public static class MatchResultChecks
             string codeOf(Guid accountId)
             {
                 using var db = Db(organiserId);
-                return db.MatchParticipants.AsNoTracking()
-                    .Single(p => p.MatchId == liveMatchId && p.AccountId == accountId).LinkCode!;
+                using var scope = factory.Services.CreateScope();
+                var protector = scope.ServiceProvider.GetRequiredService<SecretProtector>();
+
+                var stored = db.MatchParticipants.AsNoTracking()
+                    .Single(p => p.MatchId == liveMatchId && p.AccountId == accountId).LinkCode;
+
+                return protector.Reveal(stored)!;
             }
 
             var code = codeOf(playerAId);

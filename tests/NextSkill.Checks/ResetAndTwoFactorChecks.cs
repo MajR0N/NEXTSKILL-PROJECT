@@ -293,7 +293,15 @@ public static class ResetAndTwoFactorChecks
             using var db = Db();
             var account = db.Accounts.AsNoTracking().Single(a => a.Id == accountId);
             that(account.TwoFactorMethod == TwoFactorMethod.Totp, "it must now be on");
-            that(account.TwoFactorSecret == secret, "and the secret stored");
+            // Stored, but no longer stored READABLE. The seed cannot be hashed —
+            // deriving the current code means replaying it — so encryption at
+            // rest is the only thing standing between a database dump and an
+            // attacker minting valid second factors (012, 047).
+            that(account.TwoFactorSecret is not null, "and the secret stored");
+            that(account.TwoFactorSecret != secret,
+                "ENCRYPTED at rest, never the plaintext seed");
+            that(NextSkill.Api.Shared.Auth.SecretProtector.IsProtected(account.TwoFactorSecret),
+                "and recognisably so, rather than merely different");
 
             that(db.RecoveryCodes.Count(c => c.AccountId == accountId) == RecoveryCodes.Count,
                 "recovery codes must be issued WITH the factor — enabling 2FA without a way back in is a way to lose an account");
