@@ -270,8 +270,14 @@ the listing being a directory bolted onto a platform:
 > **Liczby z serwera, nie z zapytania.**
 > *(Numbers from the server, not from a query.)*
 >
-> Every other list dials a server and believes the answer. Ours counts humans from inside it, and
-> shows you the bots ([057](decisions/057-server-browser-and-seo.md) §2).
+> Every other list dials a server and believes the answer. Ours counts humans from inside it
+> ([057](decisions/057-server-browser-and-seo.md) §2).
+
+Where the plugin is not installed the claim is weaker, and is stated weaker rather than blurred —
+which is the whole brand, applied to itself:
+
+> **Nie policzymy za nich graczy. Pokażemy, czyje liczby nie zachowują się jak ludzie.**
+> *(We won't count their players for them. We'll show you whose numbers don't behave like people.)*
 
 ---
 
@@ -458,9 +464,32 @@ other.
 > | Differentiated | **No — the same data everyone has** | **Yes** |
 >
 > **Lead with CS2 for traffic; convert owners to the plugin.** The CS2 list is useful immediately
-> and gets indexed while nobody is verified — and at launch it is, openly, *a worse GO-Setti*.
-> Its job is to put owners in front of the one offer nobody else has: **your server could show
-> real numbers.**
+> and gets indexed while nobody is verified. Its job is to put owners in front of the one offer
+> nobody else has: **your server could show real numbers.**
+>
+> **Amended 2026-08-17 — "same data" is not "same product".** This originally said the CS2 list is
+> *"openly a worse GO-Setti"*. That was wrong. The snapshot is identical for everyone; **nobody
+> stores it.** Polling the Steam API every fifteen minutes and keeping the result yields a
+> thirty-day occupancy series for every Polish CS2 server, on day one, with no plugin —
+> differentiation by **analysis** rather than **access**.
+>
+> It also recovers the honesty claim, because padding counts is standard practice and is invisible
+> per snapshot but obvious across weeks. Counts therefore carry a confidence tier:
+>
+> | Tier | Claim |
+> | --- | --- |
+> | **Verified** (plugin) | *We counted the humans* |
+> | **Plausible** (public data, normal behaviour) | *We cannot count them, and nothing looks wrong* |
+> | **Implausible** (public data, flat at capacity for weeks) | *We cannot count them, and this does not behave like people* |
+>
+> Third application of a principle the product already runs on — `±RD` in
+> [025](decisions/025-rating-system.md), `Declared` vs `Bound` in
+> [050](decisions/050-match-results-and-ratings.md). **Showing the confidence is the product.**
+>
+> **The tightest loop in the plan:** an owner who disputes the inference has exactly one way to
+> settle it — install the plugin and be counted. The accusation and the call to action are the
+> same sentence. The rule that keeps it fair: **publish the observation and the graph, never a
+> verdict.**
 >
 > **The moat is a race, not a wall.** Nothing stops CS-Setti writing a plugin. What protects us is
 > that they would face the identical adoption barrier from a standing start, without a tournament

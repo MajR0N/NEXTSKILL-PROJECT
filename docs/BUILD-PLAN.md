@@ -583,13 +583,21 @@ launches with a decided palette and a designed OG card rather than in monochrome
 **Lenses:** `seo-audit` · `site-architecture` · `programmatic-seo` · `dotnet-core-expert` ·
 `secure-code-guardian` (a listing is a new public write surface) · `postgres-pro` (time series)
 
-- ☐ **Steam Web API ingestion** — CS2 (app 730) and CS:GO (app 4465480). **No outbound packet
+- ☐ **Steam Web API ingestion and polling** — CS2 (app 730) and CS:GO (app 4465480), polled every ~15 min and **stored as a time series**. Nobody else keeps history, so this is differentiation by analysis rather than access. **No outbound packet
   ever reaches a listed server**: [051](decisions/051-phase-4-remainder.md) §2 holds, and A2S
   dialling is refused outright as a reflection/amplification vector
 - ☐ **Plugin activity reporting for CS 1.6** — five-minute window, **humans separated from
   bots**, giving a time series nobody can scrape. Depends on Phase 6
 - ☐ **Per-server pages first** — occupancy history, peak hours, human-vs-bot over time. The
   unmatchable data, and what makes the page substantial enough to index
+- ☐ **Three confidence tiers on every count** — `Verified` (plugin, humans counted inside),
+  `Plausible` (public data, behaves like people), `Implausible` (flat at capacity for weeks).
+  Third application of the show-your-uncertainty principle behind `±RD` and `Declared`/`Bound`.
+  **Show the observation and the graph, never a verdict** — and the remedy for a disputed
+  inference is installing the plugin, so the accusation and the call to action are one sentence.
+  A tier is displayed and filterable and **never an ordering input** (⊘ blocked on **V11**)
+- ☐ **Derived from the same series** — best time to play, uptime, observed map rotation,
+  dead-server pruning. All from public data; none of it offered by the incumbents
 - ☐ **Facets behind a content floor** — `game × type`, `game × region`. Below the floor,
   `noindex`; pagination past page 1 and sort orders always `noindex`. **The floor is the whole
   safety mechanism** — scaled thin pages demote the entire domain, ranking and match pages included

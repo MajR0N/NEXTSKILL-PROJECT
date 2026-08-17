@@ -220,8 +220,65 @@ genuinely useful on day one and gets indexed while nobody is verified. Its job i
 owners in front of the one thing they cannot get anywhere else — *your server could show real
 numbers* — and every owner who installs converts a commodity row into a proprietary page.
 
-**What was given up:** the positioning is openly undifferentiated at launch on the larger half of
-the catalogue. That is preferable to launching a list nobody can use to find a server.
+### Amended 2026-08-17 — "same data" is not "same product"
+
+The paragraph above originally concluded that the CS2 listing is undifferentiated at launch. **That
+was wrong**, and the error was conflating identical *data* with an identical *product*.
+
+A snapshot is identical for everybody. **Nobody stores it.** CS-Setti and GO-Setti show you *now*,
+because a list is a list. Polling the Steam API every fifteen minutes and keeping the result gives
+a thirty-day occupancy series for every server — from public data, with no plugin, on day one.
+Differentiation by **analysis** rather than by **access**.
+
+It also recovers the honesty claim on CS2. Padding player counts is standard practice: servers
+report fake players to climb the in-game browser. Per snapshot that is undetectable. **Across
+weeks it is obvious:**
+
+| Observed pattern | What it says |
+| --- | --- |
+| Exactly 32/32 for nineteen days | Not a server, a billboard |
+| Flat at 03:00 and at 20:00 | Real Polish players sleep |
+| Instant fill to exactly *N*, never fluctuating | Bots joining on a timer |
+| Count unchanged across a map rotation | The number is not attached to anything |
+
+**So counts carry one of three confidence tiers**, and the tiers are the product:
+
+| Tier | Basis | Claim |
+| --- | --- | --- |
+| **Verified** | Plugin, humans counted inside the server | *We counted the humans* |
+| **Plausible** | Public data, behaviour consistent with real players | *We cannot count them, and nothing looks wrong* |
+| **Implausible** | Public data, behaviour inconsistent with real players | *We cannot count them, and this does not behave like people* |
+
+This is the **third application of a principle the product already runs on**:
+[025](025-rating-system.md) shows `±RD` rather than hiding uncertainty, and
+[050](050-match-results-and-ratings.md) shows `Declared` versus `Bound` rather than flattening
+provenance. Showing the confidence *is* the differentiator, exactly as it is in the rating.
+
+> #### ⚠ The risk this carries, and its remedy
+>
+> **A false accusation against a legitimate server is a reputation problem that cannot be undone.**
+> Two rules contain it:
+>
+> 1. **Show the evidence, never the verdict.** Publish the graph and the observation — *"reported
+>    32/32 continuously for 19 days"* — and let the reader conclude. The product states facts about
+>    behaviour; it does not call anyone a liar.
+> 2. **The remedy is the conversion.** An owner who disputes the inference has exactly one way to
+>    settle it: install the plugin and be counted. **The accusation and the call to action are the
+>    same sentence**, which is the tightest loop in this decision.
+
+**What was given up:** the CS2 claim is genuinely weaker than the CS 1.6 one, and is stated as
+such rather than blurred — *we count the humans* versus *we can show you whose numbers do not
+behave like humans*.
+
+### Also available from the same public data
+
+| | Why it differentiates |
+| --- | --- |
+| **Best time to play** | Derived from the series. Nobody offers it |
+| **Dead-server pruning** | Incumbent lists are full of corpses. Curation beats catalogue |
+| **Uptime and reliability** | *"Offline four days last month"* is a fact an owner cannot hide |
+| **Observed map rotation** | What the server actually runs, not what its name claims |
+| **Which teams and tournaments** | **Uncopyable** — it needs the tournament data. Also the click-through the directory tripwire measures |
 
 > **The moat is a race, not a wall.** Nothing stops an incumbent writing a plugin of their own.
 > What protects this is that they would face the identical adoption barrier from a standing start,
@@ -367,6 +424,12 @@ Per the project's engineering principles, in `tests/NextSkill.Checks`:
     roster/rating history rules remain unchanged.
 12. The ranking page **publishes no ranking below the threshold** and states the progress toward
     it instead — never a three-row leaderboard.
+13. A server whose public count has been **flat at capacity for weeks** is labelled `Implausible`;
+    one with a normal diurnal curve is `Plausible`; a plugin server is `Verified`. The page shows
+    **the observation and the graph, never a verdict**.
+14. **A confidence tier is never an ordering input.** It is displayed and filterable, exactly as
+    verification is — otherwise the honesty claim becomes a ranking mechanic and §5's boundary
+    leaks through a side door.
 
 ---
 
@@ -375,7 +438,8 @@ Per the project's engineering principles, in `tests/NextSkill.Checks`:
 | # | Assumption | Blocks | How to verify |
 | --- | --- | --- | --- |
 | **V8** | CS:GO legacy's App ID is **4465480** | this document, §3 | Single-sourced. Confirm directly against the Steam store page or `ISteamApps` before writing it into code |
-| **V9** | `IGameServersService/GetServerList` returns community servers for app 730, and for the CS:GO app, with usable filters and rate limits | §1 | Obtain a Web API key and call it; record the rate ceiling |
+| **V9** | `IGameServersService/GetServerList` returns community servers for app 730, and for the CS:GO app, with usable filters and rate limits | §1, **§5a** | Obtain a Web API key and call it; record the rate ceiling. **Now gates more than listing**: the confidence tiers need polling every ~15 minutes across the whole Polish catalogue, so the rate ceiling decides whether the CS2 differentiation is possible at all |
+| **V11** | Padded counts are distinguishable from real ones over a multi-week series, at a false-positive rate low enough to publish | **§5a** | Poll for a month before labelling anything. Calibrate against servers whose real occupancy is known — the plugin-verified ones are the ground truth |
 | **V10** | The CS:GO community-server population is large enough to justify reopening [001](001-game-scope.md) | §3's tournament half | The listing itself measures it — ship the listing first, count, then commit plugin work |
 
 ---
