@@ -570,6 +570,43 @@ Named in [041](decisions/041-layout-system.md) as the ones a design system does 
 - ☐ **Open Graph card designed** — quite possibly the most-viewed surface in the product, and so far it is a text tag ([018](decisions/018-frontend-architecture.md))
 - ☐ 404 / 500 / banned / maintenance pages ([033](decisions/033-maintenance-mode.md))
 
+## Phase 5b — Server browser & SEO engine ([057](decisions/057-server-browser-and-seo.md))
+
+**Placed after Phase 5 by decision**, so the most-visited public surface in the product
+launches with a decided palette and a designed OG card rather than in monochrome.
+
+> ⚠ **The cost, recorded:** the CS2/CS:GO half needs no plugin and could ship today, and
+> search rankings mature on a clock that cannot be shortened. **This phase is blocked on
+> Phase 5, which is blocked on [044](decisions/044-visual-direction.md) — still open.** Until
+> 044 closes this has no date; if it stays open, revisit rather than let it drift.
+
+**Lenses:** `seo-audit` · `site-architecture` · `programmatic-seo` · `dotnet-core-expert` ·
+`secure-code-guardian` (a listing is a new public write surface) · `postgres-pro` (time series)
+
+- ☐ **Steam Web API ingestion** — CS2 (app 730) and CS:GO (app 4465480). **No outbound packet
+  ever reaches a listed server**: [051](decisions/051-phase-4-remainder.md) §2 holds, and A2S
+  dialling is refused outright as a reflection/amplification vector
+- ☐ **Plugin activity reporting for CS 1.6** — five-minute window, **humans separated from
+  bots**, giving a time series nobody can scrape. Depends on Phase 6
+- ☐ **Per-server pages first** — occupancy history, peak hours, human-vs-bot over time. The
+  unmatchable data, and what makes the page substantial enough to index
+- ☐ **Facets behind a content floor** — `game × type`, `game × region`. Below the floor,
+  `noindex`; pagination past page 1 and sort orders always `noindex`. **The floor is the whole
+  safety mechanism** — scaled thin pages demote the entire domain, ranking and match pages included
+- ☐ **Guides in parallel from day one** — they rank with an empty catalogue and reach the
+  owner who makes it non-empty
+- ☐ **Votes** — only from an account the server confirmed was playing there in the window.
+  Rolling month, each closed month frozen into a permanent page, read as at its closing instant
+- ☐ **Two surfaces** — `/serwery` ordered by live humans; `/ranking/serwery/{month}` by votes.
+  Verification is a badge and a filter, never a position boost
+- ☐ **Sponsored placement** — labelled, beside or above a list, **never inside the organic
+  order**. Pricing and go-to-market are a separate grilling against the strategy
+- ☐ **Aggregate activity always; named presence opt-in, default off** — a verified identity's
+  live location is not broadcast without consent ([011](decisions/011-accounts-and-login.md),
+  [012](decisions/012-security.md))
+- ⊘ **V8 / V9 / V10** — CS:GO app id, Steam API shape and rate limits, CS:GO population.
+  The listing itself measures V10 before any CS:GO plugin work is committed
+
 ## Phase 6 — Plugins
 
 **Lenses:** `csharp-developer` · `dotnet-core-expert` (the plugin is a .NET 8 assembly) · `test-master` · `debugging-wizard`

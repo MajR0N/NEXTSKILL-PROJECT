@@ -192,13 +192,34 @@ The 1.6 competitive scene remains active — notably Turkey, Brazil, Russia/CIS 
 
 _Checked: 2026-08-10._
 
-### 2.5 CS:GO is effectively dead as a target
+### 2.5 CS:GO — ~~effectively dead~~ **re-checked, and the picture changed**
 
-Valve replaced CS:GO with CS2 in September 2023. The `-csgo_legacy` branch exists, but
-community server population is negligible. Supporting it means a third integration path
-for near-zero users.
+Valve replaced CS:GO with CS2 in September 2023.
 
-_Checked: 2026-08-10._
+> **Corrected 2026-08-17.** The earlier entry said CS:GO was reachable only through a
+> `-csgo_legacy` branch with negligible community population. **That framing is out of date.**
+> On **3–4 March 2026** Valve put up a **separate, unlisted CS:GO store page** — a frozen
+> build with **no official matchmaking**, playable only against bots or **on community
+> servers**
+> ([Godlike](https://godlike.host/csgo-back-on-steam-in-2026-the-new-csgo-steam-page-what-it-means-and-the-catch-blog/),
+> [HLTV](https://www.hltv.org/news/37221/csgo-remains-available-on-steam-in-frozen-build)).
+> App ID reported as **4465480**
+> ([cs2.ad](https://cs2.ad/blog/csgo-back-on-steam)) — **single-sourced, see V8**.
+
+Two consequences, both recorded in [057](docs/decisions/057-server-browser-and-seo.md):
+
+1. A game whose *only* online option is community servers is exactly the audience a server
+   list serves — so CS:GO is listed, and [001](docs/decisions/001-game-scope.md) is reopened
+   to admit CS:GO tournaments.
+2. **CS:GO is the only one of the three games where plugin risk is permanently zero.** The
+   top open risk below is "a Valve update breaks CounterStrikeSharp"; a frozen build cannot
+   break a plugin. It also runs SourceMod/Metamod, a decade more mature, with Get5 as prior
+   art.
+
+The population itself is still uncounted — [055](docs/decisions/055-multi-game-scope.md)'s
+open question. The server listing measures it for free before any plugin work is committed.
+
+_Checked: 2026-08-10; corrected and re-checked 2026-08-17._
 
 ### 2.6 `setinfo` is a proven CS 1.6 idiom — and its leak vector is known
 
@@ -411,6 +432,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [053](docs/decisions/053-rewards-and-prize-pools.md) | **Rewards & prize pools** | **decided** — Valve removed progression from community servers; rewards are how we give it back. **Earned, never drawn**: no chance mechanics, because a deterministic reward *is* another verifiable fact on the record while a random one imports a permanent regulatory question. Three tiers — status (free, already built), **community-funded stackable attributed pools** (a feature, not a cost), deterministic perks. We never hold anyone's prize money |
 | [054](docs/decisions/054-becoming-a-rated-player.md) | **Becoming a rated player** | **decided** — the *"this counted"* moment must land in-session or it never lands. **CS2 plays first and claims after** (verified SteamID, one-click Steam OpenID attaches the whole history); **CS 1.6 registers first and binds with two factors**, because [010](docs/decisions/010-identity-binding.md) proved its identity spoofable. Not an inconsistency — the lazy path exists in one game and is a hole in the other. Claiming reuses [050](docs/decisions/050-match-results-and-ratings.md)'s promotion shape |
 | [055](docs/decisions/055-multi-game-scope.md) | **Multi-game scope** | **decided — deferred on purpose, ladder fixed.** Nothing built, nothing narrowed: `Match.Game`, `jsonb` payloads and pure engines are already game-agnostic, and [006](docs/decisions/006-architecture.md)'s rule of two forbids generalising before one game runs end to end. **Tier A** = plugin games (the moat); **Tier B** = official tournament APIs, and **LoL via Riot Tournament API is the only viable non-CS first step** because its results callback is the same inversion of control as our plugin contract; **Tier C** (CoD, Rocket League, Clash Royale) is refused — no community servers, no rating gap, different customer, and a manual-score path would make *"results are reported, not entered"* false in our own product. CS:GO stays out pending a ten-minute population count |
+| [057](docs/decisions/057-server-browser-and-seo.md) | **Server browser, verified activity & SEO** | **decided** — a second front door for the query Discord links never reach. **We still never dial a game server** ([051](docs/decisions/051-phase-4-remainder.md) §2 holds): CS 1.6 counts come from our plugin with bots separated, CS2/CS:GO from the Steam API — so the 1.6 catalogue is small and **verified**, and being listed is the reason an owner installs the plugin Phase 6 needs anyway. **Only players the server confirmed were playing may vote**, which makes the market's most-gamed mechanic unbotable. Two surfaces: a list ordered by live humans, a monthly ranking ordered by votes and frozen forever. **Money buys labelled placement beside a list, never a position inside one.** Programmatic SEO behind a **content floor**, because scaled thin pages would demote the whole domain. Aggregate activity always, **named presence opt-in**. CS:GO listed and [001](docs/decisions/001-game-scope.md) reopened for it. Built after Phase 5 |
 | [056](docs/decisions/056-lft-board.md) | **LFT board & recruitment marketplace** | **decided** — one two-sided, game-scoped board ordered by freshness; structured compatibility with unrated/rostered players allowed; real openings on every team approach; bounded applications/interests; verified contact revealed only by mutual consent and then taken off-platform; `/me/recruitment`, explicit expiry, blocking and short retention. **No mixed feed, self-rated skill, opaque matching or recruitment chat** |
 | [045](docs/decisions/045-teams-and-rosters.md) | **Teams: roster size, edit, disband, restore** | **decided** — **5 players + 3 subs + 2 coaches**, capped per slot. Slot is a second axis to role, so a coach can captain without being fieldable. Pending invites occupy a place; disband is soft and reserves the tag; a captain present at disband may restore the same team without rewriting old roster history |
 | [023](docs/decisions/023-bracket.md) | Bracket data model & rendering | **decided** — whole bracket generated up front with **explicit routing links**; mobile gets round-by-round + follow-team, not a shrunken tree |
@@ -468,6 +490,9 @@ verified before code depends on it — per project instruction, test before ackn
 | V5 | RCON is **not** part of the normal CS2 match lifecycle | [051](docs/decisions/051-phase-4-remainder.md) closes this as a product boundary: the plugin always dials us and the panel never stores or uses RCON | **Resolved by design.** A future outbound-control proposal must reopen 051 rather than quietly adding a credential |
 | V6 | CS2 can expose authoritative final match state for reconciliation | [035](docs/decisions/035-match-result-integrity.md) | Inspect what a map-end payload can contain |
 | V7 | Steam OpenID 2.0 remains available with no announced sunset | [011](docs/decisions/011-accounts-and-login.md) | Re-check Steamworks docs periodically |
+| **V8** | CS:GO legacy's App ID is **4465480** | [057](docs/decisions/057-server-browser-and-seo.md) | **Single-sourced.** Confirm against the Steam store page or `ISteamApps` before it reaches code |
+| **V9** | `IGameServersService/GetServerList` returns community servers for app 730 and for CS:GO, with usable filters and a workable rate limit | [057](docs/decisions/057-server-browser-and-seo.md) | Get a Web API key, call it, record the rate ceiling |
+| **V10** | The CS:GO community-server population justifies reopening [001](docs/decisions/001-game-scope.md) for tournaments | [057](docs/decisions/057-server-browser-and-seo.md) | The listing measures it — ship the list, count, then commit plugin work |
 
 **V3 is the highest priority**, and this paragraph used to say V1 — which its own table above
 had already marked resolved on 2026-08-10. Corrected 2026-08-17.
