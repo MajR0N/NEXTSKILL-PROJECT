@@ -1,6 +1,6 @@
 # NEXTSKILL — Build plan
 
-The design phase is complete (**43 decision records** in `docs/decisions/`, two of them
+The design phase is complete (**51 decision records** in `docs/decisions/`, two of them
 deliberately reopened). This is the implementation sequence, derived from
 [038 — build order](decisions/038-build-order.md).
 
@@ -321,8 +321,9 @@ endpoint, request, handler and validator together.
     `Verified`**, while rejected traffic changes nothing
   - ⊘ Real-organiser verification remains blocked until the real plugin ships in Phase 6; the
     simulator proves the complete registration → signed-heartbeat transition now
-  - ⚠ `GameServer.HmacSecret` is still plaintext — its `ponytail:` ceiling says encrypt with an
-    out-of-DB key **before production** ([012](decisions/012-security.md))
+  - ☑ `GameServer.HmacSecret` is **encrypted at rest** with a key held outside the database —
+    the `ponytail:` ceiling closed 2026-08-17, and proven by signing a real heartbeat with the
+    stored credential ([012](decisions/012-security.md))
 - ☑ **Veto & lobby** — *before* matches, not after ([028](decisions/028-veto-and-lobby.md), [051](decisions/051-phase-4-remainder.md) §1)
   - **Server-rendered with form posts.** [028](decisions/028-veto-and-lobby.md)'s own check #5 already
     demands full correct state from a plain fetch, so this version must exist regardless; SSE in 5c
@@ -651,6 +652,10 @@ Carried from CONTEXT §7. **Must be resolved before the code that depends on the
 | **V3** | Does `setinfo` behave identically on **non-Steam clients**? | [005](decisions/005-cs16-plugin.md) — **the one that could hurt**, since most active 1.6 servers admit non-Steam clients |
 | V4 | Does the info-key length limit allow a high-entropy token? | [005](decisions/005-cs16-plugin.md) |
 | V5 | Is RCON needed for the normal CS2 match lifecycle? | **Resolved by [051](decisions/051-phase-4-remainder.md): no.** The plugin dials us; a future outbound-control feature must reopen that boundary |
+| **V8** | Is CS:GO legacy's App ID really **4465480**? | [057](decisions/057-server-browser-and-seo.md) — **single-sourced**, confirm against Steam before it reaches code |
+| **V9** | Does `GetServerList` return community servers for app 730 and CS:GO, at a rate limit that allows polling the whole Polish catalogue every ~15 min? | [057](decisions/057-server-browser-and-seo.md) — **gates the confidence tiers, not just the listing** |
+| **V10** | Is the CS:GO community-server population large enough to justify reopening [001](decisions/001-game-scope.md) for tournaments? | [057](decisions/057-server-browser-and-seo.md) — **the listing measures it for free** before any CS:GO plugin work |
+| **V11** | Are padded player counts distinguishable from real ones over a multi-week series, at a publishable false-positive rate? | [057](decisions/057-server-browser-and-seo.md) §5a — calibrate against plugin-verified servers; a false accusation cannot be undone |
 | — | Do **Unbounded** and **IBM Plex** actually cover Cyrillic? | [019](decisions/019-visual-identity.md) |
 
 ## Design note
