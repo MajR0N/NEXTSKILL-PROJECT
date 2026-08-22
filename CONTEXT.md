@@ -294,14 +294,13 @@ Sources: [github.com/UnrealKaraulov/EasyCheatDetector](https://github.com/Unreal
 _Checked: 2026-08-22._
 ### 2.9 Server-triggered client POV demo recording — per game, and the answer differs
 
-Researched for [058](docs/decisions/058-what-we-sell.md) §6c's appeal path. **It works where we need
-it most and is unreliable where we do not need it at all.**
+Researched for [058](docs/decisions/058-what-we-sell.md) §6c's appeal path. **The one game that needs
+it has it; the two that do not, do not.**
 
 | Game | Mechanism | State |
 | --- | --- | --- |
 | **CS 1.6** | AMXX `client_cmd(id, "record <name>")` | **Works, and is field-proven.** "Auto demo recorder" AMXX plugins already do exactly this — start a client-side recording when a player connects, precisely so an unban appeal has something to look at |
-| **CS:GO** | SourceMod `ClientCommand(client, "record <name>")` | **Mechanism exists.** Known caveat: it must be issued on a timer, not during connect |
-| **CS2** | CounterStrikeSharp / MM:S equivalent | **The permission question is not the blocker — the feature is.** See below |
+| **CS:GO / CS2** | **Not needed** — POV is reconstructed from the server-side GOTV demo by spectating the player inside it | **Moot, in our favour.** The demo already carries per-player view angles ([024](docs/decisions/024-demos.md)). See below |
 
 #### CS 1.6 — the one caveat worth knowing
 
@@ -319,31 +318,49 @@ start is refusal, not clean.**
 > harmless — **but it is close enough to the identity mechanism that it must be checked while V2b/V3
 > are being tested**, not discovered afterwards.
 
-#### CS2 — blocked by a bug, not by a permission
+#### CS2 — the freeze claim did not survive a recheck, and the real answer is better
 
-Two separate issues, and the second is the one that matters:
+> ⚠ **Corrected on recheck, 2026-08-22.** An earlier version of this entry stated flatly that *"CS2
+> POV recording is broken — `record` freezes the game."* **That was sourced from a Leetify post
+> dated 8 November 2023, describing a specific outage window — and Valve re-enabled CSTV on
+> 9 November 2023, one day later.** A three-year-old snapshot was being read as current state.
 
-1. `FCVAR_SERVER_CAN_EXECUTE` governs whether a server may force a command on a client at all. The
-   published CS2 cvar dump shows `_record` carrying only `FCVAR_DONTRECORD | FCVAR_RELEASE` — no
-   server-execute flag — which is suggestive but not conclusive.
-2. **CS2 POV recording is currently broken on the client side.** `record` frequently freezes the
-   game, and `playdemo` crashes the client in many cases. Leetify — who build a product on demo
-   analysis — say they would not recommend recording POV demos at all, and are waiting on Valve to
-   re-enable CSTV.
+**What is actually established:**
 
-**This costs us almost nothing, because CS2 does not need it.** The POV demo exists to fill CS 1.6's
-missing demo pipeline ([024](docs/decisions/024-demos.md)); CS2 already has server-side GOTV, and a
-CS2 appeal is answered with the demo we already retain. **The game where server-forced POV recording
-is blocked is the game that has a better artefact anyway.**
+| Claim | Status |
+| --- | --- |
+| `record` freezes/crashes the CS2 client | **Reported Sept 2023 – April 2024** (Steam discussion replies run to 8 Apr 2024). **No primary source confirms or denies it for 2026** — every current search hit traces back to the same 2023 post, recycled by SEO content |
+| CSTV/GOTV recording works | **Yes.** Disabled briefly in Sept–Nov 2023 for server capacity, restored 9 Nov 2023 |
+| `FCVAR_SERVER_CAN_EXECUTE` gates server-forced client commands | **Yes**, and the CS2 cvar dump shows `_record` without that flag — suggestive, not conclusive |
+
+**The finding that makes the question moot: in CS2 and CS:GO, POV is derived from the server demo,
+not recorded on the client.** A GOTV demo carries per-player positions and view angles, so any
+player's point of view is reconstructed by spectating him inside it. Tools do exactly this —
+`cs2pov` parses a demo, generates spectator configs, launches CS2 following the target player and
+captures the result; the same technique underlies *"emulating CS:GO client-side demos with
+server-side demos."*
+
+> **So forced client recording was never needed for CS2 — not "we lose nothing", but "there was
+> nothing to lose."** A CS2 appeal is answered from [024](docs/decisions/024-demos.md)'s retained
+> GOTV demo, and the referee can watch the accused player's own view from it.
+
+**Net position per game:** CS 1.6 needs client-side POV recording and has it. CS2 and CS:GO do not
+need it, because the server demo already contains the view. **The 2026 status of the CS2 `record`
+bug is unknown and does not matter to us** — nothing in
+[058](docs/decisions/058-what-we-sell.md) §6c depends on it.
 
 Sources:
 [AMX Mod X `client_cmd`](https://www.amxmodx.org/api/amxmodx/client_cmd),
 [SourceMod `ClientCommand`](https://sm.alliedmods.net/new-api/console/ClientCommand),
 [`point_clientcommand` / FCVAR_SERVER_CAN_EXECUTE](https://developer.valvesoftware.com/wiki/Point_clientcommand),
-[Leetify — CS2 POV demos](https://leetify.com/blog/cs2-pov-demos/),
+[Leetify — CS2 POV demos, 8 Nov 2023](https://leetify.com/blog/cs2-pov-demos/) *(and its next-day
+follow-up, "Demos are back!")*,
+[Steam discussion, Sept 2023 – Apr 2024](https://steamcommunity.com/app/730/discussions/0/3881596897262163840/),
+[`cs2pov` — POV from server demos](https://github.com/scharkonline/cs2pov),
 [CS2 ConVar dump](https://gist.github.com/SuGolYolLom/7637a0a427c41e9668fdc0ea2fe1a78a).
 
-_Checked: 2026-08-22._
+_Checked 2026-08-22; CS2 half rechecked and corrected the same day._
+
 
 ---
 
@@ -589,7 +606,7 @@ verified before code depends on it — per project instruction, test before ackn
 | **V12** | Paid-placement disclosure under the Polish implementation of the Omnibus Directive (2019/2161) and the DSA — is **`Promowane`** sufficient wording, is a bordered band sufficient prominence, and must the ranking criteria themselves be published? | [058](docs/decisions/058-what-we-sell.md) §6 | **Blocks boost shipping.** The label is decided (`PROMOWANE · ZWERYFIKOWANE`); what is unconfirmed is whether it satisfies the statute. The first item here gated on law rather than engineering, and single-sourced — confirm against the current text or counsel *before* it reaches code |
 | **V13** | Lawful basis, retention period and erasure-right reconciliation for a stored hardware identifier | [058](docs/decisions/058-what-we-sell.md) §6c | **Blocks HWID banning.** A hardware identifier is personal data, and [012](docs/decisions/012-security.md) currently advertises **zero persisted application IPs** — reversing that is a decision, not a side effect. **Salted hash only; the raw value is never stored** |
 | **V14** | Does the server-side AC decide ~65% of cases at a false-positive rate low enough to auto-ban on? | [058](docs/decisions/058-what-we-sell.md) §6c | **Blocks auto-banning and any published rate.** An estimate made before a single match was played. Calibrate against the corpus first — **a sold anti-cheat makes a promise a free one does not** ([052](docs/decisions/052-cheating-and-rating-integrity.md)) |
-| **V15** | ~~Can the server trigger client POV recording?~~ **Largely answered ([§2.9](#29-server-triggered-client-pov-demo-recording--per-game-and-the-answer-differs)).** Residual: does `cl_filterstuffcmd 1` block `record` in CS 1.6, and does that filter interact with `setinfo`? | [058](docs/decisions/058-what-we-sell.md) §6c | **Downgraded from blocker.** CS 1.6 — which needs POV demos most, having no GOTV — is where it is field-proven. CS2 POV recording is broken client-side but CS2 has [024](docs/decisions/024-demos.md)'s server demo instead. **Test the filter alongside V2b/V3** |
+| **V15** | ~~Can the server trigger client POV recording?~~ **Answered ([§2.9](#29-server-triggered-client-pov-demo-recording--per-game-and-the-answer-differs)).** CS 1.6: **yes, field-proven.** CS:GO/CS2: **not needed** — POV is reconstructed from the retained GOTV demo. Residual: does `cl_filterstuffcmd 1` let a 1.6 player refuse `record`? | [058](docs/decisions/058-what-we-sell.md) §6c | **Closed as a blocker.** The residual is handled by design — a recording that does not start is **refusal, never clean**. Test the filter with **V2b/V2c/V3** |
 
 **V3 is the highest priority**, and this paragraph used to say V1 — which its own table above
 had already marked resolved on 2026-08-10. Corrected 2026-08-17.

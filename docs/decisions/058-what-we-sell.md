@@ -548,13 +548,21 @@ clears a player *by itself*; it removes one suspicion, and the referee still hol
 
 ### The appeal, and what answers the asymmetry: a POV demo
 
-A flagged or banned player **may appeal for verification.** For all three games the appeal is
-answered with the **client-side POV demo** recorded during his monitoring phase — the server-side AC
-carries the flags that issue the record command.
+A flagged or banned player **may appeal for verification**, and every appeal is answered with a
+**point of view** — the aim path, the flick, the movement. **Where that view comes from differs by
+game** ([CONTEXT §2.9](../../CONTEXT.md)):
 
-**This is what the scan cannot give us.** A scan says what was on the disk; a POV demo shows the
-player's own view — the aim path, the flick, the movement — which is exactly the evidence that
-separates a spinbot from a good player, and exactly what the ambiguous 35% is argued over.
+| Game | Source of the POV |
+| --- | --- |
+| **CS 1.6** | A **client-side demo**, armed by the server at the flag and uploaded by the player on appeal. **The only route, because 1.6 has no GOTV** |
+| **CS:GO / CS2** | The **retained server-side GOTV demo** ([024](024-demos.md)), replayed spectating the accused. **No client command, no upload, nothing for him to withhold** |
+
+**This is what the scan cannot give us.** A scan says what was on the disk; a POV shows how the
+player actually aimed — which is exactly what separates a spinbot from a good player, and exactly
+what the ambiguous cases are argued over.
+
+**Everything below concerns the CS 1.6 route only.** The CS2 path has none of these problems,
+because we hold the artefact ourselves.
 
 | | |
 | --- | --- |
@@ -639,7 +647,7 @@ it should have caught.
 | --- | --- | --- |
 | **V13** | On what lawful basis do we collect and retain a hardware identifier, for how long, and how does a permanent ban list coexist with the erasure right [011](011-accounts-and-login.md) already implements? | **HWID banning.** A hardware identifier is personal data, and [012](012-security.md) currently advertises **zero persisted application IPs** — this is a deliberate reversal of that posture and must be assessed and written down, not assumed. Salted hash only; raw identifiers are never stored |
 | **V14** | Does the server-side AC actually decide ~65% of cases, at a false-positive rate low enough to auto-ban on? | **Auto-banning, and any published figure.** Calibrate against the corpus before either. A false ban in a scene this small cannot be undone — the same reasoning as **V11** |
-| **V15** | ~~Can the server trigger client POV recording?~~ **Largely answered ([§2.9](../CONTEXT.md)).** CS 1.6: **yes, field-proven** via AMXX `client_cmd`. CS:GO: mechanism exists. CS2: **POV recording is broken client-side** (freezes on `record`), independent of permissions. **Residual:** does `cl_filterstuffcmd 1` block `record` in 1.6, and does that filter touch `setinfo`? | **No longer blocks the appeal path.** CS 1.6 — the game that *needs* POV demos, having no GOTV — is the game where it works. **CS2 needs it least**, because [024](024-demos.md)'s server-side demo answers a CS2 appeal already. Check the filter question alongside **V2b/V3** |
+| **V15** | ~~Can the server trigger client POV recording?~~ **Answered ([CONTEXT §2.9](../../CONTEXT.md)).** CS 1.6: **yes, field-proven** via AMXX `client_cmd`. CS:GO/CS2: **not needed** — POV is reconstructed from the retained GOTV demo, which carries per-player view angles ([024](024-demos.md)). **Residual:** can a 1.6 player refuse `record` via `cl_filterstuffcmd 1`? | **Closed as a blocker.** The residual is answered by design — a recording that does not start is refusal, not clean. Test the filter alongside **V2b/V2c/V3** |
 
 ## 7. Sequencing
 
@@ -766,7 +774,7 @@ seeing rather than discovering:
     no decided ban behind it bans nobody, so a forged identifier cannot be aimed at a rival.
 21. **Every automatic ban is appealable to a human** — an auto-banned account can reach the referee
     desk, because an HWID ban hits a machine and machines are shared ([036](036-authorization.md)).
-22. **A flag arms recording, and a fallen meter leaves no trace** — raising suspicion starts the
+22. **A flag arms recording, and a fallen meter leaves no trace** (CS 1.6 route) — raising suspicion starts the
     demo; a meter that falls back below threshold ends monitoring, notifies nobody, and stores
     nothing. **Most flags must end here** (§6c, **V15**).
 23. **An interrupted or stopped recording is refusal, never clean** — the same rule as a tampered
@@ -774,3 +782,6 @@ seeing rather than discovering:
 24. **An appeal without a demo is heard, not dismissed** — the appeal is accepted, the absence is
     recorded as an absence, and a referee weighs it
     ([052](052-cheating-and-rating-integrity.md) §3).
+25. **A CS2 appeal needs nothing from the accused** — it is answered from the retained GOTV demo,
+    so a CS2 player who uploads nothing is not disadvantaged and cannot withhold anything
+    ([CONTEXT §2.9](../../CONTEXT.md), [024](024-demos.md)).
