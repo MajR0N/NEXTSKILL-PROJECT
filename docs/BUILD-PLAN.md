@@ -732,6 +732,14 @@ launches with a decided palette and a designed OG card rather than in monochrome
 - ☐ **Steam Web API ingestion and polling** — CS2 (app 730) and CS:GO (app 4465480), polled every ~15 min and **stored as a time series**. Nobody else keeps history, so this is differentiation by analysis rather than access. **No outbound packet
   ever reaches a listed server**: [051](decisions/051-phase-4-remainder.md) §2 holds, and A2S
   dialling is refused outright as a reflection/amplification vector
+  - ☐ **Partition every poll** ([CONTEXT §2.13](../CONTEXT.md)) — a large `GetServerList` result
+    **times out with no way to resume**, so split by region / `\map\` / `\empty\1` /
+    `\dedicated\1` until each query finishes. **Call volume is not the constraint** (~96/day at
+    15-min cadence), which is why partitioning is cheap
+  - ☐ **GeoIP, because Steam has no country filter** — "the Polish catalogue" is a region query
+    plus our own pass over the addresses. **A dependency 057 had not accounted for**, and one that
+    misclassifies the case we care most about: a Polish community hosting in Germany is Polish by
+    audience, not by IP. **Do not let GeoIP alone decide what appears on a Polish listing**
 - ☐ **Plugin activity reporting for CS 1.6** — five-minute window, **humans separated from
   bots**, giving a time series nobody can scrape. Depends on Phase 6
 - ☐ **Per-server pages first** — occupancy history, peak hours, human-vs-bot over time. The
@@ -968,7 +976,7 @@ Carried from CONTEXT §7. **Must be resolved before the code that depends on the
 | V4 | Does the info-key length limit allow a high-entropy token? | [005](decisions/005-cs16-plugin.md)  **Tool: [tools/cs16-probe](../tools/cs16-probe/RESULTS.md)** |
 | V5 | Is RCON needed for the normal CS2 match lifecycle? | **Resolved by [051](decisions/051-phase-4-remainder.md): no.** The plugin dials us; a future outbound-control feature must reopen that boundary |
 | ⊘ **V8** | ~~Is CS:GO legacy's App ID really **4465480**?~~ **Confirmed 2026-08-22 from a real Steam install** — `appmanifest_4465480.acf` names it *Counter-Strike:Global Offensive*; `730` is *Counter-Strike 2*; CS 1.6 is app `10` | [057](decisions/057-server-browser-and-seo.md) — **closed.** It was flagged single-sourced; this is Steam's own manifest |
-| **V9** | Does `GetServerList` return community servers for app 730 and CS:GO, at a rate limit that allows polling the whole Polish catalogue every ~15 min? | [057](decisions/057-server-browser-and-seo.md) — **gates the confidence tiers, not just the listing** |
+| **V9** | Does `GetServerList` return community servers for 730 and CS:GO, at a rate allowing ~15-min polling? | [057](decisions/057-server-browser-and-seo.md) — **researched, probe written and unrun** ([CONTEXT §2.13](../CONTEXT.md)). **No country filter exists**, so Poland means a region query plus our own GeoIP pass; and **timeouts bind, not the call ceiling** — a large result set dies with no resume, while 15-min polling is only ~96 calls/day. **Partition the query.** **Tool: [`tools/steam-serverlist-probe`](../tools/steam-serverlist-probe/probe.py)**, needs a Web API key |
 | **V10** | Is the CS:GO community-server population large enough to justify reopening [001](decisions/001-game-scope.md) for tournaments? | [057](decisions/057-server-browser-and-seo.md) — **the listing measures it for free** before any CS:GO plugin work |
 | **V11** | Are padded player counts distinguishable from real ones over a multi-week series, at a publishable false-positive rate? | [057](decisions/057-server-browser-and-seo.md) §5a — calibrate against plugin-verified servers; a false accusation cannot be undone |
 | **V12** | ~~Is the wording and prominence sufficient?~~ **Researched** ([CONTEXT §2.10](../CONTEXT.md)): **Art. 7 pkt 11a u.p.n.p.r.** is black-listed with no size exemption; **Art. 6 ust. 4 pkt 8** requires the ranking parameters published in a dedicated, directly-reachable section; **DSA Arts. 26–27 do not bind us** at micro/small size (Art. 19, except 24(3)). Label changed to **`Sponsorowane`**. | [058](decisions/058-what-we-sell.md) §6 — **design may proceed.** Remaining: **counsel sign-off before the first paid placement is live**, and a DSA re-check if the enterprise ever exceeds small (<50 staff, ≤€10m) |

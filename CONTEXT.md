@@ -808,6 +808,83 @@ returned 403)*.
 _Checked: 2026-08-22. **The arithmetic is exact; the inputs are assumptions until measured.**_
 
 ---
+### 2.13 V9 — `GetServerList`, and two findings that change the question
+
+Researched 2026-08-22 for [057](docs/decisions/057-server-browser-and-seo.md) §1 and §5a. **Not yet
+run against the API** — that needs a key, and [`tools/steam-serverlist-probe`](tools/steam-serverlist-probe/)
+is ready for it. But the documented behaviour already moves two things.
+
+#### The endpoint
+
+```
+https://api.steampowered.com/IGameServersService/GetServerList/v1/
+    ?key=<key>&filter=<master-server-filter>&limit=<n>
+```
+
+Filters use Master Server Query Protocol syntax: `\appid\730`, `\region\3`, `\dedicated\1`,
+`\empty\1`, `\map\de_dust2`, `\name_match\*foo*`, `\gametype\`, `\secure\1`, `\linux\1`,
+`\collapse_addr_hash\1`, and about a dozen more.
+
+#### Finding 1 — **there is no country filter**
+
+Geography stops at broad `MSRegion` codes. **You cannot ask Steam for Polish servers.**
+
+> **So "the whole Polish catalogue" is not a query — it is a query plus a GeoIP pass we run
+> ourselves.** Pull a region, then filter the addresses locally.
+
+[057](docs/decisions/057-server-browser-and-seo.md) is written as though the Polish catalogue is
+directly addressable. It is not, and the consequences are real but manageable:
+
+- We fetch **more than we need** every cycle and discard most of it.
+- **GeoIP becomes a dependency** the design had not accounted for — a database to ship, refresh
+  and be wrong occasionally. A server's IP country is not always its audience's country.
+- A Polish server hosted in Germany, which is ordinary, is **only Polish by name and player base**
+  — so GeoIP alone will misclassify some of exactly the servers we care most about.
+
+#### Finding 2 — the constraint is **timeouts**, not the call ceiling
+
+[057](docs/decisions/057-server-browser-and-seo.md) §5a says the rate ceiling *"decides whether the
+CS2 differentiation is possible at all."* On the numbers that is probably the wrong worry:
+
+| | |
+| --- | --- |
+| Polling every 15 min | **96 calls/day per query.** Even twenty partitions is ~1 900/day |
+| Documented Steam Web API key ceiling | Far above that |
+| **What actually bites** | *"Queries that return a large number of IPs will time out before returning everything, and **there is no way to resume the query**."* Reported practical ceiling around **20 000 servers** |
+
+> **So the risk is not being throttled. It is one big query that never completes — and cannot be
+> continued from where it stopped.**
+
+**The answer is partitioning**, and the filter set supports it: by region, by `\map\`, by
+`\empty\1` / `\full\1` / `\noplayers\1`, by `\dedicated\1`, by `\secure\1`. Each partition returns
+a set small enough to finish, and the partitions are cheap because call volume was never the
+problem.
+
+This is a better position than the one 057 feared: **a design constraint with an obvious workaround,
+rather than a hard ceiling on the whole idea.**
+
+#### What the probe still has to answer
+
+Documented behaviour is not measured behaviour — the lesson from the CS2 freeze claim, which
+survived two rounds of research and died in one test.
+
+1. **Does it return community servers for 730 and 4465480 at all?** V9's literal question.
+2. **How many, and how long?** Whether Europe finishes inside a sensible timeout.
+3. **Does the world query time out?** If it does, partitioning stops being optional.
+4. **What fields come back per server?** The listing can only display what the API returns, and
+   [057](docs/decisions/057-server-browser-and-seo.md)'s per-server pages assume a shape nobody has
+   checked.
+5. **Are the counts the spoofable ones?** Almost certainly yes — that is the entire premise of the
+   confidence tiers — but confirm rather than assume.
+
+Sources:
+[Steam Web API GetServerList usage](https://ribasco.github.io/async-gamequery-lib/examples/webapi_steam_example.html),
+[master server filter reference](https://steam.readthedocs.io/en/stable/api/steam.game_servers.html),
+[practical result ceiling and timeouts](https://developer.valvesoftware.com/wiki/Talk:Master_Server_Query_Protocol).
+
+_Checked: 2026-08-22. **Documentation level. The probe is written and unrun.**_
+
+---
 
 ## 3. Engineering principles
 
@@ -1045,7 +1122,7 @@ verified before code depends on it — per project instruction, test before ackn
 | V6 | CS2 can expose authoritative final match state for reconciliation | [035](docs/decisions/035-match-result-integrity.md) | Inspect what a map-end payload can contain |
 | V7 | Steam OpenID 2.0 remains available with no announced sunset | [011](docs/decisions/011-accounts-and-login.md) | Re-check Steamworks docs periodically |
 | **V8** | ~~Is CS:GO legacy's App ID really **4465480**?~~ **Confirmed 2026-08-22.** `appmanifest_4465480.acf` on a real Steam install reads `"name" "Counter-Strike:Global Offensive"`, and `appmanifest_730.acf` reads `"Counter-Strike 2"` | [057](docs/decisions/057-server-browser-and-seo.md) | **Closed.** First-party from Steam itself, which is what the item asked for — it was flagged single-sourced. CS 1.6 is app **10** (`"Counter-Strike"`) on the same install |
-| **V9** | `IGameServersService/GetServerList` returns community servers for app 730 and for CS:GO, with usable filters and a workable rate limit | [057](docs/decisions/057-server-browser-and-seo.md) | Get a Web API key, call it, record the rate ceiling. **Now gates more than the listing:** the confidence tiers need the whole Polish catalogue polled every ~15 min, so the rate ceiling decides whether the CS2 differentiation is possible at all |
+| **V9** | Does `GetServerList` return community servers for 730 and CS:GO, at a rate that allows ~15-min polling? | [057](docs/decisions/057-server-browser-and-seo.md) §1, §5a | **Researched, not yet run ([§2.13](#213-v9--getserverlist-and-two-findings-that-change-the-question)).** Two findings first: **there is no country filter**, so "the Polish catalogue" is a region query plus our own GeoIP pass; and **the constraint is query timeouts, not the call ceiling** — 15-min polling is ~96 calls/day, while a large result set times out with **no way to resume**. Partitioning is the answer. **Tool: [`tools/steam-serverlist-probe`](tools/steam-serverlist-probe/probe.py)** — needs a Steam Web API key |
 | **V10** | The CS:GO community-server population justifies reopening [001](docs/decisions/001-game-scope.md) for tournaments | [057](docs/decisions/057-server-browser-and-seo.md) | The listing measures it — ship the list, count, then commit plugin work |
 | **V11** | Padded player counts are distinguishable from real ones over a multi-week series, at a false-positive rate low enough to publish | [057](docs/decisions/057-server-browser-and-seo.md) §5a | Poll for a month before labelling anything. **The plugin-verified servers are the ground truth** to calibrate against — a false accusation against a legitimate server cannot be undone |
 | **V12** | ~~Paid-placement disclosure wording and prominence?~~ **Researched at statute level ([§2.10](#210-paid-placement-disclosure-law--v12-researched-at-statute-level)).** Art. 7 pkt 11a (black-listed, no size exemption) + Art. 6 ust. 4 pkt 8 (publish ranking parameters, dedicated section); DSA Arts. 26–27 excluded at micro/small size. | [058](docs/decisions/058-what-we-sell.md) §6 | **Design unblocked; build to it.** Label changed `Promowane` → **`Sponsorowane`**, because UOKiK requires a label to convey *payment* — it rejects *"współpraca"* for the same gap. **Counsel confirmation before the first paid placement goes live**, and re-check the DSA exemption on crossing small-enterprise size |
