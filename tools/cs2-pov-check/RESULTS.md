@@ -71,7 +71,7 @@ recording starts is itself scored.**
 
 ---
 
-## Half 1b — how good can GOTV be made? *(protocol, 2026-08-22)*
+## Half 1b — how good can GOTV be made? — **PARTIALLY RUN 2026-08-22**
 
 **Why this one is worth more than the others:** if a higher capture rate makes GOTV good enough for
 **aim** analysis, CS2 gains a forensic artefact **we hold ourselves** — no client cooperation,
@@ -123,12 +123,65 @@ crosshair movement the default smooths away?
 | **Cost multiplier vs A** | B: ___×  C: ___× |
 | **Against [024](../../docs/decisions/024-demos.md)'s measured 233 MB mean** | new estimate: ___ MB/match |
 
-### Verdict
+### Run 2026-08-22 — rates 32 / 64 / 128
 
-☐ **Good enough** — CS2 needs no client POV for aim; V15 forcing becomes irrelevant there
-☐ **Not good enough** — the client POV demo stays necessary for the aim question
-☐ **Good enough but too expensive** — record the multiplier; this becomes a per-tournament option
-  rather than a default
+**Observed: higher `tv_snapshotrate` is visibly better.** Flicks are smoother and there is less
+tearing. Tested at **32, 64 and 128**.
+
+> **This is the right kind of evidence for the use case that matters now.**
+> [052](../../docs/decisions/052-cheating-and-rating-integrity.md) rests on **human review** — a
+> referee watching a demo and forming a judgement. If a referee can *see* the difference, that is
+> the workflow improving, not a proxy for it. More snapshots are genuinely more samples, and
+> "less tearing" is what fewer interpolation artefacts look like.
+
+#### One confound worth checking: what tickrate was the server?
+
+**A snapshot rate above the server's tick cannot capture information the server does not have.**
+At 64-tick, `tv_snapshotrate 128` records the same state twice rather than twice as much state.
+
+- If the server was **128-tick**, the 64 → 128 improvement is real.
+- If it was **64-tick**, the 64 → 128 improvement cannot be extra data — which would mean the
+  eyeball test is picking up playback smoothing rather than capture fidelity, and **32 → 64 is the
+  only part of the result that is safe to rely on.**
+
+Either answer is useful. `status` or the server config will say. **Record it**, because the whole
+value of this test is knowing which part of the improvement is data.
+
+#### Still needed: the cost half
+
+`tv_record` writes **on the server**, so the files are wherever the server runs — not on the client
+machine. To finish half 1b, from that box:
+
+```
+ls -la ns_gotv_*.dem        # or dir on Windows
+```
+
+Then the comparison, which is what makes the result actionable:
+
+| | 32 | 64 | 128 |
+| --- | --- | --- | --- |
+| File size | | | |
+| MB per minute | | | |
+| Multiplier vs 32 | 1× | | |
+| Extrapolated to a 40-min match | | | |
+
+Against [024](../../docs/decisions/024-demos.md)'s measured mean of **233 MB**. If 64 costs 2× and
+128 costs 4×, a season of matches at 128 is a different storage decision from one at 32 — and
+[042](../../docs/decisions/042-hosting.md)'s R2 bill scales with it.
+
+#### Verdict so far
+
+| | |
+| --- | --- |
+| **Does a higher rate resolve aim better for a human reviewer?** | ☑ **yes, visibly** |
+| **Is 128 better than 64 *as data*, or only as playback?** | ☐ depends on server tick — **check** |
+| **What does it cost?** | ☐ needs the file sizes from the server |
+| **Does it retire the client POV demo for CS2?** | ☐ **not yet answerable.** A human seeing smoother flicks is not the same as a detector having per-tick angles. That needs the demo parsed, not watched |
+
+> **Read the last row carefully before it gets over-claimed.** This result improves the **referee**
+> path, which is the one 052 actually depends on. It does **not** yet show that GOTV can replace a
+> POV demo for *automated* aim analysis — that question needs the angle series compared, not the
+> video. Parsing is the upgrade path, and only worth it once there is a detector to feed.
 
 ---
 
@@ -157,7 +210,7 @@ conclusive, since `record` itself was not visible in the dump.
 | **`record` usable in CS2, 2026** | ☑ **yes** — 1–2 s stall, recovers, file saves | Run 2026-08-22, **loopback host** — repeat on a remote server under load |
 | **`playdemo` opens the file** | ☑ **structurally valid** — `PBDEMS2` magic, 2.6 MB, header parses. Opening it in-game still untested | Header inspected 2026-08-22 |
 | **Server can force it** | ☐ not tested — **Phase 6** | Needs the CSSharp plugin |
-| **High-rate GOTV good enough?** | ☐ untested — **half 1b** | Would make the forcing question moot for CS2 |
+| **High-rate GOTV good enough?** | ◐ **partly — fidelity yes, cost unknown.** 32/64/128 tested: visibly smoother flicks, less tearing. Cost and the 128-vs-tickrate confound still open | Run 2026-08-22, files on the server |
 
 **CONTEXT §2.9 updated 2026-08-22.** It no longer records the CS2 state as unknown: the freeze
 claim survived two rounds of desk research and died in five minutes of testing. Which is the

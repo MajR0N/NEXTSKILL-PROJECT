@@ -390,6 +390,26 @@ middle of a live round. A 1–2 second freeze there:
 > most one round, and the monitoring phase runs for longer than that anyway.
 
 
+
+#### `tv_snapshotrate` measured — 32 / 64 / 128, 2026-08-22
+
+**Higher rate is visibly better**: smoother flicks, less tearing. That is the right evidence for the
+use case that matters — [052](docs/decisions/052-cheating-and-rating-integrity.md) rests on **human
+review**, so a referee being able to *see* the difference is the workflow improving, not a proxy
+for it.
+
+**Two things it does not yet establish**, both recorded in the check sheet:
+
+- **Whether 128 beats 64 as *data*.** A snapshot rate above the server tick cannot capture state
+  the server does not have — at 64-tick, `tv_snapshotrate 128` records the same state twice. **The
+  server's tickrate decides whether that step was real**, and it was not recorded.
+- **The cost.** `tv_record` writes server-side, so the files are on the game server. Sizes still
+  needed before the fidelity/disk trade can be priced against
+  [024](docs/decisions/024-demos.md)'s measured 233 MB mean.
+
+> **And it does not retire the client POV demo yet.** A human seeing smoother flicks is not the
+> same as a detector having per-tick angles. That question needs the demos **parsed and diffed**,
+> not watched — which is only worth doing once there is a detector to feed.
 #### Measured demo sizes, while we were in there
 
 Seven real CS2 GOTV demos on a local install: **150–299 MB, mean 233 MB** — against
@@ -1024,7 +1044,7 @@ verified before code depends on it — per project instruction, test before ackn
 | V5 | RCON is **not** part of the normal CS2 match lifecycle | [051](docs/decisions/051-phase-4-remainder.md) closes this as a product boundary: the plugin always dials us and the panel never stores or uses RCON | **Resolved by design.** A future outbound-control proposal must reopen 051 rather than quietly adding a credential |
 | V6 | CS2 can expose authoritative final match state for reconciliation | [035](docs/decisions/035-match-result-integrity.md) | Inspect what a map-end payload can contain |
 | V7 | Steam OpenID 2.0 remains available with no announced sunset | [011](docs/decisions/011-accounts-and-login.md) | Re-check Steamworks docs periodically |
-| **V8** | CS:GO legacy's App ID is **4465480** | [057](docs/decisions/057-server-browser-and-seo.md) | **Single-sourced.** Confirm against the Steam store page or `ISteamApps` before it reaches code |
+| **V8** | ~~Is CS:GO legacy's App ID really **4465480**?~~ **Confirmed 2026-08-22.** `appmanifest_4465480.acf` on a real Steam install reads `"name" "Counter-Strike:Global Offensive"`, and `appmanifest_730.acf` reads `"Counter-Strike 2"` | [057](docs/decisions/057-server-browser-and-seo.md) | **Closed.** First-party from Steam itself, which is what the item asked for — it was flagged single-sourced. CS 1.6 is app **10** (`"Counter-Strike"`) on the same install |
 | **V9** | `IGameServersService/GetServerList` returns community servers for app 730 and for CS:GO, with usable filters and a workable rate limit | [057](docs/decisions/057-server-browser-and-seo.md) | Get a Web API key, call it, record the rate ceiling. **Now gates more than the listing:** the confidence tiers need the whole Polish catalogue polled every ~15 min, so the rate ceiling decides whether the CS2 differentiation is possible at all |
 | **V10** | The CS:GO community-server population justifies reopening [001](docs/decisions/001-game-scope.md) for tournaments | [057](docs/decisions/057-server-browser-and-seo.md) | The listing measures it — ship the list, count, then commit plugin work |
 | **V11** | Padded player counts are distinguishable from real ones over a multi-week series, at a false-positive rate low enough to publish | [057](docs/decisions/057-server-browser-and-seo.md) §5a | Poll for a month before labelling anything. **The plugin-verified servers are the ground truth** to calibrate against — a false accusation against a legitimate server cannot be undone |

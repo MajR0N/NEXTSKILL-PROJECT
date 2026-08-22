@@ -94,8 +94,9 @@ patterns, and human-versus-bot ratio *over time*. Three consequences:
 through a `-csgo_legacy` branch. That framing is out of date. On **3–4 March 2026** Valve put
 up a **separate, unlisted** CS:GO store page — a frozen build with **no official
 matchmaking**, playable only against bots or on **community servers**. App ID reported as
-**4465480**; single-sourced, so it is a verification item below, not yet a fact to code
-against.
+**4465480** — **confirmed 2026-08-22** against a real Steam install: `appmanifest_4465480.acf` reads
+*Counter-Strike:Global Offensive*, `730` reads *Counter-Strike 2*, and CS 1.6 is app `10`. No longer
+single-sourced; safe to write into code.
 
 [055](055-multi-game-scope.md) left CS:GO out *pending a population count*. The situation now
 argues the other way: a game whose only online option is community servers is precisely the
@@ -450,7 +451,7 @@ Per the project's engineering principles, in `tests/NextSkill.Checks`:
 
 | # | Assumption | Blocks | How to verify |
 | --- | --- | --- | --- |
-| **V8** | CS:GO legacy's App ID is **4465480** | this document, §3 | Single-sourced. Confirm directly against the Steam store page or `ISteamApps` before writing it into code |
+| ~~**V8**~~ | ~~CS:GO legacy's App ID is **4465480**~~ | this document, §3 | **Closed 2026-08-22.** Confirmed from Steam's own `appmanifest_4465480.acf` on a real install — the direct check this item asked for |
 | **V9** | `IGameServersService/GetServerList` returns community servers for app 730, and for the CS:GO app, with usable filters and rate limits | §1, **§5a** | Obtain a Web API key and call it; record the rate ceiling. **Now gates more than listing**: the confidence tiers need polling every ~15 minutes across the whole Polish catalogue, so the rate ceiling decides whether the CS2 differentiation is possible at all |
 | **V11** | Padded counts are distinguishable from real ones over a multi-week series, at a false-positive rate low enough to publish | **§5a** | Poll for a month before labelling anything. Calibrate against servers whose real occupancy is known — the plugin-verified ones are the ground truth |
 | **V10** | The CS:GO community-server population is large enough to justify reopening [001](001-game-scope.md) | §3's tournament half | The listing itself measures it — ship the listing first, count, then commit plugin work |
