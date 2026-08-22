@@ -83,6 +83,19 @@ spoofable by default.
 > a ban already decided** — a user-mode identifier from a suspect's own machine could otherwise be
 > forged to aim a ban at a rival, and an HWID ban hits a shared machine, so appeal to a human is
 > mandatory (**V13**).
+>
+> **Quantified 2026-08-22, and it strengthens §"Rejected" rather than qualifying it.** This
+> document already rejects *automatic bans from statistical anomalies*. The arithmetic now says why:
+> **precision depends on prevalence, not only on the detector.** At 2% prevalence with a 99%-specific
+> detector, **more than a third of automatic bans would be innocent players**; screen the pool first
+> and the same detector reaches 98.9% ([CONTEXT §2.12](../../CONTEXT.md)). **So the suspicion meter
+> is not a courtesy — it is the mechanism that makes an automated ban defensible at all**, and
+> auto-ban belongs only to input no human hand produces.
+>
+> **VACnet is the precedent for §"The corpus is the moat".** Valve trained it on human conviction
+> data and still routes through a human labelling portal in 2026. **Collecting verdicts is the work;
+> the model is the consequence.**
+
 
 ## Decision: detect and make consequential, do not attempt to prevent
 

@@ -856,7 +856,19 @@ Concretely, one at a time. **No shared abstraction until both exist** ([001](dec
   - ☐ **Server-side AC — the sold half.** Decides the unambiguous class alone (aim snapping,
     anti-aim, spinbot). **The 65/35 split is an illustrative estimate, never a measurement** — do
     not publish it, price against it, or pitch it; the ambiguous residue goes to the referee desk
-    and *is* the corpus (⊘ blocked on **V14** before any auto-ban or published rate)
+    and *is* the corpus
+  - ☐ **Auto-ban only where the false-positive rate is near zero *by construction*** — input no
+    human hand produces. **Not statistical outliers**: at 2% prevalence and 99% specificity, a
+    third of bans would be innocent people ([CONTEXT §2.12](../CONTEXT.md)). This is
+    [052](decisions/052-cheating-and-rating-integrity.md)'s existing rule with arithmetic behind it
+  - ☐ **Calibration logging from the very first flag** — every flag writes meter trajectory,
+    signals fired and outcome, **including the flags that resolve silently**. A pseudonymous record,
+    nothing on the account, no notification. **Without the negative labels the false-positive rate
+    has no denominator and V14 is unanswerable forever**, so the AC could never be shown safe
+    enough to auto-ban
+  - ☐ **Report precision, never coverage** — internally and to organisers. *Of everyone we banned,
+    how many actually cheated* is the number that matters; *how many cheaters we caught* is not
+    what a wrongly banned player cares about (⊘ **V14** before any figure leaves the building)
   - ☐ **Suspicion is a meter, not a switch** — a flag opens a **monitoring phase** and starts the
     demo; the phase ends when the meter **falls** (silently, storing nothing, notifying nobody —
     **this must be the common case**) or **rises past the threshold**, which is what triggers the
@@ -930,7 +942,7 @@ Carried from CONTEXT §7. **Must be resolved before the code that depends on the
 | **V11** | Are padded player counts distinguishable from real ones over a multi-week series, at a publishable false-positive rate? | [057](decisions/057-server-browser-and-seo.md) §5a — calibrate against plugin-verified servers; a false accusation cannot be undone |
 | **V12** | ~~Is the wording and prominence sufficient?~~ **Researched** ([CONTEXT §2.10](../CONTEXT.md)): **Art. 7 pkt 11a u.p.n.p.r.** is black-listed with no size exemption; **Art. 6 ust. 4 pkt 8** requires the ranking parameters published in a dedicated, directly-reachable section; **DSA Arts. 26–27 do not bind us** at micro/small size (Art. 19, except 24(3)). Label changed to **`Sponsorowane`**. | [058](decisions/058-what-we-sell.md) §6 — **design may proceed.** Remaining: **counsel sign-off before the first paid placement is live**, and a DSA re-check if the enterprise ever exceeds small (<50 staff, ≤€10m) |
 | **V13** | ~~Lawful basis, retention and erasure reconciliation for a stored hardware identifier?~~ **Researched** ([CONTEXT §2.11](../CONTEXT.md)): **Art. 6(1)(f)** + **Recital 47**; defined retention under **Art. 5(1)(e)**; the ban tombstone survives erasure under **Art. 17(3)(e)** / **Art. 21(1)**. **Also surfaced: Art. 22 automated-decision safeguards and a probably-mandatory DPIA.** | [058](decisions/058-what-we-sell.md) §6c — **design unblocked.** Three documents must exist before shipping: **LIA, DPIA, privacy-notice wording**, all counsel-reviewed. Hashing is pseudonymisation, **not** an exit from GDPR |
-| **V14** | Does the server-side AC decide the larger share of cases, at a false-positive rate low enough to auto-ban on? | [058](decisions/058-what-we-sell.md) §6c — **blocks auto-banning and any published rate, for two reasons.** Product: a false ban cannot be undone (as **V11**). Legal: **Art. 22** governs automated bans, and rubber-stamp human review does not satisfy it ([CONTEXT §2.11](../CONTEXT.md)). The 65/35 split is an **illustrative estimate, never a measurement** |
+| **V14** | **Restated:** what precision do we require, what is prevalence in the flagged pool, and what is the false-positive rate on the auto-ban class? Coverage (the "65%") is the wrong quantity. | [058](decisions/058-what-we-sell.md) §6c — **blocks auto-banning and any published rate.** *Product:* at 2% prevalence and 99% specificity **a third of bans would be innocent** ([CONTEXT §2.12](../CONTEXT.md)); *legal:* **Art. 22**. The precision requirement is **decidable now** — effectively zero measured false positives on the auto-ban class. The measurements need matches **and negative labels logged from the first flag** |
 | **V15** | **Can the server force client POV recording on CS:GO / CS2**, and does CS2 `record` still freeze the client in 2026? | [058](decisions/058-what-we-sell.md) §6c — **reopened 2026-08-22.** CS 1.6 proven and closed. **GOTV is not a substitute**: snapshot-rate interpolation smooths away the per-tick view-angle detail that distinguishes an aimbot ([CONTEXT §2.9](../CONTEXT.md)). **Answer by testing a live CS2 client** — the web recycles one 2023 post. If forcing is impossible, asking still yields a signal, since a missing recording is refusal |
 | — | Do **Unbounded** and **IBM Plex** actually cover Cyrillic? | [019](decisions/019-visual-identity.md) |
 

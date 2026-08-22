@@ -534,6 +534,99 @@ _Checked: 2026-08-22. **Statute and guidance level, not counsel.** The LIA and D
 must actually write._
 
 ---
+### 2.12 V14 — why "65% of cases" is the wrong number, and what to measure instead
+
+V14 cannot be researched. It needs matches we do not have. **But it can be specified**, and doing so
+found that the question as posed measures the wrong quantity.
+
+#### The two numbers, and only one of them gates an auto-ban
+
+| | |
+| --- | --- |
+| **Coverage / recall** — *"decides 65% of cases"* | Of the cheaters present, how many we catch. **Missing one costs a match.** |
+| **Precision** — of everyone we ban, how many actually cheated | **Banning one innocent player costs the scene's trust in the rating**, which is the entire asset |
+
+**Only precision gates auto-banning**, and precision is not a property of the detector alone — it
+depends on how common cheating is in the pool being judged.
+
+#### The base rate, worked, because the result is counter-intuitive
+
+`precision = p·TPR / (p·TPR + (1−p)·FPR)`, where `p` is prevalence in the judged pool.
+
+| Scenario | p | recall | false-positive rate | **Precision** |
+| --- | --- | --- | --- | --- |
+| Judging **every player**, good detector | 2% | 90% | **1%** (99% specificity) | **65%** — **more than a third of bans are innocent people** |
+| Same, to reach 99% precision | 2% | 90% | **0.019%** — about **1 in 5 400** | 99% |
+| Judging **only flagged players** | 50% | 90% | **1%** | **98.9%** |
+
+**Read the third row against the first.** *The same detector*, at *the same accuracy*, goes from
+ruining one player in three to being safe — purely because the pool it judges was filtered first.
+
+> **This is what the suspicion meter actually buys.** It is not a cost saver or a politeness
+> mechanism: **it raises prevalence in the judged pool, and prevalence is what makes an automated
+> ban statistically defensible at all.** A detector applied to everyone cannot be safe at any
+> plausible accuracy; the same detector applied to a screened pool can.
+
+It also gives [052](docs/decisions/052-cheating-and-rating-integrity.md)'s existing rule — *no
+automatic bans from statistical anomalies* — a quantitative justification rather than only an
+ethical one. **Auto-ban belongs to input no human hand produces** (spinbot view-angle deltas,
+impossible reaction distributions), where the false-positive rate is near zero *by construction*.
+For anything merely unusual, the arithmetic above says a referee.
+
+#### The prior art says the corpus comes first, and it is Valve
+
+**VACnet** is the closest comparator: server-side machine learning that scores gameplay for the
+probability *a human reviewer would call it cheating*. It was **trained on Overwatch human
+conviction data**, and Valve reported conviction rates rising from **15–30% under human review alone
+to 80–95%** with the model (GDC 2018).
+
+Three things follow for us:
+
+1. **Valve built the detector out of human verdicts.** That is exactly
+   [052](docs/decisions/052-cheating-and-rating-integrity.md)'s *"the corpus is the moat, not the
+   detector"*, confirmed by the largest example available. **Collecting verdicts is the work; the
+   model is the consequence.**
+2. **Even Valve routes through human labelling**, still in 2026 — the CS2 VACnet labelling portal
+   has humans labelling to train the system rather than issuing bans directly. *(From headlines;
+   the article itself would not fetch.)*
+3. **A VACnet bypass let rage cheats evade detection for months** (reported July 2026). The best
+   funded server-side detector in Counter-Strike has gaps measured in months. **Any claim we make
+   about ours should be quieter than that.**
+
+#### What V14 becomes
+
+Three questions, and one of them is answerable today:
+
+| | Kind | Answer |
+| --- | --- | --- |
+| **What precision do we require before auto-banning?** | **A decision, makeable now** | Effectively no measured false positives on the auto-ban class — because a false ban in a scene this small is unrecoverable, and **Art. 22** makes it a regulatory matter too ([§2.11](#211-hwid-gdpr-and-automated-bans--v13-researched)) |
+| **What is prevalence in the flagged pool?** | Measurement | Needs matches |
+| **What is the false-positive rate on the auto-ban class?** | Measurement | Needs matches **and negative labels** — see below |
+
+#### The instrumentation problem, found while specifying this
+
+> ⚠ **[058](docs/decisions/058-what-we-sell.md) §6c check 22 says a fallen meter "notifies nobody
+> and stores nothing." As written, that makes V14 permanently unanswerable.**
+
+A false-positive rate is computed from **flags that turned out to be nothing**. If only bans are
+recorded, the denominator does not exist and precision can never be calculated — so the system could
+never be shown safe enough to auto-ban, no matter how long it ran.
+
+**Resolution:** a resolved-silently flag still writes a **pseudonymous calibration record** — meter
+trajectory, which signals fired, the outcome — with **no notification to the player and no mark on
+his account.** The player experience is unchanged, which was the point of the rule; what changes is
+that the negative label survives. It is the same legitimate-interest basis as §2.11, and its
+*necessity* argument is unusually strong: **calibration is what prevents wrongful bans.**
+
+Sources:
+[VACnet — GDC 2018 analysis](https://d3.harvard.edu/platform-rctom/submission/valve-using-machine-learning-and-deep-learning-to-catch-cheaters-on-csgo-794-words/),
+[Valve Anti-Cheat, VDC](https://developer.valvesoftware.com/wiki/Valve_Anti-Cheat),
+VACnet labelling portal and bypass reports, August and July 2026 *(headlines only — both sources
+returned 403)*.
+
+_Checked: 2026-08-22. **The arithmetic is exact; the inputs are assumptions until measured.**_
+
+---
 
 ## 3. Engineering principles
 
@@ -776,7 +869,7 @@ verified before code depends on it — per project instruction, test before ackn
 | **V11** | Padded player counts are distinguishable from real ones over a multi-week series, at a false-positive rate low enough to publish | [057](docs/decisions/057-server-browser-and-seo.md) §5a | Poll for a month before labelling anything. **The plugin-verified servers are the ground truth** to calibrate against — a false accusation against a legitimate server cannot be undone |
 | **V12** | ~~Paid-placement disclosure wording and prominence?~~ **Researched at statute level ([§2.10](#210-paid-placement-disclosure-law--v12-researched-at-statute-level)).** Art. 7 pkt 11a (black-listed, no size exemption) + Art. 6 ust. 4 pkt 8 (publish ranking parameters, dedicated section); DSA Arts. 26–27 excluded at micro/small size. | [058](docs/decisions/058-what-we-sell.md) §6 | **Design unblocked; build to it.** Label changed `Promowane` → **`Sponsorowane`**, because UOKiK requires a label to convey *payment* — it rejects *"współpraca"* for the same gap. **Counsel confirmation before the first paid placement goes live**, and re-check the DSA exemption on crossing small-enterprise size |
 | **V13** | ~~Lawful basis, retention and erasure reconciliation for a stored hardware identifier?~~ **Researched ([§2.11](#211-hwid-gdpr-and-automated-bans--v13-researched)).** Art. 6(1)(f) + Recital 47; defined retention; ban tombstone survives erasure under Art. 17(3)(e) / Art. 21(1). | [058](docs/decisions/058-what-we-sell.md) §6c | **Design unblocked; three documents still owed — LIA, DPIA, privacy notice.** Two things the question did not ask and should have: **Art. 22 governs automated bans** (Garante fined Foodinho €5m), and a **DPIA is very likely mandatory** on WP248 scoring + monitoring. A hashed HWID is **still personal data** |
-| **V14** | Does the server-side AC decide the larger share of cases at a false-positive rate low enough to auto-ban on? | [058](docs/decisions/058-what-we-sell.md) §6c | **Blocks auto-banning and any published rate — two independent reasons.** Product: a false ban here cannot be undone (as **V11**). Legal: **Art. 22** governs automated bans, and a review path that cannot genuinely overrule the machine does not satisfy it ([§2.11](#211-hwid-gdpr-and-automated-bans--v13-researched)). **The 65/35 split is an illustrative estimate, never a measurement** |
+| **V14** | **Restated ([§2.12](#212-v14--why-65-of-cases-is-the-wrong-number-and-what-to-measure-instead)):** required precision, prevalence in the flagged pool, false-positive rate on the auto-ban class. **Coverage — the "65%" — is the wrong quantity.** | [058](docs/decisions/058-what-we-sell.md) §6c | **Blocks auto-banning and any published rate.** At 2% prevalence and 99% specificity, **a third of bans are innocent people**; screening the pool first is what fixes it, which is what the suspicion meter is *for*. Legal reason too: **Art. 22**. **A fallen meter must still write a negative label**, or the false-positive rate has no denominator and this is unanswerable forever |
 | **V15** | **Can the server force a client POV recording on CS:GO and CS2**, and does CS2 `record` still freeze the client in 2026? | [058](docs/decisions/058-what-we-sell.md) §6c | **Reopened 2026-08-22.** CS 1.6 is proven and closed. **GOTV is not a substitute** — snapshot-rate interpolation removes the per-tick view-angle detail an aimbot signal lives in ([§2.9](#29-server-triggered-client-pov-demo-recording--per-game-and-the-answer-differs)). **Test on a live CS2 client; the web only recycles a 2023 post.** If forcing proves impossible, *asking* still yields a signal — a missing recording is refusal, never clean |
 
 **V3 is the highest priority**, and this paragraph used to say V1 — which its own table above

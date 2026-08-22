@@ -497,9 +497,11 @@ client-side **scanner**. They are not the same kind of thing and they are not so
    **monitoring phase** begins.
 2. **Demo recording starts** at that moment, so the window under suspicion is the window on record.
 3. **The meter moves while monitoring runs.** It ends one of two ways:
-   - **It falls** → suspicion resolved, monitoring stops, nothing happened. **This is the common
-     case and it must be cheap** — most flags should end here, silently, with no accusation ever
-     reaching the player.
+   - **It falls** → suspicion resolved, monitoring stops, **the player is never told anything
+     happened.** **This is the common case and it must be cheap.** It still writes a pseudonymous
+     calibration record — nothing on his account, but the negative label survives, because a
+     false-positive rate computed only from bans has no denominator
+     ([CONTEXT §2.12](../../CONTEXT.md)).
    - **It rises past the threshold** → **a scan is necessary**, and the player is sent to
      verification.
 4. **He downloads the scanner and runs it.**
@@ -531,7 +533,7 @@ undeclared licence.
 **One scanner covers all three games.** It inspects the machine, not the game, so CS 1.6, CS:GO and
 CS2 differ only in signatures — a materially smaller build than three clients.
 
-### The 65 / 35 split — illustrative shape, not a measured rate
+### The 65 / 35 split — illustrative shape, and the wrong quantity
 
 > ⚠ **Confirmed by the author, 2026-08-22: these numbers are an estimate and must never be used as
 > a source of measurement.** They describe the *shape* of the problem — most detections unambiguous,
@@ -544,9 +546,46 @@ class — **aim snapping, anti-aim, spinbot**, movement no human produces. The r
 *moderately* suspicious and **are not machine-decidable**. Those go to the referee's desk, which
 already exists ([050](050-match-results-and-ratings.md), [036](036-authorization.md)).
 
-[052](052-cheating-and-rating-integrity.md) already warns that a **sold** anti-cheat makes a promise
-a free one does not. A published detection rate is the most literal form of that promise and the
-easiest to be held to — which is why **V14** gates publishing on measurement.
+#### Coverage is not the number that gates an auto-ban — precision is
+
+Specifying **V14** established that *"decides 65% of cases"* measures the wrong thing
+([CONTEXT §2.12](../../CONTEXT.md)):
+
+| | |
+| --- | --- |
+| **Coverage / recall** — the 65% | Of the cheaters present, how many we catch. **Missing one costs a match** |
+| **Precision** | Of everyone we ban, how many actually cheated. **Banning one innocent player costs the scene's trust in the rating**, which is the whole asset |
+
+And precision is not a property of the detector alone — it depends on how common cheating is in the
+pool being judged. Worked, with `precision = p·TPR / (p·TPR + (1−p)·FPR)`:
+
+| Judged pool | prevalence | recall | false-positive rate | **Precision** |
+| --- | --- | --- | --- | --- |
+| **Every player** | 2% | 90% | 1% | **64.7% — more than a third of bans are innocent** |
+| Every player, to reach 99% | 2% | 90% | **0.019%** ≈ 1 in 5 400 | 99% |
+| **Only flagged players** | 50% | 90% | 1% | **98.9%** |
+
+> **The same detector, at the same accuracy, is either a disaster or safe — depending entirely on
+> whether the pool was screened first.** So the suspicion meter is not a cost saver or a courtesy:
+> **it raises prevalence in the judged pool, and that is what makes an automated ban defensible at
+> all.**
+
+This also gives [052](052-cheating-and-rating-integrity.md)'s existing rule — *no automatic bans
+from statistical anomalies* — a quantitative basis rather than only an ethical one. **Auto-ban
+belongs to input no human hand produces**, where the false-positive rate is near zero *by
+construction*. For anything merely unusual, the arithmetic says referee.
+
+#### And the corpus comes first, on the largest available precedent
+
+**VACnet** — Valve's server-side model — scores gameplay for the probability *a human reviewer would
+call it cheating*, and was **trained on human conviction data**. Even in 2026 Valve routes through a
+human labelling portal rather than letting the model ban directly. That is
+[052](052-cheating-and-rating-integrity.md)'s *"the corpus is the moat, not the detector"* confirmed
+by the biggest example there is: **collecting verdicts is the work; the model is the consequence.**
+
+A VACnet bypass also let rage cheats evade detection for months (reported July 2026). **The best
+funded server-side detector in Counter-Strike has gaps measured in months — any claim we make about
+ours should be quieter than that.**
 
 **The ambiguous residue is not a failure, it is the design.** It is why the referee flow, demo
 retention and verdict capture are load-bearing from day one: that residue is exactly the labelled
@@ -719,7 +758,7 @@ it should have caught.
 | # | Question | Blocks |
 | --- | --- | --- |
 | **V13** | ~~Lawful basis, retention, erasure reconciliation for HWID?~~ **Researched ([CONTEXT §2.11](../../CONTEXT.md)).** Basis: **Art. 6(1)(f)** + **Recital 47** (fraud prevention named explicitly). Retention: **Art. 5(1)(e)** — defined period, not indefinite. Erasure: survives under **Art. 17(3)(e)** / **Art. 21(1)**, minimum retained. **Also found: Art. 22 governs automated bans (Foodinho, €5m), and a DPIA is very likely mandatory.** | **Design unblocked — but three documents must actually be written before the anti-cheat ships: the LIA, the DPIA, and the privacy-notice wording.** Counsel review of all three. **A referee who cannot genuinely overrule the machine does not satisfy Art. 22** |
-| **V14** | Does the server-side AC actually decide the larger share of cases, at a false-positive rate low enough to auto-ban on? | **Blocks auto-banning and any published rate — now for two reasons.** The product one: a false ban in a scene this small cannot be undone (as **V11**). The legal one: **Art. 22** governs automated bans, so shipping one before the rate is known, without a human who can genuinely overrule it, is a regulatory exposure and not only a reputational one ([CONTEXT §2.11](../../CONTEXT.md)) |
+| **V14** | **Restated ([CONTEXT §2.12](../../CONTEXT.md)): what *precision* do we need, what is prevalence in the flagged pool, and what is the false-positive rate on the auto-ban class?** Coverage — the "65%" — is the wrong quantity; only precision gates a ban, and precision depends on prevalence. | **Blocks auto-banning and any published rate, for two reasons.** *Product:* at 2% prevalence and 99% specificity, **a third of bans would be innocent** — a false ban here cannot be undone (as **V11**). *Legal:* **Art. 22** governs automated bans ([§2.11](#211-hwid-gdpr-and-automated-bans--v13-researched)). **Precision requirement is decidable now: effectively zero measured false positives on the auto-ban class.** The other two need matches — and need negative labels recorded from day one |
 | **V15** | **Can the server force client POV recording on CS:GO / CS2**, and does CS2 `record` still freeze in 2026? | **Reopened 2026-08-22.** CS 1.6 proven. **GOTV is not a forensic substitute** — snapshot rate and interpolated, quantised angles remove the per-tick detail an aimbot signal lives in ([CONTEXT §2.9](../../CONTEXT.md)). **Test a live client.** If forcing fails, asking still works: a missing recording is refusal, never clean |
 
 ## 7. Sequencing
@@ -860,9 +899,12 @@ seeing rather than discovering:
     reaches the referee desk, and the referee has real authority to reverse (Art. 22(3);
     [036](036-authorization.md), [050](050-match-results-and-ratings.md)). **A review path that
     cannot overrule the machine fails this check**, however many humans it contains.
-22. **A flag arms recording, and a fallen meter leaves no trace** — raising suspicion starts the
-    demo; a meter that falls back below threshold ends monitoring, notifies nobody, and stores
-    nothing. **Most flags must end here** (§6c, **V15**).
+22. **A flag arms recording; a fallen meter tells nobody but is still counted** — raising suspicion
+    starts the demo. A meter that falls back below threshold **ends monitoring, notifies no one and
+    marks nothing on the account** — but it **writes a pseudonymous calibration record** (meter
+    trajectory, signals fired, outcome). Without that negative label the false-positive rate has no
+    denominator and **V14 can never be answered**, so the system could never be shown safe enough
+    to auto-ban. **Most flags must end here** ([CONTEXT §2.12](../../CONTEXT.md)).
 23. **An interrupted or stopped recording is refusal, never clean** — the same rule as a tampered
     scan report.
 24. **An appeal without a demo is heard, not dismissed** — the appeal is accepted, the absence is
