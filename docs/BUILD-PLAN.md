@@ -894,6 +894,17 @@ Concretely, one at a time. **No shared abstraction until both exist** ([001](dec
     ~156 GB/year) while a POV demo costs us nothing until someone appeals
   - ☐ **If forcing fails on CS2, ask instead** — a player told to record either does or does not,
     and a missing recording is already **refusal, never clean**. Weaker, not a dead end
+  - ☐ **GOTV is driven by the plugin, not by `tv_autorecord`** — `tv_enable 1`, then `tv_record` /
+    `tv_stoprecord` explicitly, with **`tv_record_immediate`** so `tv_delay` does not cost us the
+    opening of the demo. Autorecord is widely reported to misbehave, and **a match plugin that does
+    not know whether it is recording cannot report honestly**
+  - ☐ **Stop GOTV only after the broadcast has finished** — [002](decisions/002-cs2-plugin.md)
+    Tier 3: the stop flushes the framebuffer to disk and lag-spikes every player if mistimed. Same
+    lesson as the client-side 1–2 s stall — **when recording starts and stops is a design decision**
+  - ☐ **Measure `tv_snapshotrate` against the fidelity objection** ([CONTEXT §2.9](../CONTEXT.md))
+    — GOTV is interpolated *at default settings*, and the rate is a cvar. **If a raised rate is good
+    enough for aim analysis, CS2 gains a forensic artefact we hold ourselves** and V15's forcing
+    question stops mattering there. Price it against [024](decisions/024-demos.md)'s ~156 GB/year
   - ☐ **A GOTV-only verdict is labelled as such** — a referee must never record a decision as if it
     rested on POV evidence that did not exist
   - ☐ **Check `cl_filterstuffcmd` while testing V2b/V3** — the CS 1.6 command filter names `setinfo`

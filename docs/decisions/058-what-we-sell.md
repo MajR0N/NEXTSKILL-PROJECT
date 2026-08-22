@@ -618,6 +618,12 @@ A flagged or banned player **may appeal for verification**, and every appeal is 
 > behaviour that separates an aimbot from a good player ([CONTEXT §2.9](../../CONTEXT.md)).
 > It is also the expensive one to keep — [024](024-demos.md) already budgets ~156 GB/year — while a
 > POV demo sits on the player's disk and reaches us **only if he appeals**.
+>
+> **One caveat, added 2026-08-22: `tv_snapshotrate` is a cvar, not a fixed limit.** The
+> interpolation objection describes GOTV **at default settings**. Whether raising the rate toward
+> the server tick closes enough of the gap for aim analysis is **untested** — and if it does, CS2
+> gains a forensic artefact **we hold ourselves**, with nothing for the accused to withhold. The
+> trade is fidelity against disk. **Measure it before assuming either way.**
 
 | Game | Source of the POV | State |
 | --- | --- | --- |

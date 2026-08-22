@@ -318,7 +318,7 @@ start is refusal, not clean.**
 > harmless — **but it is close enough to the identity mechanism that it must be checked while V2b/V3
 > are being tested**, not discovered afterwards.
 
-#### CS:GO / CS2 — GOTV is **not** an adequate substitute, and the earlier entry was wrong
+#### CS:GO / CS2 — GOTV is **not** an adequate substitute *(at default settings — see `tv_snapshotrate` below)*
 
 > ⚠ **Corrected twice on 2026-08-22.** The first version claimed CS2 POV recording was broken —
 > sourced from a Leetify post of **8 Nov 2023** describing a brief outage, with CSTV restored **the
@@ -395,6 +395,62 @@ stall knows precisely when he was flagged and can switch off for the duration.
 Arming at freezetime partly masks it — a beat at round start is ordinary — but does not remove it.
 **The countermeasure is unchanged and now matters more: a suspicion meter that collapses the instant
 recording starts is itself scored.**
+
+#### `tv_record` and `record` are two different artefacts, not two spellings
+
+Confirmed 2026-08-22. Keeping them straight matters, because they answer different questions and
+only one of them is ours to drive from a plugin.
+
+| | `tv_record <name>` | `record <name>` |
+| --- | --- | --- |
+| Records | **GOTV / CSTV — server side** | **Client POV — the player's own view** |
+| Runs on | The game server | The player's machine |
+| Needs | **`tv_enable 1`** | nothing |
+| Stopped by | `tv_stoprecord` | `stop` |
+| Its job here | **The match record** ([024](docs/decisions/024-demos.md)) | **The anti-cheat appeal** ([058](docs/decisions/058-what-we-sell.md) §6c) |
+| Who can start it | The server, directly — no client cooperation | Open question (**V15**) |
+
+**`tv_record` is the go-to for match demos** — it is what MatchZy and Get5 drive, and it is the
+mechanism behind [024](docs/decisions/024-demos.md). It is **not** a replacement for the POV demo in
+an anti-cheat appeal, for the fidelity reason below.
+
+**Cvars worth knowing before Phase 6:**
+
+| | |
+| --- | --- |
+| **`tv_enable 1`** | Required. Without it `tv_record` does nothing |
+| **`tv_record_immediate`** | Starts recording **at once, ignoring `tv_delay`**. `tv_delay` exists to stop stream sniping, so this is how a complete demo and a delayed broadcast coexist — **use it**, or the demo is missing its opening |
+| **`tv_autorecord`** | **Avoid.** Widely reported to misbehave, and the plugin should drive recording explicitly anyway — a match plugin that does not know whether it is recording cannot report honestly |
+| **`tv_snapshotrate`** | The GOTV capture rate. **This is a knob, not a fixed limit** — see below |
+
+#### `tv_snapshotrate` partially reopens the fidelity question
+
+The objection recorded above — GOTV is interpolated and below tick, so it smooths away the per-tick
+view-angle behaviour an aimbot signal lives in — **is true of the default, and the default is
+configurable.**
+
+> **Untested and worth testing: does raising `tv_snapshotrate` toward the server tick close enough
+> of the gap for aim analysis?**
+
+The trade is the one already named: **fidelity against file size**, and
+[024](docs/decisions/024-demos.md) already budgets ~156 GB/year at ordinary settings. If a raised
+snapshot rate is good enough, CS2 gains a forensic artefact **we hold ourselves** — no client
+cooperation, nothing for the accused to withhold, and V15's forcing question stops mattering for
+CS2. If it is not, the POV demo remains the preferred artefact and the position above is unchanged.
+
+**This is a measurement, not an argument.** Record at two snapshot rates, compare what the angle
+data looks like, and price the disk.
+
+#### Both kinds of recording cost something, and both must be timed
+
+[002](docs/decisions/002-cs2-plugin.md) already flags GOTV's danger as Tier 3: *stopping recording
+flushes the framebuffer to disk, and doing it at the wrong moment lag-spikes every player on the
+server.* We have now measured the client-side counterpart: **`record` stalls the client 1–2
+seconds.**
+
+> **The same lesson from both ends: recording is not free, and when it starts or stops is a design
+> decision rather than an implementation detail.** Client recording is armed at freezetime;
+> GOTV recording must be stopped only after the broadcast has finished.
 
 **CS 1.6 is unaffected and remains proven.**
 
