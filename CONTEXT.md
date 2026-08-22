@@ -698,6 +698,30 @@ persistent application IP column, IP retention zero."* We are choosing to persis
 identifier for the first time, and that choice belongs in the privacy notice and the DPIA, not in a
 migration nobody reviewed.
 
+### 2.11a What writing the documents changed — **2026-08-22**
+
+The LIA and DPIA are written: [`docs/legal/hwid-lia-dpia.md`](docs/legal/hwid-lia-dpia.md), with the
+Art. 13 text in [`docs/legal/privacy-notice-hwid.md`](docs/legal/privacy-notice-hwid.md). **Drafts —
+counsel review, the controller identity, the attribute list and the [PROPOSED] retention numbers are
+still owed.** But the balancing test surfaced **three things the desk research did not**, and all
+three are design changes rather than paragraphs:
+
+1. **Shared hardware is a first-class risk, not an edge case.** Family PCs, siblings, LAN cafés,
+   second-hand machines — ordinary in Polish grassroots CS. **So a hash must never ban on its own:
+   it raises a case a referee decides**, and a person whose only connection is the machine must be
+   able to rebut it cheaply. This is a change to [058](docs/decisions/058-what-we-sell.md) §6c
+   step 8, which reads as though the hash *is* the ban.
+2. **The scanner is the bigger privacy surface, not the hash.** A hash is one machine attribute; a
+   disk scanner sees documents, file names and unrelated software. **The constraint — signature
+   matches only, never a file listing, never a directory tree — belongs in the scanner's spec now**,
+   while the scanner is unwritten and it costs nothing.
+3. **A ~0% referee override rate is evidence *against* us.** Art. 22's *"solely automated"* includes
+   rubber-stamp sign-off, so a referee who never overrules the machine is the failure mode, not the
+   success case. **It must be instrumented**, and it is a third independent reason V14 gates the
+   auto-ban.
+
+_Checked: 2026-08-22. **Documents drafted, unsigned. The three findings above are actionable now.**_
+
 Sources:
 [Recital 47](https://gdpr-info.eu/recitals/no-47/),
 [EDPB Guidelines 1/2024 on legitimate interest](https://www.edpb.europa.eu/system/files/2024-10/edpb_guidelines_202401_legitimateinterest_en.pdf),
@@ -882,7 +906,486 @@ Sources:
 [master server filter reference](https://steam.readthedocs.io/en/stable/api/steam.game_servers.html),
 [practical result ceiling and timeouts](https://developer.valvesoftware.com/wiki/Talk:Master_Server_Query_Protocol).
 
-_Checked: 2026-08-22. **Documentation level. The probe is written and unrun.**_
+### 2.13a V9 — **RUN 2026-08-22.** What three runs measured
+
+**V9 is answered: yes, for both games.** `GetServerList` returns community servers for 730 and
+4465480 on an ordinary Steam Web API key — **no publisher key needed** — in 2–5 seconds, with enough
+fields to build 057's listing. **15-minute polling is not in question.** Everything below is the
+constraint, and **most of it contradicts what §2.13 predicted from documentation.**
+
+#### Finding 3 — the constraint is a **silent 10 000-row cap**, not a timeout
+
+| Predicted (§2.13, desk research) | Measured |
+| --- | --- |
+| *"a large result set times out with no way to resume"*, practical ceiling ~20 000 | **A hard cap at 10 000 rows, returned in ~3 s with HTTP 200 and no indication it is partial** |
+
+**Proved by contradiction, needing no documentation:** `CS2 / Europe` returned **9 997** while
+`CS2 / Europe **/ dedicated**` returned **10 000**. A subset cannot exceed its superset, so both are
+truncated.
+
+> **This is worse than the timeout we were braced for, and the reason is worth keeping.** A timeout
+> is loud — the call fails, you know you lost data. **A cap returns 200, fast, well-formed, and
+> lies.** We would have polled for a month, published "the Polish catalogue", and never learned what
+> was missing — and [057](docs/decisions/057-server-browser-and-seo.md) §5a's confidence tiers would
+> have been computed on a series with a hole in it.
+
+**Equality is not the completeness test — proximity is.** `limit=5000` returned **4 988** and
+`limit=9999` returned **9 977**: the API drops ~0.2% of rows *after* applying the limit. So
+`world / de_dust2` returning **9 999** is as truncated as the ones returning 10 000. The probe now
+flags anything within 1% of the ceiling.
+
+#### Finding 4 — an empty response is a **failure**, not an answer
+
+Run 2: `limit=10000` and `limit=10001` both returned **zero rows in ~17 s**, while `limit=20000`
+returned 10 000 rows in 3.5 s. It did **not** reproduce in run 3 — so it looked transient, and ~17 s
+looks like Steam's internal deadline (`CS:GO / Europe` and `CS2 / world` both took 16.9 s in run 3).
+
+> **Superseded by run 7 ([§2.13e](#213e-run-7--finding-4-is-recurring-and-the-first-honest-csgo-number)):
+> it is recurring, not transient.** `CS2 / Europe` returned empty after **17.6 s on the first call of
+> the run** — the largest partition, and the one the product depends on. **Two observations, both at
+> ~17 s, both on the biggest query available.** Treat the deadline as a property of the endpoint.
+
+**Steam signals this as HTTP 200 with `{"response":{}}` — the `servers` key simply absent.** The
+probe was reading that as an empty list, i.e. *"there are zero CS2 servers in Europe."*
+
+> **This matters far more for the poller than for the probe.** A Steam hiccup recorded as *"every
+> server in Europe went dark"* is a poisoned data point in exactly the time series
+> [057](docs/decisions/057-server-browser-and-seo.md) uses to label servers `Implausible`.
+> **A missing `servers` key must be retried, never stored.**
+
+#### Finding 5 — **the CS:GO list is fake at scale**, and this is the finding that moves the product
+
+| Query (Europe, secure **and** occupied) | Servers | Players reported | Mean/server |
+| --- | --- | --- | --- |
+| **CS2** | 5 734 *(complete)* | 52 874, of which 2 022 bots | **9.2 — plausible** |
+| **CS:GO legacy** | 10 000 *(capped)* | **791 780**, of which **45** bots | **79 — impossible** |
+
+CS:GO community servers seat 32–64. **A 79-player mean is padding, and `\secure\1` did not filter
+any of it out** — the fakes report VAC-secure. The `bots` column is a second tell: **45 bots across
+10 000 servers**, against 2 022 across CS2's 5 734. Real community servers run bots; fake listings
+do not bother setting the field.
+
+**Three consequences:**
+
+1. **V10 cannot be answered by counting rows**, and neither can any CS:GO listing built on this API.
+   The population question needs padding-filtered data, which is the next measurement.
+2. **[057](docs/decisions/057-server-browser-and-seo.md)'s decision to order the list by live humans
+   was right for a reason nobody had measured.** Ordering by reported players ranks the fakes first.
+3. **V11 gets cheaper — but less than first claimed, and the arithmetic says why.** A server
+   reporting **more players than it has slots** is an impossibility rather than an inference, so it
+   is publishable from one snapshot. **It catches ~5% of the fakes, not the fakes.** Measured:
+   474 of 10 000 CS:GO listings exceed their slots, yet the mean is 78 — so the remaining ~9 500
+   servers still average ~70 each. **They pad `max_players` too, and stay internally consistent.**
+   A listing claiming 64/64 is a lie but not an arithmetic error. See §2.13b for what does scale.
+
+#### What this makes the design
+
+- **Partition, and verify each partition is under the cap.** Anything returning within 1% of 10 000
+  is incomplete and must be split again.
+- **`Europe / occupied` returns ~5 700 and is complete** — and empty servers are noise a
+  humans-ordered list discards anyway. **The partition we actually need already fits**, so the
+  partitioning problem largely dissolves for the real product need.
+- **Poland is GeoIP over ~5 700 addresses**, not a query. Finding 1 stands.
+- **`bots` is its own field**, so CS2 counts can separate bots for free —
+  [057](docs/decisions/057-server-browser-and-seo.md) assumed only the 1.6 plugin could do that.
+- **Unverified:** whether `players` includes `bots`. Both are returned; the convention is not
+  documented and the arithmetic depends on it.
+
+### 2.13b The padding, measured — and the false positive that calibrated the detector
+
+Run 4 added the padding check. **Both halves of what it found matter, and the second one is a
+warning about ourselves rather than about the fakes.**
+
+#### The fakes are saturated, not merely inflated
+
+The three worst CS:GO listings report **254/64, 254/64, 254/32**. **254 is the A2S player-count byte
+at its ceiling** (`2^8 − 2`) — these are not servers exaggerating, they are fields slammed to the
+maximum the protocol can represent. Crude, deterministic, trivially detectable.
+
+#### But the crude check catches only ~5% of them, and the mean proves it
+
+| | CS2 | CS:GO legacy |
+| --- | --- | --- |
+| Servers (secure + occupied, Europe) | 5 790 *(complete)* | 10 000 *(capped)* |
+| Mean players/server | **9.2** | **78.3** |
+| Beyond their own slot count | **1** | **474** |
+| Exactly full | 16 (0.3%) | 475 (4.8%) |
+| Bots, total | 2 082 | **34** |
+
+**Do the arithmetic on the CS:GO column.** 474 servers at ~254 each is ~120 000 players. The total
+is 783 034 — so **the other ~9 500 servers still average ~70 each** and are *not* flagged, because
+they inflate `max_players` alongside `players` and stay internally consistent.
+
+> **A listing claiming 64/64 is a lie, but it is not an arithmetic error.** So the impossibility
+> check is a floor, not a solution, and last-turn's *"V11 gets much cheaper"* was an over-claim.
+> **What scales instead is address concentration** — a spam farm runs thousands of listings from a
+> handful of hosts, and listings-per-`/24` is still a one-snapshot measurement. That is what the
+> probe now counts.
+
+#### The false positive that set the threshold
+
+The strict `players > max_players` test flagged **exactly one CS2 server: `[PT] Tuga Army •
+Competitivo #4`, at 11/10.** That is a real Portuguese competitive server which had almost certainly
+dropped a slot while eleven people were connected.
+
+> **This is V11's entire risk, reproduced in miniature on the first run of the detector.** *"A false
+> accusation against a legitimate server cannot be undone"* — and a strict inequality would have
+> published one on day one, against a real server, from a rounding-shaped edge case.
+>
+> **One-over is noise. Four-times-over is fraud.** The threshold is now **1.5×**, which clears
+> `11/10` and catches `254/64`. **The measured false positive is more valuable than the 474 true
+> ones** — the true positives only confirmed what the mean already said.
+>
+> **Corrected 2026-08-22:** this paragraph and [057](docs/decisions/057-server-browser-and-seo.md)
+> both claimed the threshold was *"pinned by an assertion"* when no assertion existed. It does now —
+> `python3 tools/steam-serverlist-probe/probe.py --selftest`, no key and no network, asserts every
+> judgement this probe publishes about a real server against the case that calibrated it: `11/10`
+> must **not** flag, `254/64` must, `9999` counts as truncated, `100.63.x` is not relay space.
+> **A claim of a check is not a check**, and this one had been written into two documents.
+
+### 2.13c The address finding — **each game breaks the plan in a different half**
+
+Run 5 counted addresses, and it is the most consequential result of the five.
+
+| | CS2 | CS:GO legacy |
+| --- | --- | --- |
+| Distinct `/24`s | **83** for 5 862 servers | 34 for 10 000 *(capped)* |
+| Densest | `100.64.194.x` = 1 260, `100.64.199.x` = 1 134, `100.64.201.x` = 1 117, `100.64.192.x` = 962 | `91.211.116.x` = 2 800, `91.219.23.x` = 671 |
+| Address kind | **`100.64.0.0/10` — RFC 6598 shared space** | **Ordinary public IPs** |
+| `max_players` | 64 on 5 595 of 5 862 (95%) | **255 on 2 937**, then 24, 64, 32, 42 |
+
+#### `100.64.0.0/10` is not routable, and **cannot be geolocated**
+
+RFC 6598 shared address space, used for carrier-grade NAT. **The same address means different
+machines on different networks**, so no GeoIP database can place it — not badly, *at all*. The four
+densest CS2 `/24`s alone hold ~4 500 of 5 862 servers.
+
+> ### **This kills [§2.13](#213-v9--getserverlist-and-two-findings-that-change-the-question) Finding 1's remedy for CS2.**
+> Finding 1 said there is no country filter, so *"the Polish catalogue is a region query plus our own
+> GeoIP pass."* **There is nothing to run GeoIP against.** The addresses Steam returns for CS2 are
+> relay-side, not server-side — almost certainly Valve fronting community servers through its own
+> relay network, though **the mechanism is inferred and the conclusion does not depend on it.**
+>
+> **A Polish CS2 catalogue cannot be built by geolocating this API.** That is a new open item, not a
+> detail — see **V16**.
+
+#### The symmetry worth naming
+
+**CS:GO legacy gives real addresses and a fake population. CS2 gives a real population and fake
+addresses.** Neither game hands us what [057](docs/decisions/057-server-browser-and-seo.md) assumed,
+and they fail in opposite directions.
+
+#### It also voids the concentration detector — for CS2 only
+
+CS2 shows **70.6 listings per `/24`**, which by §2.13b's proposed heuristic reads as a spam farm.
+**It is an artefact of relaying.** CS:GO's 294 per `/24`, on real IPs, is the genuine signal.
+
+> **That is the second time in two runs that a heuristic of mine would have accused the innocent** —
+> first one real server at 11/10, now an entire game's worth. **Address concentration means "farm"
+> only where addresses are real**, and the check must test that first. Recorded because the pattern
+> matters more than either instance: **every signal this product publishes needs its precondition
+> checked, not just its threshold tuned.**
+
+#### And `max_players` saturates too, which is the better fake detector
+
+**2 937 CS:GO servers claim `max_players` = 255** — the byte ceiling again, and impossible for a game
+that seats 64. Combined with the 474 claiming more players than slots (no overlap: at 255 slots you
+cannot exceed 1.5× within a byte), **two trivial one-snapshot checks account for roughly 90% of
+CS:GO's 783 000 claimed players.**
+
+So §2.13b's *"beyond-slots catches only ~5%"* stands, but its pessimism does not: **the cheap
+detector was the wrong field, not the wrong idea.** Check the slots, not the players.
+
+_Checked: 2026-08-22. **Measured, five runs, real API. V9 closed; V10 and V11 moved; V16 opened.**_
+
+_(§2.13 above is the pre-run desk research. Its Finding 1 held; **Finding 2 was wrong** and is
+superseded by Finding 3.)_
+
+### 2.13d Run 6 — **V17 half-answered on the first try, and the region filter proved real**
+
+The probe was extended after run 5 to report the identity fields it was already fetching and
+throwing away. **The extension answered more than it was built for.**
+
+| | CS2 | CS:GO legacy |
+| --- | --- | --- |
+| Servers (Europe, secure + occupied) | **6 189** *(complete)* | 10 000 *(capped)* |
+| `steamid` present / distinct | **6 189 / 6 189** | **10 000 / 10 000** |
+| `addr` distinct | 6 189 | 10 000 |
+| Beyond 1.5× their slots | **0** | 474 |
+| Claiming ≥ 255 **slots** | **0** | **2 936 (29%)** |
+| Mean players/server | 9.2 | 78.6 |
+| Bots, total | 2 094 | **50** |
+
+#### V17 — **the series has a key**, and the half that is left needs a second run
+
+**`steamid` is present on every row of both games and distinct on every row.** So is `addr`. Within
+a snapshot, either would key [057](docs/decisions/057-server-browser-and-seo.md) §5a's time series.
+
+**What one run cannot show is stability**, which is the whole question — a relay address that is
+unique today and reassigned tomorrow joins two different servers into one history. The probe now
+writes `{steamid: addr}` per partition to `snapshot.json` and reports the join against the previous
+run: **how many identities survived, and how many of those changed address.** Those two numbers say
+opposite things and the second is the informative one — **high survival with high address movement
+is exactly what a relayed CS2 listing looks like, and it would prove `steamid` is the key and `addr`
+is not.** One more run, a day later, closes V17.
+
+#### The region filter is honoured — settled from run 6's own numbers, no extra call
+
+The sample row reports **`region: -1`** while the query filtered `
+egion`, which looks like the
+filter being ignored — and if it were, *"Europe"* would silently mean *"world"* and the ~6 200 figure
+this catalogue is being sized on would be a world figure.
+
+**It is not, and run 6 already contains the proof.** `CS2 / Europe / de_dust2` returned **3 646 and
+was complete**; `CS2 / world / de_dust2` on the same map hit the **10 000 cap**. A complete partition
+cannot be smaller than an ignored filter would make it, so **the region filter discriminates.** The
+per-row `region` field is junk metadata, not evidence about the query.
+
+> Same shape of argument as Finding 3, and worth naming as a habit: **when a field lies, look for two
+> queries whose counts cannot both be true.** It costs nothing and it does not depend on documentation.
+
+#### V16 is **not** all-or-nothing — 4% of CS2 rows are geolocatable today
+
+**267 of 6 189 CS2 rows (4.3%) sit outside `100.64.0.0/10`** and carry ordinary public addresses —
+the sample row is `85.13.106.250:49930`. So a free, GeoIP-built Polish CS2 catalogue is *possible*
+at **4% coverage**, which is a floor rather than a plan.
+
+**It does not change V16's answer**, and it sharpens why: a catalogue covering 4% of the scene is
+worse than no catalogue, because it looks complete and is not — the same failure mode as the silent
+row cap. **The `Verified` tier remains the answer.** What the 4% buys is a seed: enough real Polish
+CS2 servers to have something to show before the first plugin is installed.
+
+#### V11 — the 1.5× margin survived a second run with **zero** false positives
+
+**No CS2 server was flagged**, and `[PT] Tuga Army` did not reappear at 11/10 — consistent with a
+transient slot drop, which is what the margin was set for. **CS2 also had 0 rows claiming ≥255
+slots**, against CS:GO's 2 936.
+
+#### V10 — CS:GO is capped in **every** partition tried, so the population is *unmeasured*
+
+Europe, Europe + occupied + secure, and even a **single map** all returned exactly 10 000. **No
+number in the CS:GO column is a measurement**; each is a floor imposed by the API.
+
+What *is* measurable is how much of the claim is provably fake. Strip only the 474 saturated rows
+and the remaining ~9 500 servers still average **69.9 players each** — still impossible for a game
+that seats 32–64. **29% of the list claims 255 slots.** The claim survives no arithmetic at all.
+
+**The next call breaks the cap:** the API's `name_match` filter takes a `*` wildcard, so the list
+partitions on the hostname's first character — a property the cap does not correlate with. `--sweep`
+does 36 such queries, dedupes by `steamid` (the wildcard's semantics are undocumented, so a row must
+not be counted twice) and reports the padding-filtered total. **It yields a lower bound** — names
+starting with punctuation or Cyrillic are outside the alphabet — **and a lower bound is already more
+than the cap has ever allowed us to say.**
+
+_Checked: 2026-08-22, run 6, real API. **V17 opened and half-closed in one run; the region-filter
+premise settled; V16 given a measured floor.**_
+
+### 2.13e Run 7 — Finding 4 is **recurring**, and the first honest CS:GO number
+
+#### Finding 4 reproduced, and it hit the query the product depends on
+
+`CS2 / Europe` returned **`{"response":{}}` after 17.6 s, on the first call of the run.** Run 3 had
+not reproduced it, so §2.13a called it transient. **It is not.** Both observations land at ~17 s and
+both on the **largest partition asked for** — which makes the shape clear: this is Steam's own
+deadline on a query too big to answer, dressed as a successful empty result.
+
+> **The failure is not random, it is size-dependent** — so the partition that is most valuable is the
+> most likely to fail, and the poller must be **built around partitions that already fit** rather
+> than around a retry that hopes. Retry is still required, and now sits in the probe itself: a run
+> should not be lost to a hiccup the design has already declared must never be stored as a zero.
+
+#### The padding filter fired, and **70% of CS:GO's claim did not survive it**
+
+| Europe, secure + occupied | CS2 | CS:GO legacy |
+| --- | --- | --- |
+| Rows | 6 171 *(complete)* | 10 000 *(capped)* |
+| Claimed players | 56 853 | 786 757 |
+| **Rows dropped by two one-snapshot checks** | **0** | **3 402** |
+| **Claimed players dropped** | **0** | **551 382 — 70%** |
+| Padding-filtered mean | **9.2** | **35.7** |
+| Bots, total | 2 174 | **34** |
+
+**Two checks — past 1.5× slots, or claiming ≥255 slots — remove seven of every ten players CS:GO
+claims.** No time series, no calibration period, one snapshot.
+
+**And the survivors are still not credible.** A padding-filtered mean of **35.7 against CS2's 9.2**,
+on servers that seat 32–64, is the internally-consistent padding §2.13b predicted: a listing at 64/64
+passes both checks and is still a lie. **So 35.7 is an upper bound on an upper bound** — the honest
+figure is lower again, and V10 still needs `--sweep` to escape the cap before any total means anything.
+
+> **CS2 dropped exactly zero rows on both checks.** That contrast is the result worth carrying: **CS2's
+> public numbers are clean enough to publish, CS:GO's are not.** It is the same split as §2.13c's
+> addresses, and it points the same way — the CS2 catalogue is buildable from public data in every
+> respect except *where the server is*, and that is [057](docs/decisions/057-server-browser-and-seo.md)'s
+> `Verified` tier, i.e. **V16**.
+
+#### Two things that held on a second look
+
+- **The region filter is honoured**, reproduced: `CS2 / Europe / de_dust2` returned **3 766 complete**
+  while `CS2 / world / de_dust2` hit the cap at 9 999.
+- **The `bots` tell is stable across runs** — 34 across 10 000 CS:GO rows, 2 174 across 6 171 CS2 rows.
+  Fake listings do not bother setting a field nobody looks at.
+
+#### V17's baseline is banked
+
+**6 171 CS2 and 10 000 CS:GO identities recorded.** The next plain run prints survival and
+address-movement against them and closes V17.
+
+_Checked: 2026-08-22, run 7, real API. **Finding 4 promoted to recurring; V10 given its first
+padding-filtered figure; V17 baselined.**_
+
+### 2.13f Runs 8 and 9 — **V17 answered**, and the cap turns out to be deterministic
+
+#### V17: `steamid` is stable, and so is `addr` — **zero address changes in ~16 000 joins**
+
+| | Run 8 | Run 9 |
+| --- | --- | --- |
+| CS2 identities surviving | 5 519 / 6 147 (89.8%) | 6 061 / 6 160 (98.4%) |
+| CS:GO identities surviving | 9 965 / 10 000 (99.65%) | 9 997 / 10 000 (99.97%) |
+| **Addresses changed** | **0** | **0** |
+
+**Not one server changed address between polls, in either game** — the `100.64/10` relay assignments
+included. **[057](docs/decisions/057-server-browser-and-seo.md) §5a's time series is keyable**, and
+V11's month of polling can start.
+
+**Key on `steamid` anyway.** It is the operator's GSLT identity with a documented meaning, while
+`addr` is stable only as an observed fact about relay assignment — a fact Valve never promised and
+can change without telling anyone.
+
+> **The honest caveat: every gap so far reads `0.0h`.** These runs were minutes apart, so what is
+> measured is *short-term* stability. A relay reassigned on a weekly cycle would look exactly like
+> this. **A run tomorrow and one next week are what turn "stable" into "stable enough to publish"** —
+> the snapshot keeps only the previous run, so the gap is whatever the operator leaves between them.
+
+**The survival rates differ for a reason that is not identity churn.** The partition is `\empty\1` —
+*occupied* servers — so a server that empties out drops from the list without losing its identity.
+CS2's 89.8% in run 8 is a busier scene turning over, not 600 servers vanishing.
+
+#### The 10 000-row cap returns the **same** 10 000 every time
+
+CS:GO's list is capped, so which rows come back is the API's choice — and **9 997 of 10 000 were the
+same servers as the previous run.** The cap is not a sample, it is a deterministic slice.
+
+> **This kills a workaround before anybody built it.** *"Poll the capped partition repeatedly and
+> union the results"* is the obvious way round a row limit, and it would have returned **the same
+> 10 000 rows forever** while looking like it was accumulating coverage. Partitioning is not the
+> cheap option, it is **the only** option.
+
+#### The sweep failed — and the failure is the useful part
+
+`--sweep` returned **1 185 distinct servers across 36 name partitions, with 18 partitions empty**
+(`b d f j q w y z 0-9`), where the unpartitioned query is capped at 10 000. **It did not enumerate
+anything**, and two very different explanations fit:
+
+1. **The queries failed.** `sweep()` called `query()` directly and **bypassed the retry** that had
+   just been added to `run()` — so 36 back-to-back calls met Steam's ~17 s deadline with nothing to
+   catch them. Common starting letters like `b`, `d`, `f` and `w` returning *zero* CS:GO servers is
+   not credible on its face.
+2. **`name_match` does not mean what we assumed** — prefix, substring, case-sensitivity and whether a
+   bare `*` is even a wildcard are all undocumented.
+
+**Both are now instrumented rather than argued.** The retry moved into a shared `fetch()`, failed
+partitions print **their elapsed time** (~17 s is the deadline; a fast empty is a real zero), and the
+sweep first tests `name_match` against a server name the API itself just returned — exact, prefix and
+substring — using rows the probe already has, for no extra call.
+
+> **95% of what the sweep did return was padded**, against 34% of the main list. Whatever
+> `name_match` matches, it is not a neutral slice of the population — so **a lower bound built on it
+> would have been wrong in a direction that flatters CS:GO**, which is the direction V10 must not err.
+
+#### Everything else held across four consecutive runs
+
+CS2: **0 padded rows** and **0 claiming ≥255 slots**, mean 9.2 every run. CS:GO: 474 beyond slots,
+~2 920 claiming 255 slots, ~78 mean, padding-filtered to ~34.5. **The bots tell, the `/24` densities
+and the 4% geolocatable share all reproduced.** The measurements are stable; only the fakes are large.
+
+_Checked: 2026-08-22, runs 8 and 9, real API. **V17 answered for short gaps; the cap proved
+deterministic; the sweep instrumented after failing.**_
+
+### 2.13g Run 10 — **V17 reopens**, and the empty response was never one thing
+
+Run 10 was the first with a real gap between polls — **1.7 hours** — and it reversed two conclusions
+that four consecutive runs had agreed on. **Both reversals came from the same cause: every earlier
+run was minutes apart, so nothing that takes hours could show.**
+
+#### V17 collapses: **8.5% survival at a 1.7 h gap**, against 98% at minutes
+
+| Gap | CS2 steamids surviving |
+| --- | --- |
+| ~0 h (runs 8, 9) | 89.8%, **98.4%** |
+| **1.7 h (run 10)** | **523 / 6 157 — 8.5%** |
+
+**And the list GREW while that happened**: 6 157 → 7 691 occupied servers, 56 898 → 71 436 players.
+So this is **not** servers leaving. Nine in ten identities disappeared from a list that got bigger.
+
+> **[§2.13f](#213f-runs-8-and-9--v17-answered-and-the-cap-turns-out-to-be-deterministic) said V17 was
+> answered and recommended keying on `steamid`. That may be exactly backwards**, and the caveat
+> written into it — *"a relay reassigned on a weekly cycle would look identical"* — was right in
+> substance and wrong by two orders of magnitude. **It is hours, not weeks.**
+
+**Two readings fit, and they lead opposite ways:**
+
+1. Those servers really did leave the listing, identity intact — then `steamid` is fine and the
+   scene simply turns over hard.
+2. **The same servers are still listed under new `steamid`s** — then the CS2 identity is
+   **per-session**, `addr` is the stable key, and §2.13f's recommendation is inverted.
+
+**The reverse join separates them and costs nothing**: the snapshot already holds `{steamid: addr}`,
+so inverting it asks *how many of the previous run's **addresses** are still listed, and how many now
+carry a different `steamid`.* **High address survival with high re-keying means the identity is
+ephemeral.** The probe now prints both joins on every run. **One more poll answers it.**
+
+> **This is the third time in this measurement series that a conclusion held right up until the first
+> observation at a longer timescale.** The pattern is not bad luck: *"stable"*, *"transient"* and
+> *"complete"* are all claims about a window, and a probe that runs in one window cannot see the next
+> one out. **Nothing here gets published on evidence shorter than the claim.**
+
+#### The empty response was never one thing — the clock tells them apart
+
+The `name_match` semantics check returned empty for all three patterns, and the sweep's 19 failed
+partitions came back in **2–5 seconds** — not the ~17 s deadline. **A fast empty and a slow empty are
+different events**, and every previous run collapsed them into whichever one it had seen:
+
+| Runs | Claimed | Verdict |
+| --- | --- | --- |
+| 1–2 | every empty is *zero servers* | wrong for the 17 s ones |
+| 7–9 ([Finding 4](#213a-v9--run-2026-08-22-what-three-runs-measured)) | every empty is *a failure* | wrong for the fast ones |
+| **10** | **~17 s is Steam's deadline; fast is a real zero** | **the clock is the discriminator** |
+
+**The poller rule survives intact and gains a stopping condition:** retry once, and if the retry is
+also empty, *the elapsed time says whether to keep retrying or record a zero.* The probe now reads
+the verdict off the clock instead of asserting one, and its own error text no longer claims
+*"query failed, not zero servers"* — which run 10 disproved.
+
+#### `name_match` is still unexplained, and the sweep is still worthless
+
+**19 of 36 partitions empty** — `b d f g j q w y z 0-9` — and **an exact match on a name the API had
+just returned found nothing.** The probe name was `'ZACZAROWANY BURDEL'`: uppercase, with a space,
+while the sweep queries lowercase `a*`. So the suspects are **case-sensitivity**, **the space**, or
+`name_match` not working for this appid at all. The next run tests a **bare `*` as a control** — if a
+bare wildcard returns nothing, the filter is unsupported and the partition strategy is dead — plus
+first-word, upper and lower prefixes.
+
+> **95% of what the sweep does return is padded, against 34% of the main list.** Whatever it matches,
+> it is not a neutral slice, and a lower bound built on it errs in the direction that flatters CS:GO.
+
+#### A quieter finding: **the safe partition is only safe off-peak**
+
+`CS2 / Europe / occupied` returned **7 751 — 78% of the 10 000 cap** at peak, against ~6 200 earlier
+the same day. [§2.13a](#213a-v9--run-2026-08-22-what-three-runs-measured) called this partition
+*"complete, so the partitioning problem largely dissolves"*. **At +25% it is 22% from silently
+truncating**, and the truncation would arrive exactly at peak hours — the data a
+*"best time to play"* feature is made of.
+
+**So the poller must partition below the cap it will hit at peak, not the one it sees at 03:00**, and
+the 1%-of-ceiling alarm has to be loud rather than a status column nobody reads.
+
+**Also: the daily cycle is real and large** — +25% servers and +26% players inside a few hours, with
+the mean holding at 9.2–9.3. That cycle is precisely what
+[057](docs/decisions/057-server-browser-and-seo.md) §5a sells, and it is visible on day one.
+
+_Checked: 2026-08-22, run 10, real API. **V17 reopened at 1.7 h; Finding 4 split in two; the safe
+partition dated.**_
 
 ---
 
@@ -1122,11 +1625,13 @@ verified before code depends on it — per project instruction, test before ackn
 | V6 | CS2 can expose authoritative final match state for reconciliation | [035](docs/decisions/035-match-result-integrity.md) | Inspect what a map-end payload can contain |
 | V7 | Steam OpenID 2.0 remains available with no announced sunset | [011](docs/decisions/011-accounts-and-login.md) | Re-check Steamworks docs periodically |
 | **V8** | ~~Is CS:GO legacy's App ID really **4465480**?~~ **Confirmed 2026-08-22.** `appmanifest_4465480.acf` on a real Steam install reads `"name" "Counter-Strike:Global Offensive"`, and `appmanifest_730.acf` reads `"Counter-Strike 2"` | [057](docs/decisions/057-server-browser-and-seo.md) | **Closed.** First-party from Steam itself, which is what the item asked for — it was flagged single-sourced. CS 1.6 is app **10** (`"Counter-Strike"`) on the same install |
-| **V9** | Does `GetServerList` return community servers for 730 and CS:GO, at a rate that allows ~15-min polling? | [057](docs/decisions/057-server-browser-and-seo.md) §1, §5a | **Researched, not yet run ([§2.13](#213-v9--getserverlist-and-two-findings-that-change-the-question)).** Two findings first: **there is no country filter**, so "the Polish catalogue" is a region query plus our own GeoIP pass; and **the constraint is query timeouts, not the call ceiling** — 15-min polling is ~96 calls/day, while a large result set times out with **no way to resume**. Partitioning is the answer. **Tool: [`tools/steam-serverlist-probe`](tools/steam-serverlist-probe/probe.py)** — needs a Steam Web API key |
-| **V10** | The CS:GO community-server population justifies reopening [001](docs/decisions/001-game-scope.md) for tournaments | [057](docs/decisions/057-server-browser-and-seo.md) | The listing measures it — ship the list, count, then commit plugin work |
-| **V11** | Padded player counts are distinguishable from real ones over a multi-week series, at a false-positive rate low enough to publish | [057](docs/decisions/057-server-browser-and-seo.md) §5a | Poll for a month before labelling anything. **The plugin-verified servers are the ground truth** to calibrate against — a false accusation against a legitimate server cannot be undone |
+| ~~**V9**~~ | ~~Does `GetServerList` return community servers for 730 and CS:GO, at a rate that allows ~15-min polling?~~ | [057](docs/decisions/057-server-browser-and-seo.md) §1, §5a | **CLOSED — measured 2026-08-22, three runs ([§2.13a](#213a-v9--run-2026-08-22-what-three-runs-measured)).** **Yes, both games, ordinary Web API key, 2–5 s per call; polling was never the constraint.** The constraint is a **silent 10 000-row cap** that returns HTTP 200 and does not say it truncated — *not* the timeout the desk research predicted. **`Europe / occupied` returns ~5 700 and is complete**, so the partition the product needs already fits. Two rules for the poller: **anything within 1% of the ceiling is incomplete**, and **a missing `servers` key is a failure to retry, never a stored zero**. Poland is still GeoIP over the addresses |
+| **V10** | The CS:GO community-server population justifies reopening [001](docs/decisions/001-game-scope.md) for tournaments | [057](docs/decisions/057-server-browser-and-seo.md) | **Harder than it looked ([§2.13a](#213a-v9--run-2026-08-22-what-three-runs-measured) Finding 5).** **Row counts cannot answer it** — CS:GO legacy's Europe list reports **791 780 players across 10 000 servers, a mean of 79 on servers that seat 32–64**, and `\secure\1` filters none of it out. **The honest count needs padding-filtered data**, which the same probe now collects. For scale, CS2's Europe figure *is* trustworthy and complete: **5 734 occupied servers, ~50 850 humans** | **Run 6: every CS:GO partition tried is capped — Europe, occupied+secure, and even a single map all returned exactly 10 000. No number in that column is a measurement.** Strip only the 474 saturated rows and the rest still average **69.9 players each**, on servers seating 32–64; **29% claim 255 slots.** **`probe.py --sweep`** partitions by hostname via `name_match` (36 calls, deduped by `steamid`) and returns a padding-filtered **lower bound** — the first honest figure this item can have. **Run 7 gave it a first figure: two one-snapshot checks strip 551 382 of CS:GO’s 786 757 claimed players (70%), leaving a mean of 35.7 — against CS2’s 9.2, and still on capped rows.** So the honest answer is lower again and V10 trends **negative**; `--sweep` is what makes it a number rather than a direction.
+| **V11** | Padded player counts are distinguishable from real ones over a multi-week series, at a false-positive rate low enough to publish | [057](docs/decisions/057-server-browser-and-seo.md) §5a | **Partly cheaper, and the detector is now calibrated against a real false positive ([§2.13b](#213b-the-padding-measured--and-the-false-positive-that-calibrated-the-detector)).** One-snapshot checks exist — beyond-slots, near-zero `bots` across a list, listings-per-`/24` — but **beyond-slots catches only ~5%**: the rest pad `max_players` too and stay internally consistent. **A strict `>` flagged one real server at 11/10 on its first run**, which is precisely V11's stated risk, so the threshold is **1.5×** and pinned by an assertion. **The month of polling is still owed for subtle padding**, with plugin-verified servers as ground truth | **Run 6: zero CS2 false positives at 1.5×**, and `[PT] Tuga Army` did not reappear at 11/10 — consistent with the transient slot drop the margin was set for. The margin now has a second clean run behind it and is pinned by `probe.py --selftest`.
+| **V16** | **How does a CS2 server get onto a *Polish* catalogue at all?** Steam returns `100.64.0.0/10` non-routable addresses for CS2, so **GeoIP cannot place them** ([§2.13c](#213c-the-address-finding--each-game-breaks-the-plan-in-a-different-half)) | [057](docs/decisions/057-server-browser-and-seo.md) §1 — **the Polish CS2 catalogue, which is the product's front door** | **Opened 2026-08-22 by closing V9.** Candidates, cheapest first: **(a)** the server's own plugin heartbeat reports its real address — which is [057](docs/decisions/057-server-browser-and-seo.md)'s `Verified` tier already, so **the CS2 catalogue may simply *be* the verified list**, and the free listing is 1.6-only; **(b)** owner self-declares country at registration; **(c)** infer from the server name — Polish names are the actual signal a player searches on, and no GeoIP is honest about audience anyway ([§2.13](#213-v9--getserverlist-and-two-findings-that-change-the-question) already conceded a Polish server in Germany). **(a) is both the laziest and the one that sells the plugin** | **Measured floor, run 6: 267 of 6 189 CS2 rows (4.3%) are outside the relay space and geolocatable today** — enough to seed a catalogue, not to be one. **A list covering 4% of the scene looks complete and is not**, which is the silent-cap failure again, so (a) stands.
+| **V17** | **REOPENED at the first real time gap.** Can a server be re-identified between polls? `steamid` survival is **98% at minutes and 8.5% at 1.7 hours** — while the list itself *grew* 6 157 → 7 691, so this is not servers leaving ([§2.13g](#213g-run-10--v17-reopens-and-the-empty-response-was-never-one-thing)) | [057](docs/decisions/057-server-browser-and-seo.md) §5a — **every tier below `Verified`** — and **V11**, which cannot start until this is settled | **Either the CS2 identity is per-session (then `addr` is the key and [§2.13f](#213f-runs-8-and-9--v17-answered-and-the-cap-turns-out-to-be-deterministic)’s recommendation is inverted), or the scene turns over hard.** The **reverse join** separates them for no extra call — the snapshot already holds `{steamid: addr}`, so inverting it asks how many **addresses** are still listed under a **new** steamid. **The probe now prints both joins; one more poll answers it.** |
 | **V12** | ~~Paid-placement disclosure wording and prominence?~~ **Researched at statute level ([§2.10](#210-paid-placement-disclosure-law--v12-researched-at-statute-level)).** Art. 7 pkt 11a (black-listed, no size exemption) + Art. 6 ust. 4 pkt 8 (publish ranking parameters, dedicated section); DSA Arts. 26–27 excluded at micro/small size. | [058](docs/decisions/058-what-we-sell.md) §6 | **Design unblocked; build to it.** Label changed `Promowane` → **`Sponsorowane`**, because UOKiK requires a label to convey *payment* — it rejects *"współpraca"* for the same gap. **Counsel confirmation before the first paid placement goes live**, and re-check the DSA exemption on crossing small-enterprise size |
-| **V13** | ~~Lawful basis, retention and erasure reconciliation for a stored hardware identifier?~~ **Researched ([§2.11](#211-hwid-gdpr-and-automated-bans--v13-researched)).** Art. 6(1)(f) + Recital 47; defined retention; ban tombstone survives erasure under Art. 17(3)(e) / Art. 21(1). | [058](docs/decisions/058-what-we-sell.md) §6c | **Design unblocked; three documents still owed — LIA, DPIA, privacy notice.** Two things the question did not ask and should have: **Art. 22 governs automated bans** (Garante fined Foodinho €5m), and a **DPIA is very likely mandatory** on WP248 scoring + monitoring. A hashed HWID is **still personal data** |
+| **V13** | ~~Lawful basis, retention and erasure reconciliation for a stored hardware identifier?~~ **Researched ([§2.11](#211-hwid-gdpr-and-automated-bans--v13-researched)).** Art. 6(1)(f) + Recital 47; defined retention; ban tombstone survives erasure under Art. 17(3)(e) / Art. 21(1). | [058](docs/decisions/058-what-we-sell.md) §6c | **Design unblocked; the three documents are now drafted** — [`docs/legal/hwid-lia-dpia.md`](docs/legal/hwid-lia-dpia.md) (LIA + DPIA in one accountability record) and [`docs/legal/privacy-notice-hwid.md`](docs/legal/privacy-notice-hwid.md). **Remaining: counsel review, controller identity, the attribute list, and sign-off on the [PROPOSED] retention periods.** Two things the question did not ask and should have: **Art. 22 governs automated bans** (Garante fined Foodinho €5m), and a **DPIA is mandatory** — WP248 scoring + monitoring, and Art. 35(3)(a) independently. A hashed HWID is **still personal data**. **Three design changes fell out of writing the balancing test — see §2.11a** |
 | **V14** | **Restated ([§2.12](#212-v14--why-65-of-cases-is-the-wrong-number-and-what-to-measure-instead)):** required precision, prevalence in the flagged pool, false-positive rate on the auto-ban class. **Coverage — the "65%" — is the wrong quantity.** | [058](docs/decisions/058-what-we-sell.md) §6c | **Blocks auto-banning and any published rate.** At 2% prevalence and 99% specificity, **a third of bans are innocent people**; screening the pool first is what fixes it, which is what the suspicion meter is *for*. Legal reason too: **Art. 22**. **A fallen meter must still write a negative label**, or the false-positive rate has no denominator and this is unanswerable forever  **Tool: `DetectionCalibration` + `CalibrationChecks`, running today** — the arithmetic is settled, the inputs are not |
 | **V15** | ~~Can the server trigger client POV recording?~~ **CS 1.6: yes, field-proven. CS2 `record` works — measured 2026-08-22** on a dedicated server: demo produced, saved, client stalled 1–2s and recovered. **Still open: can a server *force* it on CS:GO/CS2?** — needs the Phase 6 plugin | [058](docs/decisions/058-what-we-sell.md) §6c | **No longer a blocker.** The freeze claim is dead; the forcing question rides along with Phase 6, and if it fails, *asking* still yields a signal. **Design change it forced: arm recording at freezetime, not the instant the meter crosses** — a 1–2s stall mid-round would penalise a player who is usually innocent |
 

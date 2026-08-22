@@ -511,6 +511,22 @@ client-side **scanner**. They are not the same kind of thing and they are not so
 8. **Clean → he plays. Dirty → ban, keyed to a salted HWID hash.**
 9. **He may appeal**, and the appeal is answered with the **POV demo** from step 2.
 
+> ⚠ **Two amendments from the DPIA, 2026-08-22** ([`docs/legal/hwid-lia-dpia.md`](../legal/hwid-lia-dpia.md),
+> [CONTEXT §2.11a](../../CONTEXT.md)):
+>
+> **A hash never bans on its own — it raises a case a referee decides.** Step 8 above reads as
+> though the hash *is* the ban, and it cannot be. **Family PCs, siblings, LAN cafés and second-hand
+> machines are ordinary in this market**, so a hardware match will sometimes land on a person who
+> did nothing. The rebuttal must be cheap to make *and* cheap to accept. This is the same shape as
+> everything else here — **hold a degree of belief, act only at a threshold, let a human decide** —
+> applied to the identifier rather than to the meter.
+>
+> **The scanner reports signature matches only.** Never a file listing, never a directory tree,
+> never a process dump beyond matches. **The scanner is a bigger privacy surface than the hash** —
+> a hash is one machine attribute, a disk scan sees documents and unrelated software. This is a
+> build constraint that costs nothing while the scanner is still unwritten, and is expensive to
+> retrofit after it ships.
+
 Step 6 is doing more work than it looks. A player shown the evidence against him can dispute a
 specific finding rather than a silent verdict — the same principle as [025](025-rating-system.md)'s
 visible `±RD` and [050](050-match-results-and-ratings.md)'s `Provenance`: **the record explains

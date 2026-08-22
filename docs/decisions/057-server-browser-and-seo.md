@@ -9,6 +9,51 @@
 [051](051-phase-4-remainder.md), [055](055-multi-game-scope.md),
 [056](056-lft-board.md), [MARKETING](../MARKETING-AND-SALES-STRATEGY.md)
 
+> **Measured update, 2026-08-22 — V9 closed, and three things here were written against
+> assumptions that turned out wrong** ([CONTEXT §2.13a](../../CONTEXT.md)). The decision stands;
+> these are build constraints, not a reopening.
+>
+> 1. **The Steam API caps a response at 10 000 rows, returns HTTP 200, and does not say it
+>    truncated.** Not the timeout §5a feared — worse, because it is silent. **Anything within 1% of
+>    the ceiling is incomplete and must be partitioned further.** `Europe / occupied` returns ~5 700
+>    and *is* complete, so the partition this product actually needs already fits.
+> 2. **An empty response is a Steam failure, not a reading of zero — and it is RECURRING, not a
+>    one-off** ([CONTEXT §2.13e](../../CONTEXT.md)). Seen twice at ~17 s, both times on the **largest
+>    partition asked for**, once on `CS2 / Europe` — this list's own headline query. **The failure is
+>    size-dependent, so the most valuable partition is the most likely to fail**, and the poller must
+>    be built around partitions that already fit rather than around a retry that hopes.** `{"response":{}}` with the
+>    `servers` key absent must be **retried, never stored** — a hiccup recorded as *"every server in
+>    Europe went dark"* poisons the very time series §5a uses to label a server `Implausible`.
+> 3. **The CS:GO list is fake at scale.** Europe's secure-and-occupied CS:GO legacy servers report
+>    **791 780 players across 10 000 servers — a mean of 79, on servers that seat 32–64** — with 45
+>    bots total. `\secure\1` filters none of it. **§1's decision to order by live humans was right
+>    for a reason nobody had measured**, and *"more players than slots"* is a padding label
+>    publishable from one snapshot — but it catches only **~5%** of them (the rest inflate
+>    `max_players` too and stay internally consistent), so the check that scales is **listings per
+>    `/24`**: a spam farm runs thousands of listings from a handful of hosts.
+> 4. **The padding detector produced a false positive against a real server on its first run** —
+>    `[PT] Tuga Army • Competitivo #4`, flagged at 11/10, almost certainly a slot dropped while
+>    eleven were connected. **That is §5a's stated risk, happening on day one.** Threshold is now
+>    **1.5×** (`254/64` is fraud, `11/10` is noise), pinned by an assertion.
+>    **Every label this product publishes needs the same treatment: a margin fixed by a test, never
+>    a strict inequality that looks rigorous and accuses the innocent.**
+>
+> 5. 🔴 **The CS2 addresses are `100.64.0.0/10` — RFC 6598 non-routable shared space, which cannot
+>    be geolocated at all** ([CONTEXT §2.13c](../../CONTEXT.md)). **This is the one that touches the
+>    decision, not just the build.** §1 assumes a Polish CS2 catalogue; the remedy for "no country
+>    filter" was our own GeoIP pass, and **there is nothing to run it against.** Opened as **V16**,
+>    whose leading candidate is that **the CS2 catalogue simply *is* the `Verified` tier** — the
+>    plugin heartbeat knows the real address — which would make the free CS2 listing 1.6-only and
+>    turn the whole front door into a reason to install the plugin. That is §6b's flywheel, arrived
+>    at by constraint rather than by choice.
+>
+> **The symmetry worth carrying:** CS:GO legacy returns **real addresses and a fake population**;
+> CS2 returns a **real population and fake addresses**. Neither game gives this document what it
+> assumed, and they fail in opposite directions.
+>
+> Also measured: **`bots` is its own API field**, so CS2 counts separate bots for free — this
+> document assumed only the 1.6 plugin could. Whether `players` *includes* `bots` is still unverified.
+
 ---
 
 ## Why this document exists
@@ -452,7 +497,9 @@ Per the project's engineering principles, in `tests/NextSkill.Checks`:
 | # | Assumption | Blocks | How to verify |
 | --- | --- | --- | --- |
 | ~~**V8**~~ | ~~CS:GO legacy's App ID is **4465480**~~ | this document, §3 | **Closed 2026-08-22.** Confirmed from Steam's own `appmanifest_4465480.acf` on a real install — the direct check this item asked for |
-| **V9** | `IGameServersService/GetServerList` returns community servers for app 730 and the CS:GO app, with usable filters and rate limits | §1, **§5a** | **Researched 2026-08-22, probe written and unrun** ([CONTEXT §2.13](../../CONTEXT.md)). **Two corrections to this row's premise:** there is **no country filter** — Poland is a region query plus our own GeoIP — and the binding constraint is **query timeouts with no resume**, not the rate ceiling (15-min polling is ~96 calls/day). **Partitioning is the workaround**, which makes this a design constraint rather than a ceiling on the idea |
+| ~~**V9**~~ | ~~`IGameServersService/GetServerList` returns community servers for app 730 and the CS:GO app, with usable filters and rate limits~~ | §1, **§5a** | **Closed 2026-08-22 — measured, five runs** ([CONTEXT §2.13a](../../CONTEXT.md)). Yes for both games, ordinary Web API key, 2–5 s. The premise carried two errors: there is **no country filter**, and the constraint is a **silent 10 000-row cap**, not the timeout this row assumed. See the note at the top of this document |
+| **V16** | **A CS2 server can be placed in Poland at all** — Steam returns `100.64.0.0/10` relay addresses for CS2, which no GeoIP can resolve | **§1 — the Polish CS2 catalogue, this document's front door** | **Opened 2026-08-22.** Leading candidate: the CS2 catalogue simply **is** the `Verified` tier, because only the plugin heartbeat knows the real address. See [CONTEXT §7](../../CONTEXT.md) | **Measured 2026-08-22: 267 of 6 189 CS2 rows (4.3%) carry ordinary public addresses** and can be geolocated with no plugin — a seed, not a catalogue. **A list covering 4% of the scene looks complete and is not.**
+| **V17** | **REOPENED 2026-08-22.** A server can be re-identified between polls | **§5a — every tier below `Verified`** | **`steamid` survival is 98% at minutes but 8.5% at 1.7 hours, while the list grew** — so either the CS2 identity is per-session (making `addr` the key) or the scene turns over hard. The probe’s **reverse join** — addresses still listed under a new steamid — settles it on the next poll. **§5a’s public-data tiers cannot be built until it does** |
 | **V11** | Padded counts are distinguishable from real ones over a multi-week series, at a false-positive rate low enough to publish | **§5a** | Poll for a month before labelling anything. Calibrate against servers whose real occupancy is known — the plugin-verified ones are the ground truth |
 | **V10** | The CS:GO community-server population is large enough to justify reopening [001](001-game-scope.md) | §3's tournament half | The listing itself measures it — ship the listing first, count, then commit plugin work |
 

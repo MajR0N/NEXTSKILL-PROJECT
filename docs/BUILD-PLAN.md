@@ -732,14 +732,40 @@ launches with a decided palette and a designed OG card rather than in monochrome
 - ☐ **Steam Web API ingestion and polling** — CS2 (app 730) and CS:GO (app 4465480), polled every ~15 min and **stored as a time series**. Nobody else keeps history, so this is differentiation by analysis rather than access. **No outbound packet
   ever reaches a listed server**: [051](decisions/051-phase-4-remainder.md) §2 holds, and A2S
   dialling is refused outright as a reflection/amplification vector
-  - ☐ **Partition every poll** ([CONTEXT §2.13](../CONTEXT.md)) — a large `GetServerList` result
-    **times out with no way to resume**, so split by region / `\map\` / `\empty\1` /
-    `\dedicated\1` until each query finishes. **Call volume is not the constraint** (~96/day at
-    15-min cadence), which is why partitioning is cheap
+  - ☐ **Partition every poll** — **and the reason changed once it was measured**
+    ([CONTEXT §2.13a](../CONTEXT.md)). Not a timeout: **a silent 10 000-row cap that returns
+    HTTP 200 and never says it truncated.** Split by region / `\\map\\` / `\\empty\\1` / `\\dedicated\\1`, and
+    **treat anything within 1% of the ceiling as incomplete** — equality is not the test,
+    `9 999` is as capped as `10 000`. **Call volume is not the constraint** (~96/day at 15-min
+    cadence), which is why partitioning is cheap
+    - ☐ **Size the partitions for peak, not for 03:00.** `Europe / occupied` measured **6 200
+      off-peak and 7 751 at peak — 78% of the cap within hours** ([CONTEXT §2.13g](../CONTEXT.md)).
+      The partition that "fits" today truncates first at exactly the hours a *best time to play*
+      feature is made of
+    - ☐ **An empty response is not a zero — read the clock.** Steam answers `{"response":{}}` for
+      both *"my deadline expired"* (~17 s) and *"nothing matched"* (fast). **Retry once; a slow
+      empty keeps retrying, a fast empty is a real zero.** A hiccup stored as *"every server in
+      Europe went dark"* poisons the very series the tiers are computed from
+    - ☐ **Never union a capped partition across polls.** The cap returns the **same rows every
+      time** — 9 997 of 10 000 ([CONTEXT §2.13f](../CONTEXT.md)). Repeated polling accumulates
+      nothing while looking like it works
+    - ☐ **Key the series on an identity that survives** — BLOCKED on **V17**. `steamid` held at
+      98% across minutes and **8.5% across 1.7 hours while the list grew**, so it may be
+      per-session, with `addr` the real key. The probe's reverse join settles it
   - ☐ **GeoIP, because Steam has no country filter** — "the Polish catalogue" is a region query
     plus our own pass over the addresses. **A dependency 057 had not accounted for**, and one that
     misclassifies the case we care most about: a Polish community hosting in Germany is Polish by
     audience, not by IP. **Do not let GeoIP alone decide what appears on a Polish listing**
+    - 🔴 **And for CS2 there is nothing to geolocate** — BLOCKED on **V16**. **96% of CS2 rows are
+      `100.64.0.0/10` relay addresses**, which no GeoIP can place; only ~4% carry a real IP
+      ([CONTEXT §2.13c](../CONTEXT.md)). **The Polish CS2 catalogue may simply *be* the `Verified`
+      tier**, because only the plugin heartbeat knows where the server is — which turns the front
+      door into a reason to install the plugin. **CS:GO legacy is the mirror image**: real
+      addresses, fabricated population
+  - ☐ **Filter the padding before anything is counted or ordered** — two one-snapshot checks
+    (past 1.5x slots, or claiming >=255 slots) strip **70% of CS:GO's claimed players**, while CS2
+    drops **zero** rows ([CONTEXT §2.13e](../CONTEXT.md)). **Use a margin, never a strict `>`** — a
+    strict test flagged a real server at 11/10 on its first run
 - ☐ **Plugin activity reporting for CS 1.6** — five-minute window, **humans separated from
   bots**, giving a time series nobody can scrape. Depends on Phase 6
 - ☐ **Per-server pages first** — occupancy history, peak hours, human-vs-bot over time. The
@@ -749,7 +775,7 @@ launches with a decided palette and a designed OG card rather than in monochrome
   Third application of the show-your-uncertainty principle behind `±RD` and `Declared`/`Bound`.
   **Show the observation and the graph, never a verdict** — and the remedy for a disputed
   inference is installing the plugin, so the accusation and the call to action are one sentence.
-  A tier is displayed and filterable and **never an ordering input** (⊘ blocked on **V11**)
+  A tier is displayed and filterable and **never an ordering input** (⊘ blocked on **V11**, and **V11 cannot start until V17** gives the series an identity that survives a poll)
 - ☐ **Derived from the same series** — best time to play, uptime, observed map rotation,
   dead-server pruning. All from public data; none of it offered by the incumbents
 - ☐ **Facets behind a content floor** — `game × type`, `game × region`. Below the floor,

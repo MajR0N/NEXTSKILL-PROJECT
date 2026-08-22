@@ -8,7 +8,7 @@ reading** — it needs a real server, a real client, or real matches.
 | --- | --- | --- |
 | [`cs16-probe/`](cs16-probe/) | **V2b, V2c, V3, V4, V15 (1.6 half)** | A CS 1.6 server that admits **non-Steam clients**, and testers |
 | [`cs2-pov-check/`](cs2-pov-check/) | **V15 (CS2 half)** — plus `ns_gotv_test.cfg` and `compare-sizes.sh` for the GOTV fidelity/size test | A CS2 client. Half of it needs nothing else |
-| [`steam-serverlist-probe/`](steam-serverlist-probe/) | **V9** — does `GetServerList` work as 057 needs? | A Steam Web API key. Nothing else |
+| [`steam-serverlist-probe/`](steam-serverlist-probe/) | ~~V9~~ **closed**; now **V10, V11, V16, V17** | A Steam Web API key. `--selftest` needs neither key nor network |
 | `NextSkill.Domain/Integrity/DetectionCalibration.cs` + `CalibrationChecks.cs` | **V14** | Runs today; the *inputs* need matches |
 
 ## Why the CS 1.6 items share one plugin
@@ -36,8 +36,21 @@ Reunion client**, so those tools are a probe that logs facts and a sheet a human
 2. **`cs2-pov-check/` half 1b** — **the highest-value test left.** If a raised `tv_snapshotrate` or
    a fat demo resolves aim well enough, CS2 needs no client POV for the aim question and V15's
    forcing half becomes irrelevant there. `exec ns_gotv_test`, three runs, then `./compare-sizes.sh`.
-3. **`steam-serverlist-probe/`** — **needs only an API key**, so it is blocked on nothing and no
-   one. It gates the Phase 5 listing, which is the phase actually in progress.
+3. ~~**`steam-serverlist-probe/`**~~ — **V9 closed 2026-08-22**, five runs
+   ([CONTEXT §2.13a](../CONTEXT.md)). Keep running it for **V10, V11 and now V17**: the padding
+   check makes the CS:GO population number honest, and the `steamid` check answers whether a server
+   can be re-identified between polls at all — **V11's month of polling is worthless without a
+   key that survives**. Both ride on calls the probe already makes.
+   **Run `python3 probe.py --selftest` first** (no key, no network): it pins the 1.5× padding
+   margin, the 1%-of-ceiling truncation rule and the `100.64/10` test against the runs that
+   calibrated them. Every one of those judgements gets published about a real server.
+
+   **The two calls owed next, in order:**
+   1. **Re-run the plain probe a day after run 6** — it joins against `snapshot.json` and prints
+      survival plus address-movement, which **closes V17**. Skip it and V11's month of polling
+      starts on an unproven key.
+   2. **`--sweep`** — 36 `name_match` partitions, ~2 minutes, the first CS:GO population figure that
+      is not the API's 10 000-row cap staring back. **V10.**
 4. **`cs16-probe/`** — one session closes four V-items and the rest of V15.
 5. **V14** — runs now; its inputs arrive with the first real matches, so the *instrumentation*
    (Phase 6: log every flag including the ones that resolve silently) is the part that must not be

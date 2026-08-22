@@ -11,3 +11,8 @@ src/NextSkill.Api/appsettings.*.local.json
 # data
 demos/
 *.dem
+
+# probe run state - V17's cross-poll join keeps the previous snapshot here
+tools/steam-serverlist-probe/snapshot.json
+
+__pycache__/

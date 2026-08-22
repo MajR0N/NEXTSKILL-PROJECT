@@ -127,9 +127,12 @@ in-game identifiers are personal data.
 > **Art. 17(3)(e)** and **Art. 21(1)**, keeping the hash and the decision and nothing else — the
 > same shape as *anonymise the player, keep the match*, one step further.
 >
-> **Owed before it ships:** an **LIA**, a **DPIA** (very likely mandatory — WP248 scoring plus
-> systematic monitoring), and **Art. 13 notice wording**. Also **Art. 22**: an automated ban needs
-> a human who can genuinely overrule it. Detail and sources in [CONTEXT §2.11](../../CONTEXT.md).
+> **Owed before it ships — now drafted, 2026-08-22:** the **LIA** and **DPIA** are one accountability
+> record, [`docs/legal/hwid-lia-dpia.md`](../legal/hwid-lia-dpia.md), and the **Art. 13 wording** is
+> [`docs/legal/privacy-notice-hwid.md`](../legal/privacy-notice-hwid.md). **Still owed: counsel
+> review, the controller identity, the hardware-attribute list, and sign-off on the proposed
+> retention periods.** Also **Art. 22**: an automated ban needs a human who can genuinely overrule
+> it. Detail and sources in [CONTEXT §2.11](../../CONTEXT.md).
 
 The deletion rule matters: a naive cascade delete would destroy match history and silently
 corrupt every opponent's rating ([025](025-rating-system.md)).
