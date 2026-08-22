@@ -439,6 +439,101 @@ _Checked: 2026-08-22. **Statute-level research, not counsel.** Confirm before th
 placement goes live._
 
 ---
+### 2.11 HWID, GDPR and automated bans — V13 researched
+
+Researched for [058](docs/decisions/058-what-we-sell.md) §6c. **Not legal advice**, but specific
+enough to build against. Two findings matter more than the retention question that prompted it.
+
+#### It is personal data, and hashing does not change that
+
+A hardware identifier tied to an account is an identifier relating to an identifiable person.
+**A salted hash is pseudonymisation ([Art. 4(5)](https://gdpr-info.eu/art-4-gdpr/), Recital 26), not
+anonymisation** — it stays personal data precisely *because* it can still be matched, which is the
+whole point of holding it. Hashing is a security and minimisation measure. **It is not an exit from
+GDPR**, and nothing downstream should be written as though it were.
+
+#### Lawful basis: legitimate interests, and Recital 47 says so directly
+
+**Art. 6(1)(f)**, supported by **Recital 47**: *"the processing of personal data strictly necessary
+for the purposes of preventing fraud also constitutes a legitimate interest."* Cheat prevention on a
+rated competitive platform sits squarely in that.
+
+Consent is the wrong basis — a cheater simply withdraws it. Contract is arguable but weaker.
+
+**It requires a written Legitimate Interests Assessment** (purpose / necessity / balancing).
+**The necessity limb is the sharp one:** *necessary* does not mean *useful* or *more efficient*. We
+must be able to say why an account-level ban alone is insufficient — the honest answer being that a
+banned cheater re-registers in a minute — and why nothing less intrusive achieves it.
+
+#### Art. 22 is the provision that bites, and our design already answers it
+
+**Platform account suspensions are a recognised
+[Art. 22](https://gdpr-info.eu/art-22-gdpr/) scenario**: a decision based *solely* on automated
+processing producing legal or similarly significant effects. **The Italian Garante fined Foodinho
+€5 million** for deactivating rider accounts algorithmically with no human intervention and no way
+to contest.
+
+Art. 22(3) safeguards — **human intervention, the right to express a point of view, the right to
+contest**. [058](docs/decisions/058-what-we-sell.md) §6c already provides all three: the report is
+shown to the player with its verdict, he may appeal, and a referee decides.
+
+> ⚠ **The trap: *"solely automated"* includes rubber-stamp human sign-off.** A reviewer who cannot
+> genuinely overrule the machine does not count. **Ours can** —
+> [050](docs/decisions/050-match-results-and-ratings.md) lets a referee reverse a result and replay
+> every rating from history, so the human authority is real and demonstrable.
+>
+> **This gives V14 a second, independent reason.** Auto-banning before the false-positive rate is
+> measured is not only a product risk; without a genuine human path it is an Art. 22 problem.
+
+#### A DPIA is very likely mandatory — and it is a deliverable, not a formality
+
+EDPB **WP248** treats two or more of its nine high-risk criteria as triggering a DPIA. We hit at
+least two plainly:
+
+| Criterion | Us |
+| --- | --- |
+| **Evaluation or scoring** | The suspicion meter scores behaviour and reliability |
+| **Systematic monitoring** | Observing player behaviour in the online environment |
+
+And **Art. 35(3)(a)** makes it *mandatory* for systematic, extensive automated evaluation on which
+decisions with significant effects are based — which is what a meter that ends in a ban is.
+
+> **Write the DPIA before the anti-cheat ships, not after.** It also does useful work for us: the
+> balancing test is the same argument as the LIA, and the outcome feeds the privacy notice.
+
+#### Retention and the erasure right — the part V13 originally asked
+
+| Question | Answer |
+| --- | --- |
+| **How long?** | **Art. 5(1)(e)** storage limitation. *Indefinite* is hard to defend; a defined period tied to the ban's duration plus the appeal window is. A permanent ban needs a stronger justification **and periodic review**, both recorded |
+| **Does the ban survive an erasure request?** | **Yes, if reasoned.** **Art. 17(3)(e)** covers retention for the establishment, exercise or defence of legal claims, and **Art. 17(1)(c)** with **Art. 21(1)** lets us refuse where we demonstrate *compelling legitimate grounds*. **Demonstrate is the operative word** — it must be documented, not asserted |
+| **What survives, exactly?** | The **minimum**: the hash and the decision. Not the account, not the contact data. This is [012](docs/decisions/012-security.md) §6's existing rule — *anonymise the player, keep the match* — applied one step further: **erase the person, keep the ban tombstone** |
+| **Right to object** | Because the basis is legitimate interests, **Art. 21(1)** gives a right to object, and the compelling-grounds answer must be ready in advance rather than improvised at the first request |
+| **Transparency** | **Art. 13**: the privacy notice must name HWID collection, its purpose, the basis, the retention period and the right to object. Undisclosed collection is a separate breach from unlawful collection |
+
+#### The handling rule that falls out
+
+**Transmit over TLS, hash server-side with a secret pepper, persist only the hash, never log the raw
+value.** Client-side hashing was considered and rejected: it would need a salt the client knows,
+and a modified client can fake either form equally, so it buys nothing while making rotation
+harder. The raw identifier exists in memory for the length of one request and is never written.
+
+**This is a deliberate reversal of [012](docs/decisions/012-security.md) §6's posture** — *"no
+persistent application IP column, IP retention zero."* We are choosing to persist a stable
+identifier for the first time, and that choice belongs in the privacy notice and the DPIA, not in a
+migration nobody reviewed.
+
+Sources:
+[Recital 47](https://gdpr-info.eu/recitals/no-47/),
+[EDPB Guidelines 1/2024 on legitimate interest](https://www.edpb.europa.eu/system/files/2024-10/edpb_guidelines_202401_legitimateinterest_en.pdf),
+[Art. 22](https://gdpr-text.com/read/article-22/),
+[Garante v Foodinho](https://secureprivacy.ai/blog/gdpr-article-22-automated-decision-making-guide),
+[EDPB WP248 DPIA criteria](https://www.ictlc.com/the-edpb-establishes-common-criteria-for-data-protection-impact-assessment-lists-drafted-by-national-supervisory-authorities/?lang=en).
+
+_Checked: 2026-08-22. **Statute and guidance level, not counsel.** The LIA and DPIA are documents we
+must actually write._
+
+---
 
 ## 3. Engineering principles
 
@@ -680,8 +775,8 @@ verified before code depends on it — per project instruction, test before ackn
 | **V10** | The CS:GO community-server population justifies reopening [001](docs/decisions/001-game-scope.md) for tournaments | [057](docs/decisions/057-server-browser-and-seo.md) | The listing measures it — ship the list, count, then commit plugin work |
 | **V11** | Padded player counts are distinguishable from real ones over a multi-week series, at a false-positive rate low enough to publish | [057](docs/decisions/057-server-browser-and-seo.md) §5a | Poll for a month before labelling anything. **The plugin-verified servers are the ground truth** to calibrate against — a false accusation against a legitimate server cannot be undone |
 | **V12** | ~~Paid-placement disclosure wording and prominence?~~ **Researched at statute level ([§2.10](#210-paid-placement-disclosure-law--v12-researched-at-statute-level)).** Art. 7 pkt 11a (black-listed, no size exemption) + Art. 6 ust. 4 pkt 8 (publish ranking parameters, dedicated section); DSA Arts. 26–27 excluded at micro/small size. | [058](docs/decisions/058-what-we-sell.md) §6 | **Design unblocked; build to it.** Label changed `Promowane` → **`Sponsorowane`**, because UOKiK requires a label to convey *payment* — it rejects *"współpraca"* for the same gap. **Counsel confirmation before the first paid placement goes live**, and re-check the DSA exemption on crossing small-enterprise size |
-| **V13** | Lawful basis, retention period and erasure-right reconciliation for a stored hardware identifier | [058](docs/decisions/058-what-we-sell.md) §6c | **Blocks HWID banning.** A hardware identifier is personal data, and [012](docs/decisions/012-security.md) currently advertises **zero persisted application IPs** — reversing that is a decision, not a side effect. **Salted hash only; the raw value is never stored** |
-| **V14** | Does the server-side AC decide ~65% of cases at a false-positive rate low enough to auto-ban on? | [058](docs/decisions/058-what-we-sell.md) §6c | **Blocks auto-banning and any published rate.** An estimate made before a single match was played. Calibrate against the corpus first — **a sold anti-cheat makes a promise a free one does not** ([052](docs/decisions/052-cheating-and-rating-integrity.md)) |
+| **V13** | ~~Lawful basis, retention and erasure reconciliation for a stored hardware identifier?~~ **Researched ([§2.11](#211-hwid-gdpr-and-automated-bans--v13-researched)).** Art. 6(1)(f) + Recital 47; defined retention; ban tombstone survives erasure under Art. 17(3)(e) / Art. 21(1). | [058](docs/decisions/058-what-we-sell.md) §6c | **Design unblocked; three documents still owed — LIA, DPIA, privacy notice.** Two things the question did not ask and should have: **Art. 22 governs automated bans** (Garante fined Foodinho €5m), and a **DPIA is very likely mandatory** on WP248 scoring + monitoring. A hashed HWID is **still personal data** |
+| **V14** | Does the server-side AC decide the larger share of cases at a false-positive rate low enough to auto-ban on? | [058](docs/decisions/058-what-we-sell.md) §6c | **Blocks auto-banning and any published rate — two independent reasons.** Product: a false ban here cannot be undone (as **V11**). Legal: **Art. 22** governs automated bans, and a review path that cannot genuinely overrule the machine does not satisfy it ([§2.11](#211-hwid-gdpr-and-automated-bans--v13-researched)). **The 65/35 split is an illustrative estimate, never a measurement** |
 | **V15** | **Can the server force a client POV recording on CS:GO and CS2**, and does CS2 `record` still freeze the client in 2026? | [058](docs/decisions/058-what-we-sell.md) §6c | **Reopened 2026-08-22.** CS 1.6 is proven and closed. **GOTV is not a substitute** — snapshot-rate interpolation removes the per-tick view-angle detail an aimbot signal lives in ([§2.9](#29-server-triggered-client-pov-demo-recording--per-game-and-the-answer-differs)). **Test on a live CS2 client; the web only recycles a 2023 post.** If forcing proves impossible, *asking* still yields a signal — a missing recording is refusal, never clean |
 
 **V3 is the highest priority**, and this paragraph used to say V1 — which its own table above

@@ -656,6 +656,49 @@ Banning is keyed to a **salted hash of the hardware identifier — never the raw
 - It joins the account as a second key in [052](052-cheating-and-rating-integrity.md)'s
   *"bans propagate; trust does not"*.
 
+#### What GDPR requires of it — V13, researched ([CONTEXT §2.11](../../CONTEXT.md))
+
+**A hashed HWID is still personal data.** Hashing is pseudonymisation (Recital 26), not
+anonymisation — it remains matchable, which is the entire reason we keep it. Nothing here may be
+written as though hashing exits GDPR.
+
+| | |
+| --- | --- |
+| **Lawful basis** | **Art. 6(1)(f)** legitimate interests, and **Recital 47 names fraud prevention explicitly**. Consent is wrong — a cheater withdraws it. **Requires a written LIA**, whose *necessity* limb must state why an account ban alone is insufficient: a banned cheater re-registers in a minute |
+| **Retention** | **Art. 5(1)(e).** A defined period — ban duration plus appeal window. **Indefinite is hard to defend**; a permanent ban needs a stronger recorded justification *and periodic review* |
+| **Erasure** | The ban survives an erasure request under **Art. 17(3)(e)** (legal claims) and **Art. 17(1)(c) / Art. 21(1)** (compelling legitimate grounds) — **but only if we can demonstrate them.** What survives is the **minimum: the hash and the decision.** This is [012](012-security.md) §6's *anonymise the player, keep the match*, one step on: **erase the person, keep the ban tombstone** |
+| **Objection** | Legitimate interests carries **Art. 21(1)**. The compelling-grounds answer is prepared in advance, not improvised at the first request |
+| **Transparency** | **Art. 13.** The privacy notice names the collection, purpose, basis, retention and right to object. **Undisclosed collection is a separate breach from unlawful collection** |
+| **Handling** | TLS in, **hashed server-side with a secret pepper**, only the hash persisted, the raw value never logged. Client-side hashing was rejected: a modified client fakes either form equally, so it buys nothing and complicates rotation |
+
+> **This is a deliberate reversal of [012](012-security.md) §6** — *"no persistent application IP
+> column, IP retention zero."* We persist a stable identifier for the first time. That belongs in
+> the privacy notice and the DPIA, **not in a migration nobody reviewed.**
+
+#### Art. 22 — the design already answers it, and must keep answering it
+
+**Automated account bans are a recognised Art. 22 case** (the Garante fined Foodinho €5m for
+algorithmic account deactivation with no human route). The required safeguards — **human
+intervention, the right to state your case, the right to contest** — are what §6c's flow already
+does: the report is shown to the player with its verdict, he appeals, a referee decides.
+
+> ⚠ ***"Solely automated"* includes rubber-stamp human sign-off.** A reviewer who cannot genuinely
+> overrule the machine does not count. **Ours can** — [050](050-match-results-and-ratings.md) lets
+> a referee reverse a result and replay every rating from history.
+>
+> **V14 therefore has two independent reasons.** Auto-banning before the false-positive rate is
+> measured is a product risk *and*, without a real human path, an Art. 22 problem.
+
+#### A DPIA is very likely mandatory
+
+EDPB **WP248** treats two or more high-risk criteria as triggering one, and we hit **evaluation or
+scoring** (the suspicion meter) and **systematic monitoring** (observing behaviour online).
+**Art. 35(3)(a)** arguably makes it outright mandatory: systematic, extensive automated evaluation
+on which significant decisions are based.
+
+**Write it before the anti-cheat ships.** It is not ceremony — its balancing test is the LIA
+argument, and its output is the privacy-notice wording.
+
 ### Why only the server side is sold
 
 Consistent with §2: **we sell what becomes possible because the free half is everywhere.**
@@ -675,8 +718,8 @@ it should have caught.
 
 | # | Question | Blocks |
 | --- | --- | --- |
-| **V13** | On what lawful basis do we collect and retain a hardware identifier, for how long, and how does a permanent ban list coexist with the erasure right [011](011-accounts-and-login.md) already implements? | **HWID banning.** A hardware identifier is personal data, and [012](012-security.md) currently advertises **zero persisted application IPs** — this is a deliberate reversal of that posture and must be assessed and written down, not assumed. Salted hash only; raw identifiers are never stored |
-| **V14** | Does the server-side AC actually decide ~65% of cases, at a false-positive rate low enough to auto-ban on? | **Auto-banning, and any published figure.** Calibrate against the corpus before either. A false ban in a scene this small cannot be undone — the same reasoning as **V11** |
+| **V13** | ~~Lawful basis, retention, erasure reconciliation for HWID?~~ **Researched ([CONTEXT §2.11](../../CONTEXT.md)).** Basis: **Art. 6(1)(f)** + **Recital 47** (fraud prevention named explicitly). Retention: **Art. 5(1)(e)** — defined period, not indefinite. Erasure: survives under **Art. 17(3)(e)** / **Art. 21(1)**, minimum retained. **Also found: Art. 22 governs automated bans (Foodinho, €5m), and a DPIA is very likely mandatory.** | **Design unblocked — but three documents must actually be written before the anti-cheat ships: the LIA, the DPIA, and the privacy-notice wording.** Counsel review of all three. **A referee who cannot genuinely overrule the machine does not satisfy Art. 22** |
+| **V14** | Does the server-side AC actually decide the larger share of cases, at a false-positive rate low enough to auto-ban on? | **Blocks auto-banning and any published rate — now for two reasons.** The product one: a false ban in a scene this small cannot be undone (as **V11**). The legal one: **Art. 22** governs automated bans, so shipping one before the rate is known, without a human who can genuinely overrule it, is a regulatory exposure and not only a reputational one ([CONTEXT §2.11](../../CONTEXT.md)) |
 | **V15** | **Can the server force client POV recording on CS:GO / CS2**, and does CS2 `record` still freeze in 2026? | **Reopened 2026-08-22.** CS 1.6 proven. **GOTV is not a forensic substitute** — snapshot rate and interpolated, quantised angles remove the per-tick detail an aimbot signal lives in ([CONTEXT §2.9](../../CONTEXT.md)). **Test a live client.** If forcing fails, asking still works: a missing recording is refusal, never clean |
 
 ## 7. Sequencing
@@ -802,12 +845,21 @@ seeing rather than discovering:
     whose signature does not check produces the refusal outcome, not the passing one.
 18. **A clean report clears nothing by itself** — it removes the scan suspicion and leaves any
     referee case open; it never closes a dispute on its own.
-19. **No raw hardware identifier is ever persisted** — only a salted hash reaches the database, and
-    the no-secret-in-logs check ([012](012-security.md)) is extended to cover it (**V13**).
+19. **No raw hardware identifier is ever persisted or logged** — only the peppered hash reaches the
+    database, and [012](012-security.md)'s no-secret-in-logs check is extended to cover the raw
+    value on every path that handles it.
+19a. **Erasure leaves the tombstone and nothing else** — erasing an account destroys contact data,
+    credentials and links while the ban hash and its decision survive, and the erased account
+    cannot be reconstructed from what remains (Art. 17(3)(e), and
+    [011](011-accounts-and-login.md)'s existing tombstone shape).
+19b. **Retention is enforced by a job, not by intention** — a hash past its retention period is
+    gone from the database, and the job's absence fails the check (Art. 5(1)(e)).
 20. **An HWID ban widens an existing ban and never creates one** — recording a hardware hash with
     no decided ban behind it bans nobody, so a forged identifier cannot be aimed at a rival.
-21. **Every automatic ban is appealable to a human** — an auto-banned account can reach the referee
-    desk, because an HWID ban hits a machine and machines are shared ([036](036-authorization.md)).
+21. **Every automatic ban is appealable to a human who can overturn it** — an auto-banned account
+    reaches the referee desk, and the referee has real authority to reverse (Art. 22(3);
+    [036](036-authorization.md), [050](050-match-results-and-ratings.md)). **A review path that
+    cannot overrule the machine fails this check**, however many humans it contains.
 22. **A flag arms recording, and a fallen meter leaves no trace** — raising suspicion starts the
     demo; a meter that falls back below threshold ends monitoring, notifies nobody, and stores
     nothing. **Most flags must end here** (§6c, **V15**).

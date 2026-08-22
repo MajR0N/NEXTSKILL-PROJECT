@@ -116,6 +116,21 @@ in-game identifiers are personal data.
 | Export | Users can obtain their data |
 | Hosting region | **EU region** ([037](037-platform-hosting.md)) |
 
+> ⚠ **Reversed in one place, 2026-08-22, by [058](058-what-we-sell.md) §6c.** The zero-persistent-
+> identifier posture above holds for **IP addresses** and stays the default. It does **not** hold
+> for the anti-cheat: a **salted HWID hash is persisted**, because a ban keyed only to an account
+> is defeated by registering another one.
+>
+> **A hashed HWID is still personal data** — pseudonymisation, not anonymisation. Basis is
+> **Art. 6(1)(f)** with **Recital 47** (fraud prevention named explicitly); retention is a defined
+> period under **Art. 5(1)(e)**; the ban tombstone survives an erasure request under
+> **Art. 17(3)(e)** and **Art. 21(1)**, keeping the hash and the decision and nothing else — the
+> same shape as *anonymise the player, keep the match*, one step further.
+>
+> **Owed before it ships:** an **LIA**, a **DPIA** (very likely mandatory — WP248 scoring plus
+> systematic monitoring), and **Art. 13 notice wording**. Also **Art. 22**: an automated ban needs
+> a human who can genuinely overrule it. Detail and sources in [CONTEXT §2.11](../../CONTEXT.md).
+
 The deletion rule matters: a naive cascade delete would destroy match history and silently
 corrupt every opponent's rating ([025](025-rating-system.md)).
 
