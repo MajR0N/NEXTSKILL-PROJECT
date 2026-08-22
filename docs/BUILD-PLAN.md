@@ -1,6 +1,6 @@
 # NEXTSKILL — Build plan
 
-The design phase is complete (**51 decision records** in `docs/decisions/`, two of them
+The design phase is complete (**52 decision records** in `docs/decisions/`, four of them
 deliberately reopened). This is the implementation sequence, derived from
 [038 — build order](decisions/038-build-order.md).
 
@@ -768,12 +768,32 @@ launches with a decided palette and a designed OG card rather than in monochrome
 
 Concretely, one at a time. **No shared abstraction until both exist** ([001](decisions/001-game-scope.md)).
 
+> **Stack settled 2026-08-22 by [058](decisions/058-what-we-sell.md) §5.** **AMXX / SourceMod /
+> CounterStrikeSharp**, dropping to native Metamod only where a specific capability demands it.
+> Rewriting in native C++ to resist decompilation was considered and rejected: it buys obfuscation,
+> not protection, and pays for it by escalating the exact fragility [002](decisions/002-cs2-plugin.md)
+> §Tier 4 calls the project's largest operational risk. **Nothing sellable ships inside the binary** —
+> every paid line is enforced on our server.
+
 - ☐ **CS2 plugin** ([002](decisions/002-cs2-plugin.md)) — CounterStrikeSharp, original code
 - ⊘ **V5 closed by design** — [051](decisions/051-phase-4-remainder.md) makes the normal contract
   plugin-initiated and forbids the panel from storing or using RCON. Reopen 051 before adding it
 - ☐ **Verify V2b / V3 / V4** on a real CS 1.6 server before writing the AMXX plugin
 - ☐ **CS 1.6 plugin** ([005](decisions/005-cs16-plugin.md)) — Pawn/AMXX
 - ☐ **Round backup/restore verified by actually killing a server mid-match** ([034](decisions/034-test-strategy.md))
+- ☐ **Standalone licence check** ([058](decisions/058-what-we-sell.md) §3) — **connected is free,
+  standalone is paid**. One column on the tenant and one branch in the config endpoint: no valid
+  licence → the endpoint refuses, and the refusal is **distinguishable from a network failure** so
+  the plugin does not retry forever ([009](decisions/009-api-contract.md))
+- ☐ **Activity-reporting plugin** ([057](decisions/057-server-browser-and-seo.md) §2) — the CS 1.6
+  five-minute window with humans separated from bots. **Stays free forever**
+  ([058](decisions/058-what-we-sell.md) §2): it is what makes the catalogue proprietary, and a paid
+  one would shrink the catalogue back to public data
+- ◐ **Anti-cheat — research only, in parallel from now** ([052](decisions/052-cheating-and-rating-integrity.md),
+  [058](decisions/058-what-we-sell.md) line 2). **Detection heuristics live server-side**, on demos
+  and reported events; the client collects, it does not judge. That is the one component whose value
+  *is* its secrecy, and keeping it off the wire is what protects it. **Shipping is gated on a corpus**,
+  which needs matches, which needs the plugins above — so this cannot jump the queue
 
 ## Phase 7 — Ship
 

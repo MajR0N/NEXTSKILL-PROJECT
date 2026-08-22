@@ -4,6 +4,12 @@
 **Date:** 2026-08-10
 **Decision:** **Organisers bring their own servers (BYO).** NEXTSKILL hosts no game servers.
 
+> ⚠ **Partially reopened 2026-08-22 by [058](058-what-we-sell.md).** BYO remains the default
+> and the architecture that everything downstream assumes — the trust boundary below still holds for
+> every registered server. What is dropped is **exclusivity**: 058 line 4 sells managed CS 1.6
+> servers on our own VPS, chosen for the ReHLDS/ReGameDLL hitbox fix rather than for capacity.
+> On our own hardware the boundary flips back, which is an integrity gain, not a new risk.
+
 ---
 
 ## Decision

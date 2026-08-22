@@ -39,6 +39,16 @@ And for CS 1.6 the question does not even arise: there is no modern anti-cheat, 
 frequently non-Steam, and [010](010-identity-binding.md) already treats the in-game identity as
 spoofable by default.
 
+> **Amended 2026-08-22 by [058](058-what-we-sell.md) line 2: the anti-cheat is a product we sell.**
+> This removes the *"nothing to charge for"* half of the third-party-licence rejection below, but
+> changes no technical decision here — tier 1 stays user-mode, tier 2 stays behind its
+> preconditions, and nothing kernel-mode is sold. Two obligations follow. **First**, a sold
+> anti-cheat makes a promise a free one does not: §"Optional client anti-cheat" already requires
+> stating what it does not stop, and that statement now carries commercial weight. **Second**, the
+> three games are not one product — CS 1.6's non-Steam client population (Reunion/dproto) has no
+> VAC underneath it and is a materially harder target than CS2, so it is priced and promised
+> separately.
+
 ## Decision: detect and make consequential, do not attempt to prevent
 
 **No client is ever required to play.** We defend the **record**, not the machine — and an

@@ -614,61 +614,85 @@ because software that works for one community is G5API with extra steps.
 
 ---
 
-## 9. Monetisation — the tournament side stays free; the listing carries the revenue
+## 9. Monetisation — five lines, and the two things that must stay free
 
-**Revised 2026-08-17.** This section previously read *"nothing is charged for now"*, which
-[057](decisions/057-server-browser-and-seo.md) made untrue: the listing sells sponsored placement.
-The split is deliberate and is the honest version of "free forever" —
-**the competitive product is free; the visibility product is not.**
+**Rewritten 2026-08-22 by [058](decisions/058-what-we-sell.md).** This section previously carried a
+single revenue line — a labelled slot beside the server list — and recorded brackets and ratings as
+free forever. Both halves changed. The full reasoning, the conflicts and the open calls are in
+[058](decisions/058-what-we-sell.md); this is the marketing-facing summary.
 
-| Surface | Charged? | Why |
-| --- | --- | --- |
-| Tournaments, ratings, brackets, LFT | **Free** | The rating is the moat. Charging for it is charging for the thing that only works at scale |
-| **Server listing placement** | **Paid** | An existing market with an existing price. Server owners already pay CS-Boost, tsarvar and GO-Setti for exactly this |
+**The shape:** *we give away what makes the catalogue and the rating bigger, and we sell everything
+that becomes possible because they are big.*
 
-### The line the money does not cross
+### What we sell
+
+| # | Line | Paid by | The pitch |
+| --- | --- | --- | --- |
+| **1** | **Server-list placement**, with options to choose from | Server owner | An existing market at an existing price — owners already pay CS-Boost, tsarvar and GO-Setti. **And we hand them the activity plugin free**, so their page shows numbers nobody else can prove |
+| **2** | **NEXTSKILL Anti-Cheat** — CS 1.6, CS:GO, CS2 | Organiser, per tournament | The one thing a prize final actually needs, and the thing §10 names as the risk that kills the rating |
+| **3** | **Tournament / bracket plugins** — standalone licence | Organiser | Free when the match reports to us; paid when it does not. See below |
+| **4** | **Managed game servers on our VPS**, CS 1.6 first | Organiser / community | *Play where the hitboxes are right* — ReHLDS + ReGameDLL_CS, our plugins and our anti-cheat, guaranteed present together |
+| **5** | **Sponsored slots** beside the list | Advertiser / server owner | Placement next to a list people *trust* is worth more per impression than placement inside one they don't |
+
+### What stays free, and why that is commercial rather than generous
+
+| Free | Charging for it would… |
+| --- | --- |
+| **The activity-reporting plugin** | …shrink the catalogue, and a small catalogue is **the same public data GO-Setti has**. The proprietary tier only exists at volume |
+| **Ratings, brackets, LFT, tournaments on nextskill.pl** | …charge for the moat, which has no value until everyone is inside it |
+| **The verified badge** | …make it worthless. A badge you can buy is not evidence |
+
+### Line 3 in one sentence
+
+**Connected is free; standalone is paid.** An organiser whose matches report to us and settle into
+the rating pays nothing — that path feeds the moat and we want most people on it. An organiser who
+wants the plugin on their own server with no account and no rating buys a licence, checked in our
+panel, never in the binary.
+
+This is also the answer to *"can't they just decompile it?"* — yes, and it gains them nothing.
+Every paid line is enforced server-side. Nothing sellable ships inside the plugin
+([058](decisions/058-what-we-sell.md) §5).
+
+### The line the money does not cross — unchanged, and now under pressure
 
 > **Money buys clearly-labelled placement above or beside a list. It never buys a position
 > inside one.**
 
-This is [056](decisions/056-lft-board.md)'s *rating never buys prominence*, applied to servers, and
-it is a commercial position rather than a scruple. GO-Setti's MasterBoost sells position *inside*
-the ranking; the moment budget moves rows, a visitor cannot tell which part of the order is
-evidence — and **verified counts, the only asset a competitor cannot copy, stop meaning anything.**
-Selling position would be selling the moat by the metre.
+This is [056](decisions/056-lft-board.md)'s *rating never buys prominence* applied to servers, and it
+is a commercial position rather than a scruple. GO-Setti's MasterBoost sells position *inside* the
+ranking; the moment budget moves rows, a visitor cannot tell which part of the order is evidence —
+and **verified counts, the only asset a competitor cannot copy, stop meaning anything.**
 
-**What this makes sellable that the incumbents cannot sell:** placement next to a list people
-*trust*. That is worth more per impression than placement inside one they don't.
+**A MasterBoost successor is therefore an open decision, not a planned feature**
+([058](decisions/058-what-we-sell.md) §6a). The recommendation is to sell what they structurally
+cannot: they sell rows because rows are all they have. We can sell credibility into the same wallet.
 
-**The inventory** ([057](decisions/057-server-browser-and-seo.md) §5): **a labelled slot above a
-list, sold per `game × period`** — one or two placements, fixed price, by the week or month.
-Chosen over an enhanced-listing upsell because it is the only format where inventory is naturally
-scarce, and **scarcity is what lets the price rise later without changing the product.**
+### What line 4 costs, said plainly
 
-### Why this monetises without contradicting §3.3
+Owning servers ends the sentence this document has leaned on since it was written: *running costs
+are ~€5/month, and each new organiser costs nothing marginal.* Line 4 makes cost scale with
+adoption and turns *"my server won't start a match"* into *"**your** server won't start."* It is
+accepted for one specific product reason — the CS 1.6 hitbox fix — and it is **sequenced last**,
+because it is the only line that can lose money ([058](decisions/058-what-we-sell.md) §4).
 
-Charging a **venue** for visibility is not charging a **player** for access, and it does not make
-us a destination — the traffic still leaves for their server. It is also the one revenue line that
-scales with the thing we already give away free.
+### Order, forced by dependency
 
-**Still deferred by [057](decisions/057-server-browser-and-seo.md), deliberately:** prices, ad
-formats, whether credit is prepaid, and whether placement is sold per-slot or per-period. Those
-need a market with traffic in it; setting them now would be guessing.
+**1 + 5** (needs only the listing, and measures V10 for free) → **3** (needs Phase 6) → **2** (needs
+a corpus, which needs matches, which needs 3) → **4** (needs money). Anti-cheat **research** starts
+now; anti-cheat **shipping** does not.
 
-### The rest, still open
+**Still deferred, deliberately:** prices, ad formats, prepaid credit, per-slot versus per-period.
+Those need a market with traffic in it; setting them now would be guessing.
 
-| Model | Fit | Concern |
-| --- | --- | --- |
-| **Free forever** | Maximum reach; strongest goodwill in a scene that resents monetised community tools | Hosting is ~€5/mo but time is not |
-| **Free for organisers, paid extras** | Prize handling, extended demo retention, custom branding | Must never make core tournaments feel crippled |
-| **Premium subscription** | **CYBERSHOKE proves it works** — skin drops, events, missions, 600k players/month | Requires a destination and an audience. Contradicts §3.3 until path 1 |
-| **Server rental** | We rent servers to organisers who lack them | Turns us into a hosting company — [042](decisions/042-hosting.md) avoided that |
-| **Sponsorship** | A brand sponsors an open cup | Only viable once there is an audience |
+### Rejected, and staying rejected
 
-Running costs are ~€5/month because BYO servers mean each new organiser costs **nothing
-marginal**. We can stay free far longer than a platform that hosts its own infrastructure.
-
-Revisit when a partner asks to pay, or when support time becomes the binding constraint.
+| Model | Why not |
+| --- | --- |
+| **Charging players for access** | Contradicts §3.3. We are a layer, not a destination |
+| **Bid-for-position inside the list or ranking** | Forfeits the entire differentiator — see the line above |
+| **Paid activity plugin** | Kills the catalogue that makes the verified tier possible |
+| **Plain server rental** | Rented capacity is not a product. Line 4 sells a *fixed* CS 1.6, which is |
+| **Premium player subscription** | CYBERSHOKE proves it works, but it requires a destination and an audience. Contradicts §3.3 until path 1 |
 
 ---
 
@@ -703,7 +727,7 @@ Revisit when a partner asks to pay, or when support time becomes the binding con
 - **Path 1 has a tripwire, not a date.**
 - **Two loops, not one.** Discord reaches people adjacent to us; **search reaches strangers with intent**, and it is the only channel that scales without us knowing anyone.
 - **The listing is the bottom rung of the ladder** — the offer that fits the two thirds of networks who will never organise, and the reason they install the plugin that makes everything else possible.
-- **Free where the moat is, paid where the market already pays.** Tournaments and ratings free; server visibility sold — **beside the list, never inside it.**
+- **Free where the moat is, paid where the market already pays.** The rating, the brackets and the activity plugin are free because each one only works at scale. **Five things are sold** — list placement, anti-cheat, the standalone plugin licence, managed CS 1.6 servers, and sponsored slots — and none of them can be obtained by decompiling anything ([058](decisions/058-what-we-sell.md)).
 
 ---
 

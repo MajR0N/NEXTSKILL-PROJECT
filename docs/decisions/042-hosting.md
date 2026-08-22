@@ -7,6 +7,11 @@
 **Lens applied:** cloud-architect, devops-engineer
 **Extends:** [017](017-deployment-and-cicd.md), [037](037-platform-hosting.md)
 
+> ⚠ **Reopened 2026-08-22 by [058](058-what-we-sell.md) line 4.** The ~€4–5/month total below
+> prices *the platform*, and holds only while [007](007-server-hosting-model.md) BYO is exclusive.
+> Selling managed CS 1.6 servers adds a real monthly line per game server, so "each new organiser
+> costs nothing marginal" stops being true. 058 sequences that line **last** for exactly this reason.
+
 ---
 
 ## What has to be hosted

@@ -455,6 +455,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [037](docs/decisions/037-platform-hosting.md) | Platform hosting & tenancy | **decided** — single hosted instance on our own domain; organisers are tenants, not installers |
 | [038](docs/decisions/038-build-order.md) | Build order | **decided** — web platform first; plugins replaced by a real HTTP **simulator**, not a stub |
 | [039](docs/decisions/039-public-api.md) | Public API + API style | **decided** — REST (gRPC impossible for CS 1.6, GraphQL solves a problem we don't have); **SSE** for live updates, not WebSockets |
+| [058](docs/decisions/058-what-we-sell.md) | **What we sell** | **decided (five lines), two parts open** — placement, anti-cheat, a standalone plugin licence, managed CS 1.6 servers, sponsored slots. **Free where it feeds the rating or the catalogue; paid on top.** Reopens [007](docs/decisions/007-server-hosting-model.md) and [042](docs/decisions/042-hosting.md); a MasterBoost successor is left explicitly open because it would break [057](docs/decisions/057-server-browser-and-seo.md)'s hard line |
 
 ---
 

@@ -175,6 +175,13 @@ are indexable; neither is an opaque blend of the two signals.
 
 ### Money, and the line it does not cross
 
+> **Under pressure, 2026-08-22.** [058](058-what-we-sell.md) §6a records a wish to build a
+> **MasterBoost successor** — paid position *inside* the ranking. That is the one thing this rule
+> forbids, and 058 leaves it open rather than deciding it quietly. **The rule below stands until a
+> decision explicitly overturns it.** 058 also adds presentation tiers on a server's own page
+> (logo, banner, gallery), which are compatible: they change what a row *looks like*, never where
+> it sits.
+
 Sponsored slots and advertising are in scope and are how this pays for itself. The boundary:
 
 > **Money buys clearly-labelled placement above or beside a list. It never buys a position
