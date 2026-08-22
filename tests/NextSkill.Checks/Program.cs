@@ -444,6 +444,10 @@ Console.WriteLine("AUTHORIZATION  (decision 036)");
 NextSkill.Checks.AccessChecks.Run(Check, That);
 
 Console.WriteLine();
+Console.WriteLine("DETECTION CALIBRATION · V14 arithmetic  (CONTEXT 2.12, decision 058)");
+NextSkill.Checks.CalibrationChecks.Run(Check, That);
+
+Console.WriteLine();
 Console.WriteLine("COMPLETENESS · every enum value has a decided answer");
 NextSkill.Checks.CompletenessChecks.Run(Check, That);
 

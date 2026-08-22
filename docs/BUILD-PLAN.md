@@ -4,7 +4,7 @@ The design phase is complete (**52 decision records** in `docs/decisions/`, four
 deliberately reopened). This is the implementation sequence, derived from
 [038 — build order](decisions/038-build-order.md).
 
-**Currently: Phase 4, nearly complete. 358 checks passing.** The marks below are audited
+**Currently: Phase 4, nearly complete. 364 checks passing.** The marks below are audited
 rather than asserted — see the note at the end of Phase 4 about what "◐" means here.
 
 **Status legend:** ☐ pending · ◐ in progress · ☑ done · ⊘ blocked — nothing to test until the slice it belongs to exists · ➡ deliberately moved
@@ -801,7 +801,7 @@ Concretely, one at a time. **No shared abstraction until both exist** ([001](dec
 - ☐ **CS2 plugin** ([002](decisions/002-cs2-plugin.md)) — CounterStrikeSharp, original code
 - ⊘ **V5 closed by design** — [051](decisions/051-phase-4-remainder.md) makes the normal contract
   plugin-initiated and forbids the panel from storing or using RCON. Reopen 051 before adding it
-- ☐ **Verify V2b / V3 / V4** on a real CS 1.6 server before writing the AMXX plugin
+- ☐ **Verify V2b / V2c / V3 / V4 on a real CS 1.6 server before writing the AMXX plugin** — one session, one plugin: **[`tools/cs16-probe`](../tools/cs16-probe/RESULTS.md)** asks all four plus V15 at once, because server time with real non-Steam clients is the scarce resource, not code
 - ☐ **CS 1.6 plugin** ([005](decisions/005-cs16-plugin.md)) — Pawn/AMXX
 - ☐ **Round backup/restore verified by actually killing a server mid-match** ([034](decisions/034-test-strategy.md))
 - ☐ **Standalone licensing** ([058](decisions/058-what-we-sell.md) §3a) — **connected is free,
@@ -865,7 +865,8 @@ Concretely, one at a time. **No shared abstraction until both exist** ([001](dec
     signals fired and outcome, **including the flags that resolve silently**. A pseudonymous record,
     nothing on the account, no notification. **Without the negative labels the false-positive rate
     has no denominator and V14 is unanswerable forever**, so the AC could never be shown safe
-    enough to auto-ban
+    enough to auto-ban. **The arithmetic itself already exists and passes** —
+    `DetectionCalibration` + `CalibrationChecks`; what it lacks is data
   - ☐ **Report precision, never coverage** — internally and to organisers. *Of everyone we banned,
     how many actually cheated* is the number that matters; *how many cheaters we caught* is not
     what a wrongly banned player cares about (⊘ **V14** before any figure leaves the building)
@@ -932,9 +933,10 @@ Carried from CONTEXT §7. **Must be resolved before the code that depends on the
 
 | # | Question | Blocks |
 | --- | --- | --- |
-| V2b | Is `setinfo` readable at connect time, early enough to gate team joining? | [005](decisions/005-cs16-plugin.md) — **and while testing it, check `cl_filterstuffcmd`**: the CS 1.6 command filter names `setinfo` among the commands it restricts ([CONTEXT §2.9](../CONTEXT.md)). The filter blocks the *server* setting it and our design has the *player* set it, so this is probably harmless — but it is too close to the identity mechanism to leave unchecked |
-| **V3** | Does `setinfo` behave identically on **non-Steam clients**? | [005](decisions/005-cs16-plugin.md) — **the one that could hurt**, since most active 1.6 servers admit non-Steam clients |
-| V4 | Does the info-key length limit allow a high-entropy token? | [005](decisions/005-cs16-plugin.md) |
+| V2b | Is `setinfo` readable at connect time, early enough to gate team joining? | [005](decisions/005-cs16-plugin.md) — **and while testing it, check `cl_filterstuffcmd`**: the CS 1.6 command filter names `setinfo` among the commands it restricts ([CONTEXT §2.9](../CONTEXT.md)). The filter blocks the *server* setting it and our design has the *player* set it, so this is probably harmless — but it is too close to the identity mechanism to leave unchecked  **Tool: [tools/cs16-probe](../tools/cs16-probe/RESULTS.md)** |
+| **V2c** | Does `cl_filterstuffcmd 1` block a server-issued `setinfo` or `record`? | [005](decisions/005-cs16-plugin.md), [058](decisions/058-what-we-sell.md) §6c — the CS 1.6 command filter names `setinfo` among what it restricts ([CONTEXT §2.9](../CONTEXT.md)). It restricts the *server* setting it while our design has the *player* set it, so probably harmless — but it sits on the identity path. **Test in the same session as V2b/V3.** **Tool: [tools/cs16-probe](../tools/cs16-probe/RESULTS.md)** |
+| **V3** | Does `setinfo` behave identically on **non-Steam clients**? | [005](decisions/005-cs16-plugin.md) — **the one that could hurt**, since most active 1.6 servers admit non-Steam clients  **Tool: [tools/cs16-probe](../tools/cs16-probe/RESULTS.md)** |
+| V4 | Does the info-key length limit allow a high-entropy token? | [005](decisions/005-cs16-plugin.md)  **Tool: [tools/cs16-probe](../tools/cs16-probe/RESULTS.md)** |
 | V5 | Is RCON needed for the normal CS2 match lifecycle? | **Resolved by [051](decisions/051-phase-4-remainder.md): no.** The plugin dials us; a future outbound-control feature must reopen that boundary |
 | **V8** | Is CS:GO legacy's App ID really **4465480**? | [057](decisions/057-server-browser-and-seo.md) — **single-sourced**, confirm against Steam before it reaches code |
 | **V9** | Does `GetServerList` return community servers for app 730 and CS:GO, at a rate limit that allows polling the whole Polish catalogue every ~15 min? | [057](decisions/057-server-browser-and-seo.md) — **gates the confidence tiers, not just the listing** |
@@ -942,8 +944,8 @@ Carried from CONTEXT §7. **Must be resolved before the code that depends on the
 | **V11** | Are padded player counts distinguishable from real ones over a multi-week series, at a publishable false-positive rate? | [057](decisions/057-server-browser-and-seo.md) §5a — calibrate against plugin-verified servers; a false accusation cannot be undone |
 | **V12** | ~~Is the wording and prominence sufficient?~~ **Researched** ([CONTEXT §2.10](../CONTEXT.md)): **Art. 7 pkt 11a u.p.n.p.r.** is black-listed with no size exemption; **Art. 6 ust. 4 pkt 8** requires the ranking parameters published in a dedicated, directly-reachable section; **DSA Arts. 26–27 do not bind us** at micro/small size (Art. 19, except 24(3)). Label changed to **`Sponsorowane`**. | [058](decisions/058-what-we-sell.md) §6 — **design may proceed.** Remaining: **counsel sign-off before the first paid placement is live**, and a DSA re-check if the enterprise ever exceeds small (<50 staff, ≤€10m) |
 | **V13** | ~~Lawful basis, retention and erasure reconciliation for a stored hardware identifier?~~ **Researched** ([CONTEXT §2.11](../CONTEXT.md)): **Art. 6(1)(f)** + **Recital 47**; defined retention under **Art. 5(1)(e)**; the ban tombstone survives erasure under **Art. 17(3)(e)** / **Art. 21(1)**. **Also surfaced: Art. 22 automated-decision safeguards and a probably-mandatory DPIA.** | [058](decisions/058-what-we-sell.md) §6c — **design unblocked.** Three documents must exist before shipping: **LIA, DPIA, privacy-notice wording**, all counsel-reviewed. Hashing is pseudonymisation, **not** an exit from GDPR |
-| **V14** | **Restated:** what precision do we require, what is prevalence in the flagged pool, and what is the false-positive rate on the auto-ban class? Coverage (the "65%") is the wrong quantity. | [058](decisions/058-what-we-sell.md) §6c — **blocks auto-banning and any published rate.** *Product:* at 2% prevalence and 99% specificity **a third of bans would be innocent** ([CONTEXT §2.12](../CONTEXT.md)); *legal:* **Art. 22**. The precision requirement is **decidable now** — effectively zero measured false positives on the auto-ban class. The measurements need matches **and negative labels logged from the first flag** |
-| **V15** | **Can the server force client POV recording on CS:GO / CS2**, and does CS2 `record` still freeze the client in 2026? | [058](decisions/058-what-we-sell.md) §6c — **reopened 2026-08-22.** CS 1.6 proven and closed. **GOTV is not a substitute**: snapshot-rate interpolation smooths away the per-tick view-angle detail that distinguishes an aimbot ([CONTEXT §2.9](../CONTEXT.md)). **Answer by testing a live CS2 client** — the web recycles one 2023 post. If forcing is impossible, asking still yields a signal, since a missing recording is refusal |
+| **V14** | **Restated:** what precision do we require, what is prevalence in the flagged pool, and what is the false-positive rate on the auto-ban class? Coverage (the "65%") is the wrong quantity. | [058](decisions/058-what-we-sell.md) §6c — **blocks auto-banning and any published rate.** *Product:* at 2% prevalence and 99% specificity **a third of bans would be innocent** ([CONTEXT §2.12](../CONTEXT.md)); *legal:* **Art. 22**. The precision requirement is **decidable now** — effectively zero measured false positives on the auto-ban class. The measurements need matches **and negative labels logged from the first flag**  **Tool: `DetectionCalibration` + `CalibrationChecks` — runs today; only the inputs are missing** |
+| **V15** | **Can the server force client POV recording on CS:GO / CS2**, and does CS2 `record` still freeze the client in 2026? | [058](decisions/058-what-we-sell.md) §6c — **reopened 2026-08-22.** CS 1.6 proven and closed. **GOTV is not a substitute**: snapshot-rate interpolation smooths away the per-tick view-angle detail that distinguishes an aimbot ([CONTEXT §2.9](../CONTEXT.md)). **Answer by testing a live CS2 client** — the web recycles one 2023 post. If forcing is impossible, asking still yields a signal, since a missing recording is refusal  **Tools: [cs16-probe](../tools/cs16-probe/RESULTS.md)** and **[cs2-pov-check](../tools/cs2-pov-check/RESULTS.md)** |
 | — | Do **Unbounded** and **IBM Plex** actually cover Cyrillic? | [019](decisions/019-visual-identity.md) |
 
 ## Design note
