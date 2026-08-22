@@ -13,7 +13,7 @@
 > **Nothing here changes.** There is no broadcast pipeline, no routine retention, no storage cost —
 > we hold nothing unless someone appeals — and **it must never be marketed as demos for 1.6**
 > ([005](005-cs16-plugin.md) §"No demos" stands). What it buys is one artefact for the referee in
-> the case that matters most, where 1.6 previously had none (⊘ **V15**).
+> the case that matters most, where 1.6 previously had none. **Confirmed available** — AMXX `client_cmd` is field-proven for exactly this ([CONTEXT §2.9](../../CONTEXT.md)); the residual question is only whether a player who enables `cl_filterstuffcmd` can refuse it, which §6c already treats as refusal rather than clean.
 
 ---
 

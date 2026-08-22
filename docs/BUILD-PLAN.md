@@ -828,10 +828,10 @@ Concretely, one at a time. **No shared abstraction until both exist** ([001](dec
   - ☐ **HWID: salted hash only, never the raw value.** It **widens a ban already decided** and
     never creates one, or a forged identifier becomes a way to ban a rival. Every automatic ban is
     appealable — an HWID ban hits a machine, and machines are shared (⊘ blocked on **V13**)
-  - ☐ **Server-side AC — the sold half.** Expected to decide the unambiguous class alone (aim
-    snapping, anti-aim, spinbot). **The ~65% figure is an estimate and must not be published**
-    until measured; the residual ~35% goes to the referee desk and *is* the corpus
-    (⊘ blocked on **V14** before any auto-ban or published rate)
+  - ☐ **Server-side AC — the sold half.** Decides the unambiguous class alone (aim snapping,
+    anti-aim, spinbot). **The 65/35 split is an illustrative estimate, never a measurement** — do
+    not publish it, price against it, or pitch it; the ambiguous residue goes to the referee desk
+    and *is* the corpus (⊘ blocked on **V14** before any auto-ban or published rate)
   - ☐ **Suspicion is a meter, not a switch** — a flag opens a **monitoring phase** and starts the
     demo; the phase ends when the meter **falls** (silently, storing nothing, notifying nobody —
     **this must be the common case**) or **rises past the threshold**, which is what triggers the
@@ -844,10 +844,15 @@ Concretely, one at a time. **No shared abstraction until both exist** ([001](dec
     at the flag**, so its existence is never the player's choice and *"I was not recording"* is not
     a defence. He uploads on appeal, so **nothing is stored unless he appeals**. **An interrupted or
     stopped recording counts as refusal, never clean**
-  - ☐ **This partially closes the 1.6 evidence hole** ([024](decisions/024-demos.md),
-    [052](decisions/052-cheating-and-rating-integrity.md)) — a client POV demo is not GOTV and must
-    **never be marketed as demos for 1.6**, but it gives the referee something to look at where
-    there was previously nothing (⊘ blocked on **V15**)
+  - ☐ **Per game, and the split is favourable** ([CONTEXT §2.9](../CONTEXT.md)) — **CS 1.6: proven**
+    via AMXX `client_cmd`, and it is the game with no GOTV, so this is where the artefact was
+    missing. **CS:GO:** mechanism exists, issue on a timer not on connect. **CS2: POV recording is
+    broken client-side** (`record` freezes the game) — but CS2 answers an appeal with
+    [024](decisions/024-demos.md)'s server-side demo instead, so nothing is lost
+  - ☐ **Check `cl_filterstuffcmd` while testing V2b/V3** — the CS 1.6 command filter names `setinfo`
+    among the commands it restricts, and `setinfo` is the identity mechanism
+    ([005](decisions/005-cs16-plugin.md), [010](decisions/010-identity-binding.md)). A player who
+    enables the filter may also refuse `record`, which §6c already treats as refusal, not clean
   - ☐ **Third-party AC integration can land first** ([058](decisions/058-what-we-sell.md) §6b) —
     CS 1.6 servers already run **fungun/ECD** and **Wargods**. We record `(vendor, version,
     verdict)` on the participant rather than asking anyone to switch. It is **a record, not a
@@ -886,7 +891,7 @@ Carried from CONTEXT §7. **Must be resolved before the code that depends on the
 
 | # | Question | Blocks |
 | --- | --- | --- |
-| V2b | Is `setinfo` readable at connect time, early enough to gate team joining? | [005](decisions/005-cs16-plugin.md) |
+| V2b | Is `setinfo` readable at connect time, early enough to gate team joining? | [005](decisions/005-cs16-plugin.md) — **and while testing it, check `cl_filterstuffcmd`**: the CS 1.6 command filter names `setinfo` among the commands it restricts ([CONTEXT §2.9](../CONTEXT.md)). The filter blocks the *server* setting it and our design has the *player* set it, so this is probably harmless — but it is too close to the identity mechanism to leave unchecked |
 | **V3** | Does `setinfo` behave identically on **non-Steam clients**? | [005](decisions/005-cs16-plugin.md) — **the one that could hurt**, since most active 1.6 servers admit non-Steam clients |
 | V4 | Does the info-key length limit allow a high-entropy token? | [005](decisions/005-cs16-plugin.md) |
 | V5 | Is RCON needed for the normal CS2 match lifecycle? | **Resolved by [051](decisions/051-phase-4-remainder.md): no.** The plugin dials us; a future outbound-control feature must reopen that boundary |
@@ -897,7 +902,7 @@ Carried from CONTEXT §7. **Must be resolved before the code that depends on the
 | **V12** | Is **`Promowane`** sufficient disclosure wording, and a bordered band sufficient prominence, under the Polish implementation of the Omnibus Directive (2019/2161) and the DSA — and must the ranking criteria themselves be published? | [058](decisions/058-what-we-sell.md) §6 — **boost cannot ship until answered**. The label is decided; whether it satisfies the statute is not. The only item here gated on law rather than an engineering answer; single-sourced, so confirm against the current text or counsel before it reaches code |
 | **V13** | On what lawful basis do we collect and retain a hardware identifier, for how long, and how does a permanent ban list coexist with the erasure right [011](decisions/011-accounts-and-login.md) implements? | [058](decisions/058-what-we-sell.md) §6c — **blocks HWID banning**. A hardware identifier is personal data, and [012](decisions/012-security.md) currently advertises **zero persisted application IPs**: this is a deliberate reversal of that posture and must be assessed and written down. Salted hash only |
 | **V14** | Does the server-side AC actually decide ~65% of cases, at a false-positive rate low enough to auto-ban on? | [058](decisions/058-what-we-sell.md) §6c — **blocks auto-banning and any published detection rate**. The figure is an estimate made before a single match; calibrate against the corpus. A false ban in a scene this small cannot be undone, the same reasoning as **V11** |
-| **V15** | **Can the game server trigger a client-side POV demo recording** — CS 1.6 (AMXX `client_cmd`), CS:GO and CS2 — or is it blocked as a protected client command? | [058](decisions/058-what-we-sell.md) §6c — **the whole appeal path**. CS:GO and CS2 restricted server-issued client commands considerably; **1.6 is the most likely to work and the one that needs it most**, since it has no server-side demo pipeline at all. Verify on a real server per game, exactly as **V2b/V3/V4** are treated |
+| **V15** | ~~Can the server trigger client POV recording?~~ **Largely answered** ([CONTEXT §2.9](../CONTEXT.md)): CS 1.6 **yes, field-proven**; CS:GO mechanism exists; CS2 POV recording is **broken client-side**, not merely restricted. **Residual:** does `cl_filterstuffcmd 1` block `record`, and does that filter touch `setinfo`? | [058](decisions/058-what-we-sell.md) §6c — **no longer a blocker.** CS 1.6 needs POV demos most (no GOTV) and is where it works; CS2 needs them least, because [024](decisions/024-demos.md) already retains a server-side demo. **Fold the filter check into V2b/V3 testing** |
 | — | Do **Unbounded** and **IBM Plex** actually cover Cyrillic? | [019](decisions/019-visual-identity.md) |
 
 ## Design note

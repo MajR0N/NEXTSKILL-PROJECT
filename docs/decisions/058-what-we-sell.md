@@ -509,23 +509,26 @@ undeclared licence.
 **One scanner covers all three games.** It inspects the machine, not the game, so CS 1.6, CS:GO and
 CS2 differ only in signatures — a materially smaller build than three clients.
 
-### The 65 / 35 split — a design assumption, not a measurement
+### The 65 / 35 split — illustrative shape, not a measured rate
 
-The server-side AC is expected to decide roughly **65%** of cases on its own: the unambiguous
-class — **aim snapping, anti-aim, spinbot**, movement that no human produces. The remaining **35%**
-are *very* or *moderately* suspicious and **are not machine-decidable**. Those go to the referee's
-desk, which already exists ([050](050-match-results-and-ratings.md),
-[036](036-authorization.md)).
+> ⚠ **Confirmed by the author, 2026-08-22: these numbers are an estimate and must never be used as
+> a source of measurement.** They describe the *shape* of the problem — most detections unambiguous,
+> a meaningful minority not — and nothing more. **Do not publish them, do not price against them,
+> do not put them in a pitch**, and treat any later document that cites 65% as a fact as an error to
+> correct rather than a source to trust.
 
-> ⚠ **65% is an estimate made before a single match was played, and it must be treated as one.**
-> **Do not publish it** — not in marketing copy, not on a pricing page, not to an organiser —
-> **until it is measured against the corpus.** [052](052-cheating-and-rating-integrity.md) already
-> warns that a *sold* anti-cheat makes a promise a free one does not; a published detection rate is
-> the most literal form of that promise, and the easiest to be held to.
+The server-side AC is expected to decide the larger share of cases on its own: the unambiguous
+class — **aim snapping, anti-aim, spinbot**, movement no human produces. The rest are *very* or
+*moderately* suspicious and **are not machine-decidable**. Those go to the referee's desk, which
+already exists ([050](050-match-results-and-ratings.md), [036](036-authorization.md)).
 
-**The 35% is not a failure, it is the design.** It is why the referee flow, the demo retention and
-the verdict capture are load-bearing from day one: that residue is exactly the labelled corpus
-[052](052-cheating-and-rating-integrity.md) calls the moat.
+[052](052-cheating-and-rating-integrity.md) already warns that a **sold** anti-cheat makes a promise
+a free one does not. A published detection rate is the most literal form of that promise and the
+easiest to be held to — which is why **V14** gates publishing on measurement.
+
+**The ambiguous residue is not a failure, it is the design.** It is why the referee flow, demo
+retention and verdict capture are load-bearing from day one: that residue is exactly the labelled
+corpus [052](052-cheating-and-rating-integrity.md) calls the moat.
 
 ### The scanner's trust is asymmetric, and the flow must be built around that
 
@@ -636,7 +639,7 @@ it should have caught.
 | --- | --- | --- |
 | **V13** | On what lawful basis do we collect and retain a hardware identifier, for how long, and how does a permanent ban list coexist with the erasure right [011](011-accounts-and-login.md) already implements? | **HWID banning.** A hardware identifier is personal data, and [012](012-security.md) currently advertises **zero persisted application IPs** — this is a deliberate reversal of that posture and must be assessed and written down, not assumed. Salted hash only; raw identifiers are never stored |
 | **V14** | Does the server-side AC actually decide ~65% of cases, at a false-positive rate low enough to auto-ban on? | **Auto-banning, and any published figure.** Calibrate against the corpus before either. A false ban in a scene this small cannot be undone — the same reasoning as **V11** |
-| **V15** | **Can the game server trigger a client-side POV demo recording** on CS 1.6 (AMXX `client_cmd`), CS:GO and CS2 — and is the command still permitted by each engine, or blocked as a protected client command? | **The whole appeal path.** CS:GO and CS2 restricted server-issued client commands considerably; **1.6 is the most likely to work and the one that needs it most.** Verify on a real server per game before writing anything that depends on it, exactly as **V2b/V3/V4** are treated |
+| **V15** | ~~Can the server trigger client POV recording?~~ **Largely answered ([§2.9](../CONTEXT.md)).** CS 1.6: **yes, field-proven** via AMXX `client_cmd`. CS:GO: mechanism exists. CS2: **POV recording is broken client-side** (freezes on `record`), independent of permissions. **Residual:** does `cl_filterstuffcmd 1` block `record` in 1.6, and does that filter touch `setinfo`? | **No longer blocks the appeal path.** CS 1.6 — the game that *needs* POV demos, having no GOTV — is the game where it works. **CS2 needs it least**, because [024](024-demos.md)'s server-side demo answers a CS2 appeal already. Check the filter question alongside **V2b/V3** |
 
 ## 7. Sequencing
 

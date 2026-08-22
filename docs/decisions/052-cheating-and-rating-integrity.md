@@ -150,7 +150,7 @@ community's players from the whole platform would be a worse problem than the ch
   > uploaded when he appeals, gives 1.6 the video evidence this bullet says it lacks. It is not GOTV,
   > not routine retention, and it is not *demos for 1.6*. **Rated 1.6 play still rests on the
   > format defence and human judgement** — this adds one artefact to the referee's desk in the case
-  > that matters most (⊘ **V15**).
+  > that matters most. **Confirmed available in 1.6** — AMXX `client_cmd` is field-proven for this ([CONTEXT §2.9](../../CONTEXT.md)).
 
   > **For 1.6 we specify a baseline, we do not write one.** The community already solved this
   > server-side, which is exactly our shape — the stack admins actually run is Metamod + AMXX +

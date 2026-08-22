@@ -292,6 +292,60 @@ Sources: [github.com/UnrealKaraulov/EasyCheatDetector](https://github.com/Unreal
 [fungun.top/ecd](https://fungun.top/ecd/).
 
 _Checked: 2026-08-22._
+### 2.9 Server-triggered client POV demo recording — per game, and the answer differs
+
+Researched for [058](docs/decisions/058-what-we-sell.md) §6c's appeal path. **It works where we need
+it most and is unreliable where we do not need it at all.**
+
+| Game | Mechanism | State |
+| --- | --- | --- |
+| **CS 1.6** | AMXX `client_cmd(id, "record <name>")` | **Works, and is field-proven.** "Auto demo recorder" AMXX plugins already do exactly this — start a client-side recording when a player connects, precisely so an unban appeal has something to look at |
+| **CS:GO** | SourceMod `ClientCommand(client, "record <name>")` | **Mechanism exists.** Known caveat: it must be issued on a timer, not during connect |
+| **CS2** | CounterStrikeSharp / MM:S equivalent | **The permission question is not the blocker — the feature is.** See below |
+
+#### CS 1.6 — the one caveat worth knowing
+
+Valve added a **command filter** to CS 1.6. With `cl_filterstuffcmd 1` a client refuses a range of
+server-issued commands — the documented list includes `say`, `fps_max`, `setinfo`, `bind`,
+`connect`, `exec`, `quit`. **The filter appears to default to off**, and `record` was **not** among
+the commands named as filtered in any source found. So the realistic risk is not that this fails
+generally, but that **a player who has deliberately enabled the filter can refuse the recording** —
+which [058](docs/decisions/058-what-we-sell.md) §6c already handles: **a recording that does not
+start is refusal, not clean.**
+
+> ⚠ **Cross-finding for [005](docs/decisions/005-cs16-plugin.md) — `setinfo` is on that filter
+> list.** V2b/V3/V4 assume `setinfo` is readable at connect. The filter restricts the **server**
+> from *setting* it, and our design has the *player* set it in his own config, so this is probably
+> harmless — **but it is close enough to the identity mechanism that it must be checked while V2b/V3
+> are being tested**, not discovered afterwards.
+
+#### CS2 — blocked by a bug, not by a permission
+
+Two separate issues, and the second is the one that matters:
+
+1. `FCVAR_SERVER_CAN_EXECUTE` governs whether a server may force a command on a client at all. The
+   published CS2 cvar dump shows `_record` carrying only `FCVAR_DONTRECORD | FCVAR_RELEASE` — no
+   server-execute flag — which is suggestive but not conclusive.
+2. **CS2 POV recording is currently broken on the client side.** `record` frequently freezes the
+   game, and `playdemo` crashes the client in many cases. Leetify — who build a product on demo
+   analysis — say they would not recommend recording POV demos at all, and are waiting on Valve to
+   re-enable CSTV.
+
+**This costs us almost nothing, because CS2 does not need it.** The POV demo exists to fill CS 1.6's
+missing demo pipeline ([024](docs/decisions/024-demos.md)); CS2 already has server-side GOTV, and a
+CS2 appeal is answered with the demo we already retain. **The game where server-forced POV recording
+is blocked is the game that has a better artefact anyway.**
+
+Sources:
+[AMX Mod X `client_cmd`](https://www.amxmodx.org/api/amxmodx/client_cmd),
+[SourceMod `ClientCommand`](https://sm.alliedmods.net/new-api/console/ClientCommand),
+[`point_clientcommand` / FCVAR_SERVER_CAN_EXECUTE](https://developer.valvesoftware.com/wiki/Point_clientcommand),
+[Leetify — CS2 POV demos](https://leetify.com/blog/cs2-pov-demos/),
+[CS2 ConVar dump](https://gist.github.com/SuGolYolLom/7637a0a427c41e9668fdc0ea2fe1a78a).
+
+_Checked: 2026-08-22._
+
+---
 
 ## 3. Engineering principles
 
@@ -522,6 +576,7 @@ verified before code depends on it — per project instruction, test before ackn
 | ~~V1~~ | ~~Other players cannot read another player's `setinfo` value~~ | — | **RESOLVED 2026-08-10.** Documented threat is rogue *servers* harvesting via `get_user_info`, not players. Two-factor already covers it. See §2.6. |
 | ~~V2~~ | ~~`setinfo` readable server-side via AMXX~~ | — | **CONFIRMED 2026-08-10.** `get_user_info()` reads client info keys. Connect-time timing still worth confirming on a live server. |
 | V2b | Values are readable **early enough at connect** to gate team joining | [011](docs/decisions/011-accounts-and-login.md) | Log the value in a connect hook on a real server |
+| **V2c** | Does `cl_filterstuffcmd 1` interfere with `setinfo` or with `record`? | [005](docs/decisions/005-cs16-plugin.md), [058](docs/decisions/058-what-we-sell.md) §6c | **Test alongside V2b/V3, on the same server, in the same session.** The CS 1.6 command filter names `setinfo` among the commands it restricts ([§2.9](#29-server-triggered-client-pov-demo-recording--per-game-and-the-answer-differs)). It restricts the *server* from setting it and our design has the *player* set it, so it is probably harmless — but it sits directly on the identity mechanism and must not be assumed |
 | V3 | `setinfo` behaves consistently on **non-Steam clients** (Reunion/dproto), not just legit Steam | [011](docs/decisions/011-accounts-and-login.md) | Test with both client types |
 | V4 | Info-key length limits allow a high-entropy token | [011](docs/decisions/011-accounts-and-login.md) | Set progressively longer values, find the ceiling |
 | V5 | RCON is **not** part of the normal CS2 match lifecycle | [051](docs/decisions/051-phase-4-remainder.md) closes this as a product boundary: the plugin always dials us and the panel never stores or uses RCON | **Resolved by design.** A future outbound-control proposal must reopen 051 rather than quietly adding a credential |
@@ -534,7 +589,7 @@ verified before code depends on it — per project instruction, test before ackn
 | **V12** | Paid-placement disclosure under the Polish implementation of the Omnibus Directive (2019/2161) and the DSA — is **`Promowane`** sufficient wording, is a bordered band sufficient prominence, and must the ranking criteria themselves be published? | [058](docs/decisions/058-what-we-sell.md) §6 | **Blocks boost shipping.** The label is decided (`PROMOWANE · ZWERYFIKOWANE`); what is unconfirmed is whether it satisfies the statute. The first item here gated on law rather than engineering, and single-sourced — confirm against the current text or counsel *before* it reaches code |
 | **V13** | Lawful basis, retention period and erasure-right reconciliation for a stored hardware identifier | [058](docs/decisions/058-what-we-sell.md) §6c | **Blocks HWID banning.** A hardware identifier is personal data, and [012](docs/decisions/012-security.md) currently advertises **zero persisted application IPs** — reversing that is a decision, not a side effect. **Salted hash only; the raw value is never stored** |
 | **V14** | Does the server-side AC decide ~65% of cases at a false-positive rate low enough to auto-ban on? | [058](docs/decisions/058-what-we-sell.md) §6c | **Blocks auto-banning and any published rate.** An estimate made before a single match was played. Calibrate against the corpus first — **a sold anti-cheat makes a promise a free one does not** ([052](docs/decisions/052-cheating-and-rating-integrity.md)) |
-| **V15** | Can the game server trigger a client-side POV demo recording on CS 1.6, CS:GO and CS2, or is it a protected client command? | [058](docs/decisions/058-what-we-sell.md) §6c | **Blocks the appeal path.** CS:GO/CS2 restricted server-issued client commands; **1.6 both needs it most and is likeliest to allow it** — it has no server-side demo pipeline ([024](docs/decisions/024-demos.md)). Verify per game on real hardware before any code depends on it |
+| **V15** | ~~Can the server trigger client POV recording?~~ **Largely answered ([§2.9](#29-server-triggered-client-pov-demo-recording--per-game-and-the-answer-differs)).** Residual: does `cl_filterstuffcmd 1` block `record` in CS 1.6, and does that filter interact with `setinfo`? | [058](docs/decisions/058-what-we-sell.md) §6c | **Downgraded from blocker.** CS 1.6 — which needs POV demos most, having no GOTV — is where it is field-proven. CS2 POV recording is broken client-side but CS2 has [024](docs/decisions/024-demos.md)'s server demo instead. **Test the filter alongside V2b/V3** |
 
 **V3 is the highest priority**, and this paragraph used to say V1 — which its own table above
 had already marked resolved on 2026-08-10. Corrected 2026-08-17.
