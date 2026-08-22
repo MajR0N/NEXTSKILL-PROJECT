@@ -48,6 +48,19 @@ spoofable by default.
 > three games are not one product — CS 1.6's non-Steam client population (Reunion/dproto) has no
 > VAC underneath it and is a materially harder target than CS2, so it is priced and promised
 > separately.
+>
+> **[058](058-what-we-sell.md) §6b also admits third-party client anti-cheats.** CS 1.6 servers
+> already run **fungun / EasyCheatDetector**, **Wargods** and others; requiring them to drop what
+> they run for an unproven NEXTSKILL client asks them to take a risk for our benefit. We therefore
+> **integrate as well as compete**: record which anti-cheat was active and at which version, and
+> ingest verdicts where a vendor exposes them.
+>
+> **This changes nothing about how the record is read.** A third-party verdict reaches us through
+> a game server [007](007-server-hosting-model.md) already treats as untrusted, so it is
+> **provenance-tagged evidence, never truth, never a gate, and never a confidence tier** — the same
+> rule §"The AC state belongs on the record" states below. Several of these tools are old, closed
+> and publicly bypassed: *"an AC was running"* is not a security claim and must never be sold as one.
+> We bundle no third-party binary and warrant nobody else's detection quality.
 
 ## Decision: detect and make consequential, do not attempt to prevent
 

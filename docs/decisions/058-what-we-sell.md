@@ -1,10 +1,11 @@
 # 058 — What we sell
 
-**Status:** decided (the five lines), **two parts open** — see §6
+**Status:** **decided** — all five lines, §6 promotion and §6b modularity included. **V12 (disclosure law) blocks promotion shipping, nothing else**
 **Date:** 2026-08-22
 **Decision:** Five revenue lines. **The platform stays free where it feeds the rating or the
 verified catalogue; everything built on top of those is sellable.**
 **Supersedes:** [MARKETING §9](../MARKETING-AND-SALES-STRATEGY.md) — which had one revenue line
+**Overturns:** [057](057-server-browser-and-seo.md) §5 — money may now buy position *inside* the list, under §6's four rules
 **Reopens:** [007](007-server-hosting-model.md) and [042](042-hosting.md) — we may own game servers
 
 ---
@@ -23,8 +24,8 @@ model.** See §5.
 
 | # | Line | Paid by | Depends on |
 | --- | --- | --- | --- |
-| **1** | **Server-list placement**, sold as options/tiers | Server owner | [057](057-server-browser-and-seo.md) shipping and getting traffic |
-| **2** | **NEXTSKILL Anti-Cheat** — CS 1.6, CS:GO, CS2 | Organiser, per tournament | [052](052-cheating-and-rating-integrity.md) tier 1; a labelled corpus |
+| **1** | **Promotion inside the server list**, sold per period (§6) | Server owner | [057](057-server-browser-and-seo.md) shipping, and **V12** answered |
+| **2** | **Anti-cheat** — ours, or integration with the one they already run (§6b) | Organiser / server owner | [052](052-cheating-and-rating-integrity.md) tier 1; a labelled corpus |
 | **3** | **Tournament / bracket plugins**, standalone licence | Organiser | Phase 6 |
 | **4** | **Managed game servers on our VPS** — CS 1.6 first | Organiser / community | Money, and demand that already exists |
 | **5** | **Sponsored slots** beside the list | Advertiser / server owner | Traffic |
@@ -55,15 +56,68 @@ The seam that resolves "brackets are free" against "we sell tournament plugins":
 | **Connected** — match created on nextskill.pl, result reported to us, rating settles | **Free** | It feeds the moat. This is the path we want most organisers on |
 | **Standalone** — organiser runs matches on their own server, no NEXTSKILL account, no rating | **Paid licence** | It consumes the engineering and returns nothing to the corpus |
 
-**The licence check lives in the panel, never in the binary.** The plugin heartbeats with its
-tenant secret ([007](007-server-hosting-model.md),
-[048](048-organiser-server-configuration.md)); no valid licence → the config endpoint returns
-nothing → no match. That is the heartbeat which already exists and already passes checks, plus a
-subscription lookup.
+## 3a. Licensing — withhold data, never permission
 
-`ponytail:` licensing is one column on the tenant and one branch in the config endpoint. Ceiling:
-an offline-capable standalone build would need real key signing and revocation. Upgrade path is
-only worth walking if someone actually asks to run air-gapped.
+**The principle, because everything below follows from it:**
+
+> **A licence check the binary evaluates is a branch, and a branch can be patched.
+> Do not ship one. Ship a plugin that does not have what it needs until we send it.**
+
+The match config — maps, sides, rosters, SteamIDs, series state — **is not in the binary and is
+never bundled with it.** The plugin asks for it at match start over the channel that already
+exists ([009](009-api-contract.md)), signed with the tenant secret from
+[048](048-organiser-server-configuration.md). No valid licence → the endpoint returns a refusal →
+there is no config → no match starts. Deleting the check from a decompiled build changes nothing,
+because the thing withheld is **data the pirate does not have**, not a permission they were denied.
+
+### The mechanism, in full
+
+| Concern | Decision |
+| --- | --- |
+| **What the "licence key" is** | **Nothing new.** It is the per-server HMAC secret [048](048-organiser-server-configuration.md) already issues and the organiser already pastes into the plugin config. Licensing is a subscription row on the tenant, checked at config time. **No key format, no activation flow, no new artefact to lose or leak** |
+| **Where it is enforced** | The config endpoint, server-side. Never in the plugin |
+| **Refusal shape** | An explicit, typed refusal — **distinguishable from a network failure**, or a lapsed licence makes the plugin retry forever and a blip looks like non-payment ([009](009-api-contract.md)) |
+| **Seat counting** | Concurrent **live matches**, not installs. That is the unit being sold and the only one that is honest to meter |
+| **Sharing one secret across servers** | [048](048-organiser-server-configuration.md) binds a secret to a registered `host:port`. A secret heartbeating from somewhere it was never registered is **a flag for a human, never an automatic cut-off** — the same rule as [052](052-cheating-and-rating-integrity.md) §3. Servers move, DNS changes, and a false accusation costs more than the licence |
+| **Offline / our panel is down** | **Config is fetched once, at match start. Once fetched, the match runs to completion with no further contact.** See below |
+
+### The failure mode that must never happen
+
+> **A live match is never killed for a licensing reason.** Not a lapsed subscription, not a seat
+> overage, not our own outage.
+
+A kill-switch that stops a final at 12–3 turns a paying customer into a public incident, and it
+would contradict [033](033-maintenance-mode.md)'s *degrade, don't stop* — which already accepts
+in-flight matches while blocking new ones. **Licensing gates the start of a match and nothing
+else.** Overage and expiry are collected at the next config request, where the cost of being
+wrong is a delayed match rather than a destroyed one.
+
+### What we deliberately do not build
+
+| Rejected | Why |
+| --- | --- |
+| **Hardware fingerprinting / IP locking** | Game servers migrate, get re-imaged and sit behind changing addresses. It generates support tickets from paying customers and stops nobody who can edit a config |
+| **Obfuscators, packers, native rewrites** | §5. Obfuscation, not protection, paid for in [002](002-cs2-plugin.md) §Tier 4 fragility |
+| **A phone-home heartbeat that can disable a running plugin** | The failure mode above. Also makes our uptime a dependency of their match |
+| **Per-key activation servers, floating licence daemons** | An entire subsystem to protect a tier we have not sold once yet |
+
+### The ceiling, stated honestly
+
+`ponytail:` this is one column on the tenant and one branch in the config endpoint. **It is not
+uncrackable and must not be sold internally as if it were.** The binary still contains the match
+orchestration — ready-up, knife round, overtime, backup/restore — so a determined attacker can
+hardcode a config and run matches without us. What withholding config actually buys is a change in
+the *cost curve*: from "patch one branch" to "reimplement the config layer and permanently forgo
+brackets, ratings, disputes, Discord and every future panel feature."
+
+**So the real anti-piracy measure is line 3's own pricing.** The free connected tier is a *better
+product* than a cracked standalone one, and it is free. Piracy here is not defeated by making the
+plugin hard to copy; it is defeated by making the honest path the one a rational organiser wants.
+Anyone still cracking it was never going to pay, and they end up with the weaker half.
+
+**Upgrade path, if a real loss is ever measured:** signed, expiring config responses so a captured
+config cannot be replayed next month. Not before — it adds key rotation to a product with no
+customers yet.
 
 ## 4. Line 4 — owning servers, and what it costs to reopen 042
 
@@ -113,68 +167,313 @@ single asset here whose value **is** its secrecy — so its heuristics belong se
 and reported events, with the client shipping collection rather than judgement. That keeps the
 valuable half unreadable without a line of obfuscation.
 
-## 6. The two parts still open
+## 6. Boost — a verified server pays to sit higher for a while
 
-### 6a. A MasterBoost successor would break [057](057-server-browser-and-seo.md)'s hard line
+**Decided 2026-08-22. This overturns [057](057-server-browser-and-seo.md) §5's hard line**, which
+said money never buys a position inside a list. It was reopened deliberately, with the cost priced
+first, and the answer is:
 
-[057](057-server-browser-and-seo.md) §5 and §9 both state it: **money buys placement above or
-beside a list, never a position inside one.** GO-Setti's MasterBoost sells position *inside* the
-ranking. Building its successor as described is the one item here that contradicts a decided
-document, and the cost is specific: if budget moves rows, a visitor cannot tell which part of the
-ordering is evidence — and **verified counts, the only asset a competitor cannot copy, stop
-meaning anything.** Data tier 1 collapses to tier 5 ([057](057-server-browser-and-seo.md) §5a).
+> **A server or community that wants to be higher in the list for a period can buy that. That is
+> the entire product, and it is why anyone pays for it.** We earn; they earn players. It is priced
+> above a beside-the-list slot, because it is worth more.
 
-**Recommendation — sell what GO-Setti structurally cannot.** They sell rows because rows are all
-they have; their counts come from dialling a server and believing the answer. We can sell
-*credibility* into the same wallet: labelled, scarce placement **beside** a list nobody can buy
-their way into. Same market, same buyer, opposite direction.
+**What makes it defensible is rule 4: only a verified server may buy one.** The moat objection was
+never an objection to *paid position* — it was an objection to paid position that cannot be told
+apart from evidence. Under these four rules a boosted row is still a proven row; it has simply paid
+to be seen first.
 
-**Open:** whether to build a position-selling product anyway. That is a business call, not an
-engineering one, and it should be made deliberately rather than by drift.
+### Rule 1 — a promoted row is unmistakable, and that is the law, not a scruple
 
-### 6b. Line 1's tiers versus 057's scarcity argument
+Every promoted row carries a visible, permanent label. Not a subtle tint, not a small icon: a word.
 
-[057](057-server-browser-and-seo.md) §5 chose **one or two labelled slots per `game × period`** over
-an enhanced-listing upsell, specifically because *inventory is naturally scarce, and scarcity is
-what lets the price rise later without changing the product.* "Options to choose from" is the
-tiered upsell that argument rejected.
+This is **not optional and not a design preference.** EU consumer law (the Omnibus Directive
+2019/2161, in force in Poland since 1 January 2023) requires disclosure of paid placement that
+affects ranking, and the DSA requires advertising to be identifiable as such. **A promoted row we
+failed to label is a regulatory problem before it is a trust problem.** See [V12](#verification).
 
-Both can coexist: scarce slots beside the list, plus presentation tiers on a server's own page —
-logo, banner, description, gallery. **What must never become a tier is anything that moves a row.**
+The commercial consequence is the useful one: a label is exactly what stops promotion from eating
+the evidence, and we are required to ship it anyway.
 
-**Deferred, as before:** prices, prepaid credit, per-slot versus per-period. Those need traffic to
-price against; setting them now would be guessing.
+### Rule 2 — promotion moves a row, it never touches a number
+
+**This is the moat, stated precisely.** *"Liczby z serwera, nie z zapytania"*
+([057](057-server-browser-and-seo.md)) is a claim about **counts**, not about ordering. A promoted
+server shows its own real, verified human count, in its own real confidence tier, exactly as it
+would unpromoted.
+
+> **What is for sale is position. What is never for sale is truth.**
+
+A visitor reading a promoted row still learns whether the server is full and whether the number can
+be trusted. Nothing they are shown becomes false. That is the difference between us and
+MasterBoost, and it survives this decision intact.
+
+### Rule 3 — the votes ranking stays unbuyable
+
+Promotion applies to **the list** `/serwery` — *"where do I play now?"*. It does **not** apply to
+**the ranking** `/ranking/serwery/{month}` — *"which server was best this month?"*
+([057](057-server-browser-and-seo.md) §5).
+
+The ranking is earned from votes by players who were actually there. Selling into it would make it
+meaningless, and unlike the list it has no browsing job to do that a paid row could help with. **Two
+surfaces was already the design; this decision is why that split was worth having.**
+
+### Rule 4 — only a **verified** server may be boosted, and this is the whole design
+
+**Decided 2026-08-22, and it is the rule that resolves the moat objection rather than merely
+bounding it.**
+
+> **A boost can only be sold to a server that is already `Verified`** — running the activity
+> plugin, with real human counts we can prove ([057](057-server-browser-and-seo.md) §2).
+> **Money never buys the badge. The badge is the ticket to buy anything.**
+
+A boosted server therefore **does not vanish from the verified list — it *is* the verified list**,
+raised. The promoted row and the honest row are the same row. What the visitor sees at the top is
+not an exception to the evidence; it is a member of the evidence set, paid to be seen first.
+
+**This is why the objection [057](057-server-browser-and-seo.md) §5 raised no longer applies.** That
+objection was: *if budget moves rows, a visitor cannot tell which part of the order is evidence.*
+Under this rule every row a visitor can see — boosted or not — carries a proven count. Order is
+influenced by money; **truth is not, and the set of things eligible to be shown is not.**
+
+### The flywheel this creates, which is the real reason to prefer it
+
+| | |
+| --- | --- |
+| **Want to be boosted?** | Install the activity plugin and get verified first |
+| **What that costs the owner** | Nothing. The plugin is free (§2) |
+| **What it gets us** | Another proprietary row, whether or not he ever buys |
+
+**The paid product is now the recruiting instrument for the free one.** Every owner who wants
+visibility must first hand us the data nobody else can get. §2 said the activity plugin is free
+because charging would shrink the catalogue; this rule adds the positive half — **boost gives
+owners a commercial reason to install it**, which is a far stronger adoption argument than *"your
+numbers will look honest."*
+
+It also closes the gap [057](057-server-browser-and-seo.md) §5a worried about: the CS 1.6 catalogue
+starts near zero, and this is the mechanism that fills it.
+
+### Three routes to eligibility — **TBD, and deliberately so**
+
+Verification is the gate. How an eligible owner then buys is open, and the three candidates are
+**not mutually exclusive**:
+
+| Route | Shape | Open question |
+| --- | --- | --- |
+| **1 — Conditions + payment** | Meets a published bar (uptime, minimum real population, no padding flag, age), then pays per period | **What the conditions are.** Set them too high and there is nothing to sell; too low and the top of the list stops being worth looking at |
+| **2 — Subscription + eligibility** | Recurring, and the boost applies whenever the server currently qualifies. Lapses automatically if it stops qualifying | Whether a lapse refunds, pauses or simply stops. **Pausing is kindest and easiest to explain** |
+| **3 — Partnership** | Negotiated. A network that brings teams, hosts events or supplies servers is boosted as part of a wider arrangement | Whether partnership boosts are labelled *differently* from paid ones. **They must still be labelled** (rule 1) |
+
+**Not decided here.** Prices, the condition bar, and whether all three ship or only one need a
+market with traffic in it. What *is* decided is the gate above them: **no verification, no boost,
+by any of the three routes — partnership included.** A partner who will not install the plugin
+cannot be boosted, because that is the one exception that would reintroduce exactly the problem
+this rule solves.
+
+### And the integrity rules still bind
+
+- A server flagged for padded counts (**V11**) cannot buy or hold a boost; raising the flag ends an
+  active one, with the remainder refunded.
+- Boost never alters a count, a human/bot split, or a confidence tier (rule 2).
+- Losing verification — the plugin is removed, or heartbeats stop — **ends the boost**, because the
+  ticket to buy it has expired.
+
+### The inventory
+
+| | |
+| --- | --- |
+| **Sold as** | `server × game × period` — a boost window, by the week or month |
+| **Eligibility** | **`Verified` only**, via one of the three routes above |
+| **Priced** | **Above** the labelled beside-the-list slot (§1 line 5). It is the more valuable placement and should cost like it |
+| **Capped** | A hard maximum of boosted rows per page and per facet. Uncapped promotion turns the list into a directory of whoever paid — the product we are competing against |
+| **Ordering within the boosted band** | By purchase, never by bid. **Auctions stay rejected**: they convert the cap into an escalating price for the same thing and reinstate *"the richest server is always first"* |
+| **Deferred** | Prices, the cap number, the condition bar, prepaid credit, per-slot versus per-period |
+
+### What it costs, recorded honestly
+
+[057](057-server-browser-and-seo.md) §5's argument was that a visitor must be able to read the
+*entire* ordering as evidence. After this decision they read the **unboosted** ordering as
+evidence and must take the boosted band as advertising. That is a real reduction and it is the
+price of the revenue line.
+
+**Rule 4 makes it much smaller than it first looks.** Because only verified servers are eligible,
+the boosted band is a *reordering of the evidence set*, not an intrusion into it — every row up
+there still carries a count we can prove. A visitor misled about *order* is still not misled about
+*fact*, and fact is what [057](057-server-browser-and-seo.md) built the differentiator on.
+
+**What must never be weakened, or this stops being defensible:** rule 1 (the label), rule 2 (no
+number ever moves) and rule 4 (verified only). Each is one line to erode and none of them can be
+restored after the list has lost its reputation.
+
+
+<a name="verification"></a>
+### Verification
+
+| # | Question | Blocks |
+| --- | --- | --- |
+| **V12** | What exactly must a paid placement disclose under the Polish implementation of the Omnibus Directive and under the DSA — wording, prominence, and whether the ranking criteria themselves must be published? | **Promotion cannot ship until answered.** Single-sourced here from general knowledge; **confirm with the current statute or counsel before it reaches code** |
+
+## 6b. The offer is modular — the owner picks what he wants
+
+**Decided 2026-08-22.** "Options to choose from" (§1 line 1) does not mean presentation tiers on a
+listing. It means **the owner assembles his own package**: promotion, yes or no. Anti-cheat, yes or
+no. Activity reporting, yes — it is free and it is how he gets the badge. Tournament hosting,
+match plugins, a managed server, later.
+
+| | |
+| --- | --- |
+| **Shape** | A catalogue of independent components, not a bronze/silver/gold ladder |
+| **Why** | A 1.6 owner who wants only anti-cheat should not have to buy promotion to get it, and a CS2 owner who wants only promotion should not be sold a plugin he will never install. **The components have genuinely different buyers** |
+| **Free tier, always present** | The activity plugin and the verified badge (§2). Every package includes them because every package should grow the catalogue |
+| **Priced** | Per component, per period. Bundling is a later optimisation and needs prices we do not have yet |
+
+`ponytail:` this is a subscription row per `tenant × component`, not a plan system. Ceiling: no
+proration, no mid-period upgrades — the upgrade path is a real billing library, and only if
+someone actually asks.
+
+### Anti-cheat: ours, theirs, or none — the owner chooses
+
+This is the component where the choice matters most, and where the honest answer is **not** "ours
+or nothing."
+
+CS 1.6 servers already run client-side anti-cheats — **fungun / EasyCheatDetector**, **Wargods**
+and others are long-established in exactly the scene we are entering. Requiring those servers to
+drop what they run in favour of an unproven NEXTSKILL client would be asking them to take a risk
+for our benefit.
+
+**Decided: we integrate with third-party anti-cheats as well as offering our own.**
+
+| Option | What we do |
+| --- | --- |
+| **NEXTSKILL AC** (§1 line 2, [052](052-cheating-and-rating-integrity.md) tier 1) | Ours end to end. Detection heuristics stay server-side (§5) |
+| **Third-party client AC** — fungun/ECD, Wargods, others | **Integrate**: record that it was active, which one, and which version; ingest its verdicts where it exposes them |
+| **None** | Fully supported. Tier 0 is [052](052-cheating-and-rating-integrity.md)'s default and stays the default |
+
+**Why this is worth building:** it converts an installed base into evidence instead of competing
+with it. An owner keeps the anti-cheat his players already trust, and we still get a fact worth
+recording on every match. Adoption costs him nothing.
+
+### The rule that makes third-party integration safe
+
+> **A third-party verdict is provenance-tagged evidence, never truth, and never a gate.**
+
+This is [052](052-cheating-and-rating-integrity.md) §"The AC state belongs on the record, not in a
+gate", applied to software we did not write:
+
+- The game server is **untrusted infrastructure** ([007](007-server-hosting-model.md)) and a
+  client-side AC's output reaches us through it. A verdict is therefore a claim by a third party
+  relayed by an unverified host — the same shape as
+  [050](050-match-results-and-ratings.md)'s participant `Provenance`.
+- **It never bans, and never settles a rating by itself.** It is something a referee weighs.
+- **It never buys a confidence tier.** Running Wargods does not make a server `Verified`; only the
+  activity plugin does that (§6 rule 4).
+- **We record which AC and which version**, because several of these are old, closed and
+  publicly bypassed. *"An AC was running"* is not a security claim, and the product must never
+  present it as one.
+- We ship **no bundled third-party binary** and make no representation about anyone else's
+  detection quality. We record what ran; they own what it does.
+
+`ponytail:` integration is a nullable `(vendor, version, verdict)` on the match participant record
+plus whatever ingest each vendor already offers. Ceiling: no live enforcement, no vendor whose
+output cannot be read without reverse-engineering it. Upgrade path is a real vendor agreement, and
+only for one that a paying organiser actually asks for.
 
 ## 7. Sequencing
 
-Forced by dependency, not preference:
+Forced by dependency, not preference. **Rule 4 changed this order**, and the change is worth
+seeing rather than discovering:
 
-1. **Lines 1 + 5** — the listing is already designed ([057](057-server-browser-and-seo.md)) and is
-   the only line needing no new plugin. It also measures **V10** for free.
-2. **Line 3** — needs Phase 6 to exist at all.
-3. **Line 2** — needs [052](052-cheating-and-rating-integrity.md)'s corpus, which needs matches,
-   which needs line 3. **Research runs in parallel from now; shipping does not.**
-4. **Line 4** — last. The only line with a downside.
+| Order | Line | Gate |
+| --- | --- | --- |
+| **1st** | **Line 5 — sponsored slots beside the list** | Only [057](057-server-browser-and-seo.md) and traffic. **The one revenue line needing no plugin at all**, so it ships first and measures **V10** for free |
+| **2nd** | **The activity plugin** *(free, not a revenue line)* | Phase 6. **It is now on the critical path to revenue**, because nothing can be boosted until something can be verified |
+| **3rd** | **Line 1 — boost** | Verified servers existing, **and V12 answered** |
+| **4th** | **Line 3 — standalone licence** | The match plugins, Phase 6 |
+| **5th** | **Line 2 — anti-cheat** | [052](052-cheating-and-rating-integrity.md)'s corpus, which needs matches, which needs line 3. **Research runs in parallel from now; shipping does not.** Third-party integration (§6b) can land earlier — it is a record, not a detector |
+| **6th** | **Line 4 — managed servers** | Money. Last, because it is the only line with a downside |
+
+> **The cost of rule 4, stated plainly:** gating boost on verification **delays boost revenue until
+> the activity plugin ships.** Before this decision, line 1 was going to be the first thing sold.
+> Now the first thing sold is the beside-the-list slot, and boost waits.
+>
+> Accepted, because the alternative is selling position on unverified servers — which is
+> [057](057-server-browser-and-seo.md) §5's objection with the money taken anyway, and it would make
+> us the thing we are competing against. **The delay buys the only version of this product that is
+> defensible.**
 
 ## Consequences
 
 - **[MARKETING §9](../MARKETING-AND-SALES-STRATEGY.md) is rewritten** to carry five lines.
+- **[057](057-server-browser-and-seo.md) §5's hard line is overturned** — money buys position
+  inside the list, bounded by §6's four rules. §5's *two surfaces* split becomes load-bearing
+  rather than tidy: it is what keeps the votes ranking unbuyable while the list is sold.
+- **[057](057-server-browser-and-seo.md)'s verified tier gains a commercial engine.** §6 rule 4 makes
+  the free activity plugin the ticket to the paid boost, so the paid product now *recruits* for the
+  free instrument. It also puts that plugin **on the critical path to revenue** (§7), which it was
+  not before.
 - **[007](007-server-hosting-model.md) is no longer "NEXTSKILL hosts no game servers."** BYO stays
   the default and the architecture; exclusivity is dropped.
 - **[042](042-hosting.md)'s ~€5/month is line 4's precondition, not its outcome.**
-- **[052](052-cheating-and-rating-integrity.md) gains a revenue line, and an obligation with it.**
-  A *sold* anti-cheat makes a promise a free one does not. 052 already requires saying what it
-  does not stop; that requirement now carries commercial weight — and **CS 1.6's non-Steam client
-  population is a materially harder target than CS2's**, so the three games must be priced and
-  promised separately rather than as one product.
-- **Phase 6 grows**: the licence check, and anti-cheat research alongside the plugins.
+- **[052](052-cheating-and-rating-integrity.md) gains a revenue line and a second AC path.**
+  A *sold* anti-cheat makes a promise a free one does not — 052 already requires saying what it
+  does not stop, and that now carries commercial weight. **CS 1.6's non-Steam population is a
+  materially harder target than CS2's**, so the three games are priced and promised separately.
+  §6b additionally admits **third-party client anti-cheats (fungun/ECD, Wargods) as recorded
+  evidence**, which extends 052's *"AC state belongs on the record, not in a gate"* to software we
+  did not write.
+- **Phase 6 grows**: the licensing seam (§3a), anti-cheat research, and the third-party AC record.
+- **[009](009-api-contract.md) gains a typed refusal** on the config endpoint, and
+  [033](033-maintenance-mode.md)'s *degrade, don't stop* now also governs licensing:
+  **a live match is never killed for a commercial reason**.
+- **A new legal dependency, V12.** Paid placement disclosure is regulated. This is the first
+  decision in the project whose shipping is gated on a statute rather than on an engineering
+  answer.
 
 ## The runnable checks
 
-1. **An unlicensed standalone tenant gets no config** — the plugin config endpoint returns a
-   refusal, not a partial config, and the refusal is distinguishable from a network failure so the
-   plugin does not retry forever ([009](009-api-contract.md)).
-2. **A connected tenant is never charged** — a match created on nextskill.pl pulls config with no
+**Licensing** (§3a). These decide whether the paid tier is real:
+
+1. **An unlicensed standalone tenant gets no config** — the config endpoint returns a refusal, not
+   a partial config. A partial config is worse than none: it lets a cracked build fill the gaps.
+2. **The refusal is distinguishable from a network failure** — a lapsed licence must not make the
+   plugin retry forever, and an outage must not look like non-payment
+   ([009](009-api-contract.md)).
+3. **A connected tenant is never charged** — a match created on nextskill.pl pulls config with no
    licence row present.
-3. **Paid placement changes no row order** — the list's ordering is byte-identical with and without
-   an active sponsorship over the same dataset ([057](057-server-browser-and-seo.md) §5).
+4. **An expiring licence does not kill a running match** — a match whose config was issued while
+   valid runs to completion after the licence lapses mid-match; the *next* request is refused.
+   This is the check that protects a customer's final, and the one most likely to be broken later
+   by tidying the licence path.
+5. **Seat overage refuses the new match, never an existing one** — at the limit, an in-flight match
+   is untouched and the next `match_loaded` is refused.
+6. **A secret used from an unregistered `host:port` raises a flag and blocks nothing** — no
+   automatic cut-off, and the flag carries actor and reason into the audit log
+   ([036](036-authorization.md), [052](052-cheating-and-rating-integrity.md) §3).
+
+**Promotion** (§6). These are the moat, expressed as assertions:
+
+7. **A promoted row is labelled, always** — the label renders with JavaScript off, is present in
+   the server-rendered HTML, and no code path can produce a promoted row without it
+   (§6 rule 1, and V12).
+8. **Promotion changes no number** — player count, human/bot split and confidence tier for a
+   promoted server are byte-identical to the same server unpromoted (§6 rule 2). **This is the
+   check that keeps *"liczby z serwera, nie z zapytania"* true.**
+9. **Promotion never reaches the ranking** — `/ranking/serwery/{month}` is byte-identical with and
+   without active promotions over the same dataset (§6 rule 3).
+10. **An unverified server cannot buy or hold a boost** — purchase is refused for any server that
+    is not `Verified`, **by all three eligibility routes including partnership** (§6 rule 4), and
+    a server that loses verification has its active boost ended.
+11. **A padding-flagged server cannot hold a boost** — purchase is refused while flagged, and
+    raising the flag ends an active boost (**V11**).
+12. **The cap holds** — with more purchased promotions than slots, the rendered page never exceeds
+    the maximum promoted rows per page or facet.
+
+**Modularity** (§6b):
+
+13. **Components are independent** — a tenant holding only anti-cheat gets anti-cheat and no
+    boost; a tenant holding only boost is never asked to install the **match** plugin. The
+    *activity* plugin is required for boost by §6 rule 4, and it is free, so this is a gate on
+    verification rather than on purchase.
+14. **A third-party AC verdict never changes an outcome by itself** — ingesting a
+    `(vendor, version, verdict)` record alters no rating and issues no ban, and the match record
+    shows which anti-cheat produced it ([052](052-cheating-and-rating-integrity.md) §3,
+    [050](050-match-results-and-ratings.md)).

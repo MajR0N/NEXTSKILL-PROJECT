@@ -175,12 +175,18 @@ are indexable; neither is an opaque blend of the two signals.
 
 ### Money, and the line it does not cross
 
-> **Under pressure, 2026-08-22.** [058](058-what-we-sell.md) §6a records a wish to build a
-> **MasterBoost successor** — paid position *inside* the ranking. That is the one thing this rule
-> forbids, and 058 leaves it open rather than deciding it quietly. **The rule below stands until a
-> decision explicitly overturns it.** 058 also adds presentation tiers on a server's own page
-> (logo, banner, gallery), which are compatible: they change what a row *looks like*, never where
-> it sits.
+> ⚠ **Overturned 2026-08-22 by [058](058-what-we-sell.md) §6.** The rule below no longer holds as
+> written: **money may now buy a position inside the list.** It is bounded by four rules, and the
+> fourth is the one that matters — **only a `Verified` server may be boosted.** Because eligibility
+> requires the activity plugin, the boosted band is a *reordering of the evidence set*, never an
+> intrusion into it: every row a visitor sees still carries a count we can prove. Order is
+> influenced by money; **the counts, the confidence tiers and the set of eligible servers are not.**
+>
+> **What survives unchanged:** every boosted row is labelled (EU disclosure law, **V12**), no number
+> ever moves, and **the votes ranking `/ranking/serwery/{month}` stays entirely unbuyable** — which
+> is why §5's two-surface split below turned out to be load-bearing rather than tidy.
+>
+> The paragraphs below are kept as the reasoning that produced the guardrails, not as current policy.
 
 Sponsored slots and advertising are in scope and are how this pays for itself. The boundary:
 

@@ -614,11 +614,12 @@ because software that works for one community is G5API with extra steps.
 
 ---
 
-## 9. Monetisation — five lines, and the two things that must stay free
+## 9. Monetisation — five lines, and the free tier that makes them possible
 
 **Rewritten 2026-08-22 by [058](decisions/058-what-we-sell.md).** This section previously carried a
 single revenue line — a labelled slot beside the server list — and recorded brackets and ratings as
-free forever. Both halves changed. The full reasoning, the conflicts and the open calls are in
+free forever. Both halves changed, and [057](decisions/057-server-browser-and-seo.md)'s "money never buys a
+position inside a list" was overturned under guardrails. The full reasoning is in
 [058](decisions/058-what-we-sell.md); this is the marketing-facing summary.
 
 **The shape:** *we give away what makes the catalogue and the rating bigger, and we sell everything
@@ -628,8 +629,8 @@ that becomes possible because they are big.*
 
 | # | Line | Paid by | The pitch |
 | --- | --- | --- | --- |
-| **1** | **Server-list placement**, with options to choose from | Server owner | An existing market at an existing price — owners already pay CS-Boost, tsarvar and GO-Setti. **And we hand them the activity plugin free**, so their page shows numbers nobody else can prove |
-| **2** | **NEXTSKILL Anti-Cheat** — CS 1.6, CS:GO, CS2 | Organiser, per tournament | The one thing a prize final actually needs, and the thing §10 names as the risk that kills the rating |
+| **1** | **Boost** — a verified server pays to sit higher in the list for a period | Server owner | An existing market at an existing price: owners already pay CS-Boost, tsarvar and GO-Setti. **Ours is the only one where the population figure is real**, because only verified servers are eligible |
+| **2** | **Anti-cheat** — ours, or integration with the one they already run (fungun/ECD, Wargods) | Organiser / server owner | The thing a prize final actually needs, and §10's named risk that kills the rating. Integrating rather than replacing means an owner keeps what his players already trust |
 | **3** | **Tournament / bracket plugins** — standalone licence | Organiser | Free when the match reports to us; paid when it does not. See below |
 | **4** | **Managed game servers on our VPS**, CS 1.6 first | Organiser / community | *Play where the hitboxes are right* — ReHLDS + ReGameDLL_CS, our plugins and our anti-cheat, guaranteed present together |
 | **5** | **Sponsored slots** beside the list | Advertiser / server owner | Placement next to a list people *trust* is worth more per impression than placement inside one they don't |
@@ -642,30 +643,74 @@ that becomes possible because they are big.*
 | **Ratings, brackets, LFT, tournaments on nextskill.pl** | …charge for the moat, which has no value until everyone is inside it |
 | **The verified badge** | …make it worthless. A badge you can buy is not evidence |
 
-### Line 3 in one sentence
+### Line 3, and how it survives being copied
 
 **Connected is free; standalone is paid.** An organiser whose matches report to us and settle into
 the rating pays nothing — that path feeds the moat and we want most people on it. An organiser who
-wants the plugin on their own server with no account and no rating buys a licence, checked in our
-panel, never in the binary.
+wants the plugin on their own server, with no account and no rating, buys a licence.
 
-This is also the answer to *"can't they just decompile it?"* — yes, and it gains them nothing.
-Every paid line is enforced server-side. Nothing sellable ships inside the plugin
-([058](decisions/058-what-we-sell.md) §5).
+**The licence is not a check inside the plugin, because a check is a branch and a branch can be
+patched.** The match config — maps, sides, rosters — is never bundled with the binary; the plugin
+asks us for it at match start. No licence, no config, no match. What is withheld is *data the
+pirate does not have*, not permission they were refused. The key is the server secret they already
+paste in, so there is no new thing to buy, lose or leak ([058](decisions/058-what-we-sell.md) §3a).
 
-### The line the money does not cross — unchanged, and now under pressure
+**And a live match is never killed for a commercial reason** — not a lapsed subscription, not our
+own outage. Licensing gates the start of a match; a final at 12–3 is never anyone's collection
+lever.
 
-> **Money buys clearly-labelled placement above or beside a list. It never buys a position
-> inside one.**
+This is also the answer to *"can't they just decompile it?"* — yes, and it earns them the weaker
+product. Every paid line is enforced on our server, and the honest path is both better and free.
+**Piracy here is not beaten by making the plugin hard to copy; it is beaten by making the free
+connected tier the one a rational organiser actually wants** ([058](decisions/058-what-we-sell.md) §5).
 
-This is [056](decisions/056-lft-board.md)'s *rating never buys prominence* applied to servers, and it
-is a commercial position rather than a scruple. GO-Setti's MasterBoost sells position *inside* the
-ranking; the moment budget moves rows, a visitor cannot tell which part of the order is evidence —
-and **verified counts, the only asset a competitor cannot copy, stop meaning anything.**
+### Boost — the line the money *does* now cross, and the rule that makes it safe
 
-**A MasterBoost successor is therefore an open decision, not a planned feature**
-([058](decisions/058-what-we-sell.md) §6a). The recommendation is to sell what they structurally
-cannot: they sell rows because rows are all they have. We can sell credibility into the same wallet.
+**A server or community that wants to sit higher in the list for a while can buy that.** That is
+the product, in one sentence, and it is why anyone pays for it. It is priced above a
+beside-the-list slot because it is worth more.
+
+[057](decisions/057-server-browser-and-seo.md) previously forbade this outright — *money never buys
+a position inside a list* — on the grounds that if budget moves rows, a visitor can no longer tell
+which part of the order is evidence. **[058](decisions/058-what-we-sell.md) §6 overturns it, and one
+rule is why:**
+
+> **Only a `Verified` server can be boosted. Money never buys the badge — the badge is the ticket
+> to buy anything.**
+
+A boosted server is running the activity plugin and showing real, proven human counts. So the
+boosted band is **a reordering of the evidence, not an intrusion into it**: every row a visitor
+sees up there is a row they could have trusted anyway. Order is influenced by money. **Counts,
+confidence tiers and eligibility are not.**
+
+### Why this is better than the thing we were worried about becoming
+
+GO-Setti's MasterBoost sells position on numbers that come from dialling a server and believing the
+answer. **We can only sell position on numbers we can prove.** Same market, same buyer, same
+wallet — and the constraint that looks like a limitation is the differentiator: *the top of our
+list is the only paid placement in this scene where the population figure is real.*
+
+**And it builds the catalogue.** Want to be boosted? Install the free plugin and get verified
+first. The paid product recruits for the free one, which is a far stronger adoption argument than
+*"your numbers will look honest"* — and it is the mechanism that fills the CS 1.6 list, which
+starts near zero.
+
+### The guardrails, none of which are negotiable
+
+| | |
+| --- | --- |
+| **Labelled, always** | Every boosted row says so. **EU disclosure law requires it** (Omnibus, DSA) — this is a legal obligation before it is a trust choice. See **V12** |
+| **No number ever moves** | Boost changes position and nothing else. *Liczby z serwera, nie z zapytania* stays literally true |
+| **The ranking stays unbuyable** | `/ranking/serwery/{month}` — *which server was best this month?* — is earned from player votes and is not for sale at any price |
+| **Verified only, all three routes** | Including partnership. A partner who will not run the plugin cannot be boosted |
+| **Capped** | A hard maximum of boosted rows per page. Uncapped, the list becomes a directory of whoever paid — the product we are competing against |
+| **No auctions** | Sold per period, never bid. An auction turns the cap into an escalating price for the same thing and reinstates *the richest server is always first* |
+
+### Three routes in, still to be settled
+
+Verification is the gate; how an eligible owner buys is open, and the three are not mutually
+exclusive: **conditions + payment**, **subscription + eligibility**, or **partnership**. Prices and
+the condition bar need traffic to set. What is settled is the gate above them.
 
 ### What line 4 costs, said plainly
 
@@ -675,23 +720,35 @@ adoption and turns *"my server won't start a match"* into *"**your** server won'
 accepted for one specific product reason — the CS 1.6 hitbox fix — and it is **sequenced last**,
 because it is the only line that can lose money ([058](decisions/058-what-we-sell.md) §4).
 
-### Order, forced by dependency
+### Order, forced by dependency — and it changed
 
-**1 + 5** (needs only the listing, and measures V10 for free) → **3** (needs Phase 6) → **2** (needs
-a corpus, which needs matches, which needs 3) → **4** (needs money). Anti-cheat **research** starts
-now; anti-cheat **shipping** does not.
+**5** (needs only the listing; ships first and measures V10 for free) → **the free activity plugin**
+(Phase 6) → **1** (boost, which cannot exist until servers can be verified, and needs **V12**) →
+**3** (needs Phase 6) → **2** (needs a corpus, which needs matches, which needs 3) → **4** (needs
+money, and is the only line with a downside).
 
-**Still deferred, deliberately:** prices, ad formats, prepaid credit, per-slot versus per-period.
-Those need a market with traffic in it; setting them now would be guessing.
+> **Gating boost on verification delays boost revenue.** Line 1 was going to be the first thing
+> sold; now the beside-the-list slot is, and boost waits for the plugin. Accepted, because the
+> alternative is selling position on servers whose numbers we cannot prove — which is exactly the
+> product we are competing against.
+
+Anti-cheat **research** starts now; anti-cheat **shipping** does not. Third-party AC integration can
+land earlier than ours, because it is a record rather than a detector.
+
+**Still deferred, deliberately:** prices, the boost condition bar, ad formats, prepaid credit,
+per-slot versus per-period. Those need a market with traffic in it; setting them now would be guessing.
 
 ### Rejected, and staying rejected
 
 | Model | Why not |
 | --- | --- |
 | **Charging players for access** | Contradicts §3.3. We are a layer, not a destination |
-| **Bid-for-position inside the list or ranking** | Forfeits the entire differentiator — see the line above |
+| **Auctions / bid-for-position** | Boost is sold per period, never bid. An auction turns a capped inventory into an escalating price for the same thing and reinstates *the richest server is always first* |
+| **Boosting an unverified server** | The one version of this product that would destroy the differentiator — taking money to amplify a number we cannot prove |
+| **Selling into the votes ranking** | *Which server was best this month?* is earned. Not for sale at any price |
 | **Paid activity plugin** | Kills the catalogue that makes the verified tier possible |
 | **Plain server rental** | Rented capacity is not a product. Line 4 sells a *fixed* CS 1.6, which is |
+| **DRM — obfuscators, packers, hardware locking, a kill-switch heartbeat** | Each one costs paying customers support tickets and stops nobody who can edit a config. The config *is* the lock ([058](decisions/058-what-we-sell.md) §3a) |
 | **Premium player subscription** | CYBERSHOKE proves it works, but it requires a destination and an audience. Contradicts §3.3 until path 1 |
 
 ---
@@ -727,7 +784,8 @@ Those need a market with traffic in it; setting them now would be guessing.
 - **Path 1 has a tripwire, not a date.**
 - **Two loops, not one.** Discord reaches people adjacent to us; **search reaches strangers with intent**, and it is the only channel that scales without us knowing anyone.
 - **The listing is the bottom rung of the ladder** — the offer that fits the two thirds of networks who will never organise, and the reason they install the plugin that makes everything else possible.
-- **Free where the moat is, paid where the market already pays.** The rating, the brackets and the activity plugin are free because each one only works at scale. **Five things are sold** — list placement, anti-cheat, the standalone plugin licence, managed CS 1.6 servers, and sponsored slots — and none of them can be obtained by decompiling anything ([058](decisions/058-what-we-sell.md)).
+- **Free where the moat is, paid where the market already pays.** The rating, the brackets and the activity plugin are free because each only works at scale. **Five things are sold** — boost, anti-cheat, the standalone plugin licence, managed CS 1.6 servers, and sponsored slots — and none of them can be obtained by decompiling anything ([058](decisions/058-what-we-sell.md)).
+- **The badge is the ticket, not the product.** Only a verified server can buy a boost, so the paid line recruits for the free plugin, and the top of our list is the only paid placement in this scene where the population figure is real.
 
 ---
 

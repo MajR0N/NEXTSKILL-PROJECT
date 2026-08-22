@@ -753,8 +753,19 @@ launches with a decided palette and a designed OG card rather than in monochrome
   Rolling month, each closed month frozen into a permanent page, read as at its closing instant
 - ☐ **Two surfaces** — `/serwery` ordered by live humans; `/ranking/serwery/{month}` by votes.
   Verification is a badge and a filter, never a position boost
-- ☐ **Sponsored placement** — labelled, beside or above a list, **never inside the organic
-  order**. Pricing and go-to-market are a separate grilling against the strategy
+- ☐ **Sponsored slots** — labelled, beside or above a list, **never inside the organic order**.
+  **The first revenue line to ship** ([058](decisions/058-what-we-sell.md) §7): it needs no plugin
+- ☐ **Boost — paid position inside the list** ([058](decisions/058-what-we-sell.md) §6). Overturns
+  057's hard line under four rules, and the fourth carries the design:
+  - ☐ **`Verified` servers only** — all three eligibility routes, partnership included. Money never
+    buys the badge; the badge is the ticket to buy anything. **So this cannot ship before the
+    activity plugin does** (Phase 6), which puts a free component on the critical path to revenue
+  - ☐ **Every boosted row is labelled**, rendered server-side and present with JavaScript off —
+    **a legal requirement, not a design choice** (⊘ blocked on **V12**)
+  - ☐ **Boost moves a row and nothing else** — count, human/bot split and confidence tier are
+    byte-identical boosted or not. The ranking `/ranking/serwery/{month}` is untouched entirely
+  - ☐ **Capped per page and per facet**, sold per period, **never auctioned**. A padding flag
+    (**V11**) or lost verification ends an active boost
 - ☐ **Aggregate activity always; named presence opt-in, default off** — a verified identity's
   live location is not broadcast without consent ([011](decisions/011-accounts-and-login.md),
   [012](decisions/012-security.md))
@@ -781,10 +792,19 @@ Concretely, one at a time. **No shared abstraction until both exist** ([001](dec
 - ☐ **Verify V2b / V3 / V4** on a real CS 1.6 server before writing the AMXX plugin
 - ☐ **CS 1.6 plugin** ([005](decisions/005-cs16-plugin.md)) — Pawn/AMXX
 - ☐ **Round backup/restore verified by actually killing a server mid-match** ([034](decisions/034-test-strategy.md))
-- ☐ **Standalone licence check** ([058](decisions/058-what-we-sell.md) §3) — **connected is free,
-  standalone is paid**. One column on the tenant and one branch in the config endpoint: no valid
-  licence → the endpoint refuses, and the refusal is **distinguishable from a network failure** so
-  the plugin does not retry forever ([009](decisions/009-api-contract.md))
+- ☐ **Standalone licensing** ([058](decisions/058-what-we-sell.md) §3a) — **connected is free,
+  standalone is paid.** No licence check ships in the plugin, because a branch can be patched:
+  **the match config is withheld instead.** One column on the tenant and one branch in the config
+  endpoint; the secret [048](decisions/048-organiser-server-configuration.md) already issues *is*
+  the licence key, so there is no new artefact. The refusal must be **typed and distinguishable
+  from a network failure** ([009](decisions/009-api-contract.md))
+  - ☐ **A live match is never killed for a commercial reason** — config is fetched once at match
+    start and the match completes offline. Licensing gates the *start*, never a running game
+    ([033](decisions/033-maintenance-mode.md)). This is check 4 in 058 and the one most likely to
+    be broken later by tidying the licence path
+  - ☐ **Seat = concurrent live matches**, not installs. Overage refuses the next match, not the
+    current one; a secret seen from an unregistered `host:port` **flags for a human and blocks
+    nothing** ([052](decisions/052-cheating-and-rating-integrity.md) §3)
 - ☐ **Activity-reporting plugin** ([057](decisions/057-server-browser-and-seo.md) §2) — the CS 1.6
   five-minute window with humans separated from bots. **Stays free forever**
   ([058](decisions/058-what-we-sell.md) §2): it is what makes the catalogue proprietary, and a paid
@@ -794,6 +814,15 @@ Concretely, one at a time. **No shared abstraction until both exist** ([001](dec
   and reported events; the client collects, it does not judge. That is the one component whose value
   *is* its secrecy, and keeping it off the wire is what protects it. **Shipping is gated on a corpus**,
   which needs matches, which needs the plugins above — so this cannot jump the queue
+  - ☐ **Third-party AC integration can land first** ([058](decisions/058-what-we-sell.md) §6b) —
+    CS 1.6 servers already run **fungun/ECD** and **Wargods**. We record `(vendor, version,
+    verdict)` on the participant rather than asking anyone to switch. It is **a record, not a
+    detector**, so it does not wait on the corpus
+  - ☐ **A third-party verdict never bans, never rates, never buys a confidence tier** — it reaches
+    us through a server [007](decisions/007-server-hosting-model.md) treats as untrusted, so it is
+    provenance-tagged evidence a referee weighs ([052](decisions/052-cheating-and-rating-integrity.md) §3).
+    Several of these tools are old, closed and publicly bypassed: *"an AC was running"* is not a
+    security claim and the product must never present it as one
 
 ## Phase 7 — Ship
 
@@ -821,6 +850,7 @@ Carried from CONTEXT §7. **Must be resolved before the code that depends on the
 | **V9** | Does `GetServerList` return community servers for app 730 and CS:GO, at a rate limit that allows polling the whole Polish catalogue every ~15 min? | [057](decisions/057-server-browser-and-seo.md) — **gates the confidence tiers, not just the listing** |
 | **V10** | Is the CS:GO community-server population large enough to justify reopening [001](decisions/001-game-scope.md) for tournaments? | [057](decisions/057-server-browser-and-seo.md) — **the listing measures it for free** before any CS:GO plugin work |
 | **V11** | Are padded player counts distinguishable from real ones over a multi-week series, at a publishable false-positive rate? | [057](decisions/057-server-browser-and-seo.md) §5a — calibrate against plugin-verified servers; a false accusation cannot be undone |
+| **V12** | What must a paid placement disclose under the Polish implementation of the Omnibus Directive (2019/2161) and under the DSA — wording, prominence, and whether the ranking criteria themselves must be published? | [058](decisions/058-what-we-sell.md) §6 — **boost cannot ship until answered**. The only item in this table gated on a statute rather than an engineering answer; single-sourced, so confirm against the current law or counsel before it reaches code |
 | — | Do **Unbounded** and **IBM Plex** actually cover Cyrillic? | [019](decisions/019-visual-identity.md) |
 
 ## Design note
