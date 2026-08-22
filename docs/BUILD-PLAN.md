@@ -894,6 +894,19 @@ Concretely, one at a time. **No shared abstraction until both exist** ([001](dec
     ~156 GB/year) while a POV demo costs us nothing until someone appeals
   - ☐ **If forcing fails on CS2, ask instead** — a player told to record either does or does not,
     and a missing recording is already **refusal, never clean**. Weaker, not a dead end
+  - ☐ **Both artefacts, both jobs** ([CONTEXT §2.9](../CONTEXT.md)) — **GOTV answers behaviour**
+    (wallhack, pre-aim; `spec_show_xray` makes it visual) and **POV answers mechanics** (aimbot,
+    per-tick). A screening pair, not a ranking. **A referee reaching for the wrong one gets a
+    confident wrong answer**
+  - ☐ **Every flag carries `(demo, tick)`** — `demo_gototick` puts a referee at the moment in one
+    command; without it he scrubs forty minutes. **One integer, and it decides whether the review
+    flow gets used twice.** Applies to the calibration record too
+  - ☐ **Try `csgo_fatdemo_enable` before accepting the fidelity gap** — it exists to record more
+    than a normal demo and its flags cover both `sv` and `cl`. **Untested whether it carries
+    per-tick angles**; if it does, CS2 needs no client cooperation at all. Test with
+    `tv_snapshotrate`
+  - ☐ **`demo_flush` is the Tier 3 lever** — [002](decisions/002-cs2-plugin.md) warns the framebuffer
+    flush lag-spikes everyone when mistimed. **Never on a timer; only at a chosen moment**
   - ☐ **GOTV is driven by the plugin, not by `tv_autorecord`** — `tv_enable 1`, then `tv_record` /
     `tv_stoprecord` explicitly, with **`tv_record_immediate`** so `tv_delay` does not cost us the
     opening of the demo. Autorecord is widely reported to misbehave, and **a match plugin that does

@@ -612,12 +612,17 @@ clears a player *by itself*; it removes one suspicion, and the referee still hol
 A flagged or banned player **may appeal for verification**, and every appeal is answered with a
 **point of view** — the aim path, the flick, the movement.
 
-> **The client POV demo is the preferred artefact in all three games.** Not a CS 1.6 workaround:
-> **GOTV is a broadcast record, not a forensic one.** It runs at snapshot rate with interpolated,
-> network-quantised angles, and that interpolation smooths away exactly the per-tick view-angle
-> behaviour that separates an aimbot from a good player ([CONTEXT §2.9](../../CONTEXT.md)).
-> It is also the expensive one to keep — [024](024-demos.md) already budgets ~156 GB/year — while a
-> POV demo sits on the player's disk and reaches us **only if he appeals**.
+> **Both artefacts are needed, and they answer different questions** ([CONTEXT §2.9](../../CONTEXT.md)):
+> **GOTV** — which we hold for every match — answers **behaviour**: wallhacking, pre-aiming an enemy
+> he cannot see, positioning that is repeatedly too right. Snapshot rate is ample for that, and
+> `spec_show_xray` makes it a visual check rather than an inference. **The client POV demo** answers
+> **mechanics**: the snap, the microcorrection, the impossible settle — which live *per tick*, and
+> which GOTV's interpolation destroys.
+>
+> **A screening pair, the same shape as the meter itself.** GOTV is always there and catches the
+> behavioural class cheaply; POV is expensive to obtain and answers the one thing GOTV cannot.
+> Neither replaces the other, and **a referee reaching for the wrong one gets a confident wrong
+> answer.**
 >
 > **One caveat, added 2026-08-22: `tv_snapshotrate` is a cvar, not a fixed limit.** The
 > interpolation objection describes GOTV **at default settings**. Whether raising the rate toward
@@ -628,7 +633,7 @@ A flagged or banned player **may appeal for verification**, and every appeal is 
 | Game | Source of the POV | State |
 | --- | --- | --- |
 | **CS 1.6** | Client-side demo, armed by the server at the flag, uploaded on appeal | **Proven** (AMXX `client_cmd`) |
-| **CS:GO / CS2** | The same, if the server can force it | **Open — V15.** GOTV is the fallback, and a weaker one |
+| **CS:GO / CS2** | The same, if the server can force it | **Open — V15.** GOTV still covers the behavioural half meanwhile; only the aim half waits |
 
 **This is what the scan cannot give us.** A scan says what was on the disk; a POV shows how the
 player actually aimed — which is exactly what the ambiguous cases are argued over.
@@ -636,6 +641,19 @@ player actually aimed — which is exactly what the ambiguous cases are argued o
 **If forcing proves impossible on CS2, asking still works.** A player told to record either does or
 does not, and §6c already treats a missing recording as **refusal, never clean** — a weaker version
 of the same mechanism, not a dead end.
+
+#### Every flag carries a tick, or the referee flow does not work
+
+`demo_gototick` puts a referee **at** the moment in one command. Without a tick number he scrubs a
+forty-minute demo hunting for something described as *"round 12ish"* — and a review that costs
+twenty minutes is a review nobody does twice.
+
+> **So every referee-facing flag, and every calibration record, carries `(demo, tick)`.** One
+> integer, and it is the difference between a workflow that gets used and one that gets abandoned.
+
+The referee's actual toolkit is worth naming, because the design should assume it:
+`demo_gototick` to arrive, `demo_timescale` to slow an aim down, `spec_show_xray` to answer the
+wallhack question visually, `demo_marktick` to keep a place while comparing rounds.
 
 **Everything below applies wherever the client route is used** — proven in CS 1.6, and in CS:GO/CS2 if V15 resolves in its favour.
 
@@ -927,6 +945,9 @@ seeing rather than discovering:
     the demo but the command waits for the round boundary. **CS2 `record` stalls the client 1–2
     seconds** (measured), and most flagged players are innocent (§6c,
     [CONTEXT §2.9](../../CONTEXT.md)).
+22b. **Every flag records a tick** — a referee opening the evidence uses `demo_gototick` and one
+    number; a flag with no tick fails this check even if everything else about it is correct.
+    Applies to the calibration record too, or a later model has no way to find its own examples.
 23. **An interrupted or stopped recording is refusal, never clean** — the same rule as a tampered
     scan report.
 24. **An appeal without a demo is heard, not dismissed** — the appeal is accepted, the absence is

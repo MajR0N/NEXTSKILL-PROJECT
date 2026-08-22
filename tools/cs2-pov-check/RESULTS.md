@@ -78,10 +78,15 @@ per-tick view-angle behaviour that distinguishes an aimbot. **But `tv_snapshotra
 | 1 | Record a round at **default** `tv_snapshotrate`. Note the value and the file size | |
 | 2 | Record the same at **`tv_snapshotrate` = server tick**. Note the file size | |
 | 3 | Compare a known flick in both — does the higher rate show detail the default loses? | |
+| 3b | Record with **`csgo_fatdemo_enable true`** (output via `csgo_fatdemo_output`). Does a fat demo carry per-tick angles? | |
 | 4 | Extrapolate size: per match, per month, against [024](../../docs/decisions/024-demos.md)'s ~156 GB/year budget | |
 
-**Verdict:** ☐ high-rate GOTV is good enough for aim analysis ☐ still not good enough — POV demo
-stays the preferred artefact
+**Verdict:** ☐ high-rate or fat GOTV is good enough for aim analysis ☐ still not good enough — the
+POV demo stays necessary for the aim question
+
+> **Either way GOTV keeps its own job.** It answers **behaviour** — wallhack, pre-aim — which POV
+> is not needed for, and `spec_show_xray` makes that a visual check. This test only asks whether it
+> can *also* answer the aim question.
 
 `ponytail:` this is two recordings and a look, not a study. Ceiling: eyeballing a flick is not a
 detector. Upgrade path: parse both demos and diff the angle series — worth it only once there is a

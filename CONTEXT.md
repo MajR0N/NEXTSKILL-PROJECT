@@ -318,7 +318,7 @@ start is refusal, not clean.**
 > harmless — **but it is close enough to the identity mechanism that it must be checked while V2b/V3
 > are being tested**, not discovered afterwards.
 
-#### CS:GO / CS2 — GOTV is **not** an adequate substitute *(at default settings — see `tv_snapshotrate` below)*
+#### CS:GO / CS2 — GOTV alone cannot answer the *aim* question *(the earlier entry was wrong twice — see the correction below)*
 
 > ⚠ **Corrected twice on 2026-08-22.** The first version claimed CS2 POV recording was broken —
 > sourced from a Leetify post of **8 Nov 2023** describing a brief outage, with CSTV restored **the
@@ -341,9 +341,12 @@ impossible settle. Snapshot-rate interpolation is exactly the process that smoot
 GOTV demo answers *"what happened in the round"*; it does not reliably answer *"did his crosshair
 move like a human's."*
 
-> **So the client POV demo is the preferred artefact for all three games, not a CS 1.6 workaround.**
-> GOTV remains what [024](docs/decisions/024-demos.md) says it is — the match record, and a fallback
-> when no POV exists — but it does not close the fidelity gap the appeal path depends on.
+> **So the client POV demo is needed in all three games, not only as a CS 1.6 workaround** — GOTV
+> at default settings does not close the per-tick gap the aim question depends on.
+>
+> ⚠ **Superseded in part below.** This once read *"the preferred artefact"*, which was wrong: **GOTV
+> and POV are complementary, not ranked.** GOTV answers behaviour (wallhack, pre-aim); POV answers
+> mechanics (aimbot). See the correction two subsections down.
 
 **Where CS:GO and CS2 now stand:**
 
@@ -396,32 +399,69 @@ Arming at freezetime partly masks it — a beat at round start is ordinary — b
 **The countermeasure is unchanged and now matters more: a suspicion meter that collapses the instant
 recording starts is itself scored.**
 
-#### `tv_record` and `record` are two different artefacts, not two spellings
+#### Corrected 2026-08-22: we need **both** artefacts. They answer different questions
 
-Confirmed 2026-08-22. Keeping them straight matters, because they answer different questions and
-only one of them is ours to drive from a plugin.
+An earlier version of this section called the POV demo *"the preferred artefact"* and treated GOTV
+as a fallback. **That is wrong.** They are complementary, and the split follows the kind of cheating
+being investigated:
 
-| | `tv_record <name>` | `record <name>` |
+| | **GOTV** (`tv_record`) | **Client POV** (`record`) |
 | --- | --- | --- |
-| Records | **GOTV / CSTV — server side** | **Client POV — the player's own view** |
-| Runs on | The game server | The player's machine |
-| Needs | **`tv_enable 1`** | nothing |
-| Stopped by | `tv_stoprecord` | `stop` |
-| Its job here | **The match record** ([024](docs/decisions/024-demos.md)) | **The anti-cheat appeal** ([058](docs/decisions/058-what-we-sell.md) §6c) |
-| Who can start it | The server, directly — no client cooperation | Open question (**V15**) |
+| **Answers** | **Overall behaviour** — wallhacking, pre-aiming an unseen enemy, prefiring, positioning that keeps being *too* right | **Mechanics** — aimbot, snapping, the impossible settle |
+| **Why it suits that** | Wallhack shows up as *where someone looks, relative to enemies they cannot see, over seconds*. Snapshot rate is plenty for that | Aim shows up **per tick**. Interpolation destroys exactly that |
+| **Who holds it** | **Us**, always, for every match | The player, and only if he appeals |
+| **Cost** | Disk — [024](docs/decisions/024-demos.md) budgets ~156 GB/year | Nothing until an appeal |
+| **Weakness** | Too coarse for aim analysis | Absent unless armed, and withholdable |
 
-**`tv_record` is the go-to for match demos** — it is what MatchZy and Get5 drive, and it is the
-mechanism behind [024](docs/decisions/024-demos.md). It is **not** a replacement for the POV demo in
-an anti-cheat appeal, for the fidelity reason below.
+> **So the two are a screening pair, the same shape as the suspicion meter itself.** GOTV is always
+> there and catches the behavioural class cheaply. POV is expensive to obtain and answers the one
+> question GOTV cannot. Neither replaces the other, and a referee reaching for the wrong one gets a
+> confident wrong answer.
 
-**Cvars worth knowing before Phase 6:**
+`spec_show_xray` is what makes the GOTV half practical: it renders players through walls during
+playback, so *"was he tracking someone he could not see?"* is a visual check, not an inference.
 
-| | |
+#### The command inventory that matters to us
+
+| Command | Job |
 | --- | --- |
-| **`tv_enable 1`** | Required. Without it `tv_record` does nothing |
-| **`tv_record_immediate`** | Starts recording **at once, ignoring `tv_delay`**. `tv_delay` exists to stop stream sniping, so this is how a complete demo and a delayed broadcast coexist — **use it**, or the demo is missing its opening |
-| **`tv_autorecord`** | **Avoid.** Widely reported to misbehave, and the plugin should drive recording explicitly anyway — a match plugin that does not know whether it is recording cannot report honestly |
-| **`tv_snapshotrate`** | The GOTV capture rate. **This is a knob, not a fixed limit** — see below |
+| `tv_enable 1` | Required before any GOTV recording |
+| `tv_record` / `tv_stoprecord` | Start/stop the **server-side** match demo |
+| `tv_record_immediate` | Start now, ignoring `tv_delay` — **use it**, or the demo is missing its opening |
+| `tv_snapshotrate` | GOTV capture rate. **A knob, not a fixed limit** |
+| `record` / `stop` | Start/stop the **client-side** POV demo |
+| **`csgo_fatdemo_enable`** | **Records additional data for analysis — "fat" demos.** Default `false`; flags include both `sv` and `cl`. Paired with `csgo_fatdemo_output` (default `test.fatdem`) |
+| **`demo_flush`** | Forces the demo file to be written immediately |
+| `demo_recordcommands` | Records console commands into the `.dem` |
+| **`demo_gototick` / `demo_goto`** | **Jump straight to a tick.** The referee's most important command — see below |
+| `demo_marktick` / `demo_gotomark` | Mark a moment, return to it |
+| `demo_timescale` | Slow playback down — how an aim review is actually done |
+| `demo_info`, `listdemo` | Inspect a demo without watching it |
+| **`spec_show_xray`** | See players through walls in playback — **the wallhack check** |
+
+#### Three consequences
+
+**1. `csgo_fatdemo_enable` is a lead worth chasing before assuming GOTV is too coarse.** It exists
+precisely to record more than a normal demo, and its flags cover both server and client. **Whether a
+fat demo carries per-tick angle data is untested** — if it does, the fidelity gap may close without
+depending on client cooperation at all. Test it alongside `tv_snapshotrate`.
+
+**2. `demo_flush` sits directly on [002](docs/decisions/002-cs2-plugin.md)'s Tier 3 warning.** That
+decision already flags GOTV's framebuffer flush as a thing that lag-spikes every player when
+mistimed. `demo_flush` is the explicit form of it — **so the plugin has a lever here, and levers
+that write to disk mid-match must be pulled deliberately, not on a timer.**
+
+**3. Every flag must carry a tick number.** `demo_gototick` means a referee can be *at* the
+evidence in one command — or can scrub a forty-minute demo hunting for a moment somebody described
+as "round 12ish". The difference is entirely whether the anti-cheat recorded the tick.
+
+> **So the calibration record ([§2.12](#212-v14--why-65-of-cases-is-the-wrong-number-and-what-to-measure-instead))
+> and every referee-facing flag carry `(demo, tick)`.** It costs one integer and it is the
+> difference between a referee flow that works and one nobody uses twice.
+
+Sources:
+[Total CS — demo and overwatch commands](https://totalcsgo.com/commands/categories/demo-and-overwatch),
+[ArminC CS2 cvar list](https://github.com/ArmynC/ArminC-CS2-Cvars/blob/main/cvars/cvarlist.md).
 
 #### `tv_snapshotrate` partially reopens the fidelity question
 
