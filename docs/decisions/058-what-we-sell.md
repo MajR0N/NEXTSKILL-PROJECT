@@ -25,7 +25,7 @@ model.** See §5.
 | # | Line | Paid by | Depends on |
 | --- | --- | --- | --- |
 | **1** | **Promotion inside the server list**, sold per period (§6) | Server owner | [057](057-server-browser-and-seo.md) shipping, and **V12** answered |
-| **2** | **Anti-cheat** — ours, or integration with the one they already run (§6b) | Organiser / server owner | [052](052-cheating-and-rating-integrity.md) tier 1; a labelled corpus |
+| **2** | **Server-side anti-cheat** — the client scanner beside it is free (§6c) | Organiser / server owner | [052](052-cheating-and-rating-integrity.md); a labelled corpus, and **V14** |
 | **3** | **Tournament / bracket plugins**, standalone licence | Organiser | Phase 6 |
 | **4** | **Managed game servers on our VPS** — CS 1.6 first | Organiser / community | Money, and demand that already exists |
 | **5** | **Sponsored slots** beside the list | Advertiser / server owner | Traffic |
@@ -40,6 +40,7 @@ the paid lines are priced against.**
 | **The activity-reporting plugin** ([057](057-server-browser-and-seo.md) §2) | It is the instrument that produces verified human counts. A paid plugin means a small catalogue, and a small catalogue means **data tier 5 — the same public numbers GO-Setti already has.** The proprietary tier only exists at volume |
 | **Ratings, brackets, LFT, tournaments on nextskill.pl** | The rating only works at scale. Charging for the moat is charging for the thing that has no value until everyone is inside it |
 | **The verified badge itself** | A badge you can buy is not evidence. [057](057-server-browser-and-seo.md) §5 already forbids it: verification is *a badge and a filter, never a position boost* |
+| **The client-side scanner** (§6c) | It has to reach any suspected player, on any server, with no purchase in the way. **A paid scanner is a scanner nobody runs** — and every scan is a row in the corpus |
 
 > **The rule, in one line:** give away what makes the catalogue and the rating bigger; sell
 > everything that becomes possible *because* they are big.
@@ -372,7 +373,7 @@ for our benefit.
 
 | Option | What we do |
 | --- | --- |
-| **NEXTSKILL AC** (§1 line 2, [052](052-cheating-and-rating-integrity.md) tier 1) | Ours end to end. Detection heuristics stay server-side (§5) |
+| **NEXTSKILL AC** (§1 line 2, §6c) | Ours end to end — **a sold server-side AC plus a free on-demand scanner.** Detection heuristics stay server-side (§5) |
 | **Third-party client AC** — fungun/ECD, Wargods, others | **Integrate**: record that it was active, which one, and which version; ingest its verdicts where it exposes them |
 | **None** | Fully supported. Tier 0 is [052](052-cheating-and-rating-integrity.md)'s default and stays the default |
 
@@ -452,6 +453,191 @@ distribution, and to us for the credibility of shipping something CS 1.6 owners 
 > *means*.
 
 
+## 6c. The anti-cheat product — two components, one of them sold
+
+**Decided 2026-08-22.** NEXTSKILL builds **both halves itself**: a server-side anti-cheat and a
+client-side **scanner**. They are not the same kind of thing and they are not sold the same way.
+
+| Component | What it is | Price |
+| --- | --- | --- |
+| **Server-side AC** | Live, on the game server. Behavioural detection during play | **Sold** (§1 line 2) |
+| **Client-side scanner** | **On-demand, like ECD.** The player runs it when asked; it scans and reports | **Free** |
+
+> **The client is a verification tool, not a live anti-cheat.** It does not run during a match, it
+> does not hook the game, and it is never required to play. Zero-install stays the default
+> ([052](052-cheating-and-rating-integrity.md)).
+
+### The flow
+
+**Suspicion is a meter, not a switch.** Nothing here fires on a single event.
+
+1. **The server-side AC flags a player as suspicious** — or an admin does, by hand — and the
+   **monitoring phase** begins.
+2. **Demo recording starts** at that moment, so the window under suspicion is the window on record.
+3. **The meter moves while monitoring runs.** It ends one of two ways:
+   - **It falls** → suspicion resolved, monitoring stops, nothing happened. **This is the common
+     case and it must be cheap** — most flags should end here, silently, with no accusation ever
+     reaching the player.
+   - **It rises past the threshold** → **a scan is necessary**, and the player is sent to
+     verification.
+4. **He downloads the scanner and runs it.**
+5. **The report lands on our admin panel.**
+6. **The report is shown to the player too, with the verdict** — he sees what we saw.
+7. **The scanner reports back to the server-side AC**, closing the loop on the live match.
+8. **Clean → he plays. Dirty → ban, keyed to a salted HWID hash.**
+9. **He may appeal**, and the appeal is answered with the **POV demo** from step 2.
+
+Step 6 is doing more work than it looks. A player shown the evidence against him can dispute a
+specific finding rather than a silent verdict — the same principle as [025](025-rating-system.md)'s
+visible `±RD` and [050](050-match-results-and-ratings.md)'s `Provenance`: **the record explains
+itself.**
+
+**The meter is the fourth application of a principle this project keeps returning to.** `±RD`,
+`Declared`/`Bound` and [057](057-server-browser-and-seo.md)'s confidence tiers all say the same
+thing: *hold a degree of belief, act only at a threshold, and show the uncertainty rather than
+faking a verdict.* An anti-cheat that flags on one impossible flick is the version of this that
+ruins a scene.
+
+### Building our own scanner removes the licence blocker
+
+ECD ships **binary-only with no LICENSE file** — default all-rights-reserved — so we could never
+have bundled or redistributed it with a managed server (§6b). **Writing our own dissolves that
+problem** rather than negotiating around it. ECD integration stays available as a *recorded
+observation* (§6b) and as a referee's scan tool, but nothing we ship depends on someone else's
+undeclared licence.
+
+**One scanner covers all three games.** It inspects the machine, not the game, so CS 1.6, CS:GO and
+CS2 differ only in signatures — a materially smaller build than three clients.
+
+### The 65 / 35 split — a design assumption, not a measurement
+
+The server-side AC is expected to decide roughly **65%** of cases on its own: the unambiguous
+class — **aim snapping, anti-aim, spinbot**, movement that no human produces. The remaining **35%**
+are *very* or *moderately* suspicious and **are not machine-decidable**. Those go to the referee's
+desk, which already exists ([050](050-match-results-and-ratings.md),
+[036](036-authorization.md)).
+
+> ⚠ **65% is an estimate made before a single match was played, and it must be treated as one.**
+> **Do not publish it** — not in marketing copy, not on a pricing page, not to an organiser —
+> **until it is measured against the corpus.** [052](052-cheating-and-rating-integrity.md) already
+> warns that a *sold* anti-cheat makes a promise a free one does not; a published detection rate is
+> the most literal form of that promise, and the easiest to be held to.
+
+**The 35% is not a failure, it is the design.** It is why the referee flow, the demo retention and
+the verdict capture are load-bearing from day one: that residue is exactly the labelled corpus
+[052](052-cheating-and-rating-integrity.md) calls the moat.
+
+### The scanner's trust is asymmetric, and the flow must be built around that
+
+The scanner runs on the machine of the person it is investigating. So its output is not uniformly
+trustworthy, and the three outcomes are worth different amounts:
+
+| Outcome | Weight | Why |
+| --- | --- | --- |
+| **Dirty report** | **Strong** | Nobody forges evidence against himself |
+| **Clean report** | **Weak** | A patched client reports clean. It proves little on its own |
+| **Refusal, or a scan that never arrives** | **Decisive in practice** | This is what admins in the 1.6 scene already act on, and it is the outcome the flow should be designed to surface clearly |
+
+**Consequences for the build:** the report travels **from the scanner to our panel directly**,
+signed and encrypted, and the panel's copy is authoritative — never a file the player relays. A
+tampered or unverifiable report is treated as **refusal**, not as clean. And a clean report never
+clears a player *by itself*; it removes one suspicion, and the referee still holds the rest.
+
+### The appeal, and what answers the asymmetry: a POV demo
+
+A flagged or banned player **may appeal for verification.** For all three games the appeal is
+answered with the **client-side POV demo** recorded during his monitoring phase — the server-side AC
+carries the flags that issue the record command.
+
+**This is what the scan cannot give us.** A scan says what was on the disk; a POV demo shows the
+player's own view — the aim path, the flick, the movement — which is exactly the evidence that
+separates a spinbot from a good player, and exactly what the ambiguous 35% is argued over.
+
+| | |
+| --- | --- |
+| **Who holds it** | The player. **Recording is armed by the server at the flag**, so its existence is not his choice; he uploads it with the appeal, and **we store nothing unless he appeals** |
+| **What it proves** | Aim path and view movement, first-person. **The one artefact a cheater cannot produce a clean version of without actually playing clean** |
+| **If he cannot produce one** | The same decisive outcome as a refused scan. He appealed; the evidence he was asked for is the evidence he had |
+
+#### Recording starts at the flag, and two things follow from that
+
+The demo is armed by **us**, at the moment suspicion begins — so *"I was not recording"* is never
+available as a defence, and we pay no storage for the matches nobody ever questions. Two
+consequences to build around rather than discover:
+
+**1. Whatever happened before the flag is not on the demo.** Accepted: a flag means the behaviour is
+*ongoing*, so the window under suspicion is the window that matters. If a class of cheating is
+found to be over before the meter reacts, the answer is a faster meter, not recording everything.
+
+**2. The player can see the recording, and can stop it.** The engine shows it. This cuts both ways
+and both ways are useful:
+
+| Behaviour | What it means |
+| --- | --- |
+| **He stops the recording** | Treated exactly like a refused scan — **an interrupted demo is refusal, never clean** |
+| **He turns the cheat off** | The deterrent worked. A cheater not cheating is the outcome we wanted from the round |
+| **The meter collapses the instant recording starts** | **This is itself a signal.** Suspicion that evaporates precisely when observation begins is a pattern, and the AC should score it rather than congratulate itself |
+
+The third row is the one that keeps the loop from being played. Otherwise a cheater simply toggles
+off while monitored, waits for monitoring to end, and toggles back on — and each cycle looks like a
+false positive resolving cleanly.
+
+#### What this fixes, and it is not small
+
+[024](024-demos.md), [005](005-cs16-plugin.md) and [052](052-cheating-and-rating-integrity.md) all
+record the same hole: **CS 1.6 has no server-side demo pipeline**, so *"dispute resolution for 1.6
+falls back to team confirmation, with no video evidence to appeal to."*
+
+**A client-side POV demo is a different mechanism from GOTV and it exists in 1.6.** It does not
+give 1.6 a broadcast pipeline and it must not be marketed as demos-for-1.6 — but it does give the
+referee something to look at in the case that matters most, which 1.6 previously had nothing for.
+
+#### The honest limit
+
+The demo is produced on the suspect's machine, so it inherits §6c's asymmetry: **a damning demo is
+strong, a clean one is weaker, and no demo is the decisive one.** It is harder to forge than a scan
+report — faking a clean POV demo means playing a clean session — but it is not proof, and it is
+weighed by a referee like everything else in [052](052-cheating-and-rating-integrity.md).
+
+### HWID: propagation, not verdict
+
+Banning is keyed to a **salted hash of the hardware identifier — never the raw value.**
+
+- It **widens a ban that has already been decided** (automatically for the unambiguous class,
+  by a referee for everything else). It does not create one, because a user-mode identifier
+  supplied by the suspect's own machine could otherwise be forged to *aim a ban at a rival*.
+- It is **spoofable**, and the product must say so. Kernel-mode identifiers resist it and
+  [052](052-cheating-and-rating-integrity.md) rejects kernel drivers permanently. **This stops a
+  banned cheater re-registering; it does not stop someone who bought a spoofer with his cheat.**
+- **Collateral is real:** shared family machines, LAN centres and internet cafés, resold hardware,
+  a swapped motherboard. An HWID ban hits a box, not a person — so appeal to a human is mandatory,
+  not a courtesy.
+- It joins the account as a second key in [052](052-cheating-and-rating-integrity.md)'s
+  *"bans propagate; trust does not"*.
+
+### Why only the server side is sold
+
+Consistent with §2: **we sell what becomes possible because the free half is everywhere.**
+
+| | |
+| --- | --- |
+| **Scanner free** | It must reach every suspected player on any server, instantly, with no purchase in the way. A paid scanner is a scanner nobody runs — and every scan is a row in the corpus |
+| **Server-side sold** | It is the part an organiser installs, runs continuously and actually benefits from. It is also the part that cannot be pirated usefully: like §3a, its heuristics stay server-side and its value is enforced by us |
+
+`ponytail:` the scanner is an on-demand executable and a signed upload endpoint — no service, no
+live hooking, no arms race. Ceiling: it catches the careless and makes refusal legible; it does not
+see a cheat that was never installed to disk or that was cleaned before the scan. Upgrade path is
+live client detection, and only when the corpus shows the on-demand model missing a class of cheat
+it should have caught.
+
+### Verification
+
+| # | Question | Blocks |
+| --- | --- | --- |
+| **V13** | On what lawful basis do we collect and retain a hardware identifier, for how long, and how does a permanent ban list coexist with the erasure right [011](011-accounts-and-login.md) already implements? | **HWID banning.** A hardware identifier is personal data, and [012](012-security.md) currently advertises **zero persisted application IPs** — this is a deliberate reversal of that posture and must be assessed and written down, not assumed. Salted hash only; raw identifiers are never stored |
+| **V14** | Does the server-side AC actually decide ~65% of cases, at a false-positive rate low enough to auto-ban on? | **Auto-banning, and any published figure.** Calibrate against the corpus before either. A false ban in a scene this small cannot be undone — the same reasoning as **V11** |
+| **V15** | **Can the game server trigger a client-side POV demo recording** on CS 1.6 (AMXX `client_cmd`), CS:GO and CS2 — and is the command still permitted by each engine, or blocked as a protected client command? | **The whole appeal path.** CS:GO and CS2 restricted server-issued client commands considerably; **1.6 is the most likely to work and the one that needs it most.** Verify on a real server per game before writing anything that depends on it, exactly as **V2b/V3/V4** are treated |
+
 ## 7. Sequencing
 
 Forced by dependency, not preference. **Rule 4 changed this order**, and the change is worth
@@ -463,7 +649,7 @@ seeing rather than discovering:
 | **2nd** | **The activity plugin** *(free, not a revenue line)* | Phase 6. **It is now on the critical path to revenue**, because nothing can be boosted until something can be verified |
 | **3rd** | **Line 1 — boost** | Verified servers existing, **and V12 answered** |
 | **4th** | **Line 3 — standalone licence** | The match plugins, Phase 6 |
-| **5th** | **Line 2 — anti-cheat** | [052](052-cheating-and-rating-integrity.md)'s corpus, which needs matches, which needs line 3. **Research runs in parallel from now; shipping does not.** Third-party integration (§6b) can land earlier — it is a record, not a detector |
+| **5th** | **Line 2 — server-side anti-cheat** | [052](052-cheating-and-rating-integrity.md)'s corpus, which needs matches, which needs line 3, **and V14** before anything auto-bans or any rate is published. **The free scanner (§6c) can ship earlier** — it produces corpus rows rather than consuming them, and third-party integration (§6b) is a record, not a detector |
 | **6th** | **Line 4 — managed servers** | Money. Last, because it is the only line with a downside |
 
 > **The cost of rule 4, stated plainly:** gating boost on verification **delays boost revenue until
@@ -496,6 +682,13 @@ seeing rather than discovering:
   evidence**, which extends 052's *"AC state belongs on the record, not in a gate"* to software we
   did not write.
 - **Phase 6 grows**: the licensing seam (§3a), anti-cheat research, and the third-party AC record.
+- **Phase 6 grows again**: the free on-demand **scanner** (§6c) and the sold server-side AC are two
+  deliverables, not one, and the scanner is the earlier of the two.
+- **Two new verification items, both about not being wrong in public.** **V13** — the lawful basis
+  for HWID retention, which reverses [012](012-security.md)'s zero-persisted-identifiers posture
+  deliberately. **V14** — whether the server-side AC really decides ~65% at a false-positive rate
+  worth auto-banning on. Neither is an engineering unknown; both are things that cannot be undone
+  once published or once someone is wrongly banned.
 - **[009](009-api-contract.md) gains a typed refusal** on the config endpoint, and
   [033](033-maintenance-mode.md)'s *degrade, don't stop* now also governs licensing:
   **a live match is never killed for a commercial reason**.
@@ -557,3 +750,24 @@ seeing rather than discovering:
 16. **No page claims an *unearned* third-party endorsement** — outside our own managed servers and any signed partnership, *"powered by"* appears nowhere near a
     vendor name, and a recorded anti-cheat renders as an observation (`zgłoszony`), never as a
     guarantee (§6b).
+
+**Anti-cheat** (§6c):
+
+17. **A tampered or unverifiable scan report is treated as refusal, never as clean** — a report
+    whose signature does not check produces the refusal outcome, not the passing one.
+18. **A clean report clears nothing by itself** — it removes the scan suspicion and leaves any
+    referee case open; it never closes a dispute on its own.
+19. **No raw hardware identifier is ever persisted** — only a salted hash reaches the database, and
+    the no-secret-in-logs check ([012](012-security.md)) is extended to cover it (**V13**).
+20. **An HWID ban widens an existing ban and never creates one** — recording a hardware hash with
+    no decided ban behind it bans nobody, so a forged identifier cannot be aimed at a rival.
+21. **Every automatic ban is appealable to a human** — an auto-banned account can reach the referee
+    desk, because an HWID ban hits a machine and machines are shared ([036](036-authorization.md)).
+22. **A flag arms recording, and a fallen meter leaves no trace** — raising suspicion starts the
+    demo; a meter that falls back below threshold ends monitoring, notifies nobody, and stores
+    nothing. **Most flags must end here** (§6c, **V15**).
+23. **An interrupted or stopped recording is refusal, never clean** — the same rule as a tampered
+    scan report.
+24. **An appeal without a demo is heard, not dismissed** — the appeal is accepted, the absence is
+    recorded as an absence, and a referee weighs it
+    ([052](052-cheating-and-rating-integrity.md) §3).

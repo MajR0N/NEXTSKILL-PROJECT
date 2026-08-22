@@ -812,11 +812,42 @@ Concretely, one at a time. **No shared abstraction until both exist** ([001](dec
   five-minute window with humans separated from bots. **Stays free forever**
   ([058](decisions/058-what-we-sell.md) §2): it is what makes the catalogue proprietary, and a paid
   one would shrink the catalogue back to public data
-- ◐ **Anti-cheat — research only, in parallel from now** ([052](decisions/052-cheating-and-rating-integrity.md),
-  [058](decisions/058-what-we-sell.md) line 2). **Detection heuristics live server-side**, on demos
-  and reported events; the client collects, it does not judge. That is the one component whose value
-  *is* its secrecy, and keeping it off the wire is what protects it. **Shipping is gated on a corpus**,
-  which needs matches, which needs the plugins above — so this cannot jump the queue
+- ☐ **Anti-cheat — two components** ([058](decisions/058-what-we-sell.md) §6c,
+  [052](decisions/052-cheating-and-rating-integrity.md)). **The sold half is the server side; the
+  client scanner is free.**
+  - ☐ **Client scanner — on-demand, never live** — the player runs it when the server-side AC or an
+    admin sends him to verification. **One scanner covers all three games** (it inspects the
+    machine, not the game; only signatures differ), and it never runs during a match, so
+    zero-install stays the default. **Ships before the sold half** — it produces corpus rows
+    rather than consuming them
+  - ☐ **The report reaches our panel and the player**, with the verdict, so a finding can be
+    disputed specifically rather than a silent ban being argued about
+  - ☐ **A tampered, unsigned or missing report is refusal, never clean** — the report travels
+    scanner→panel directly, signed; the panel copy is authoritative and is never a file the player
+    relays. **A clean report clears nothing by itself**
+  - ☐ **HWID: salted hash only, never the raw value.** It **widens a ban already decided** and
+    never creates one, or a forged identifier becomes a way to ban a rival. Every automatic ban is
+    appealable — an HWID ban hits a machine, and machines are shared (⊘ blocked on **V13**)
+  - ☐ **Server-side AC — the sold half.** Expected to decide the unambiguous class alone (aim
+    snapping, anti-aim, spinbot). **The ~65% figure is an estimate and must not be published**
+    until measured; the residual ~35% goes to the referee desk and *is* the corpus
+    (⊘ blocked on **V14** before any auto-ban or published rate)
+  - ☐ **Suspicion is a meter, not a switch** — a flag opens a **monitoring phase** and starts the
+    demo; the phase ends when the meter **falls** (silently, storing nothing, notifying nobody —
+    **this must be the common case**) or **rises past the threshold**, which is what triggers the
+    scan. Fourth application of the show-your-uncertainty principle behind `±RD`,
+    `Declared`/`Bound` and the listing confidence tiers
+  - ☐ **A meter that collapses the moment recording starts is itself scored** — otherwise a cheater
+    toggles off while watched, waits out the phase and toggles back on, and every cycle looks like
+    a false positive resolving cleanly
+  - ☐ **Appeal answered with the POV demo from the monitoring phase** — recording is armed **by us,
+    at the flag**, so its existence is never the player's choice and *"I was not recording"* is not
+    a defence. He uploads on appeal, so **nothing is stored unless he appeals**. **An interrupted or
+    stopped recording counts as refusal, never clean**
+  - ☐ **This partially closes the 1.6 evidence hole** ([024](decisions/024-demos.md),
+    [052](decisions/052-cheating-and-rating-integrity.md)) — a client POV demo is not GOTV and must
+    **never be marketed as demos for 1.6**, but it gives the referee something to look at where
+    there was previously nothing (⊘ blocked on **V15**)
   - ☐ **Third-party AC integration can land first** ([058](decisions/058-what-we-sell.md) §6b) —
     CS 1.6 servers already run **fungun/ECD** and **Wargods**. We record `(vendor, version,
     verdict)` on the participant rather than asking anyone to switch. It is **a record, not a
@@ -864,6 +895,9 @@ Carried from CONTEXT §7. **Must be resolved before the code that depends on the
 | **V10** | Is the CS:GO community-server population large enough to justify reopening [001](decisions/001-game-scope.md) for tournaments? | [057](decisions/057-server-browser-and-seo.md) — **the listing measures it for free** before any CS:GO plugin work |
 | **V11** | Are padded player counts distinguishable from real ones over a multi-week series, at a publishable false-positive rate? | [057](decisions/057-server-browser-and-seo.md) §5a — calibrate against plugin-verified servers; a false accusation cannot be undone |
 | **V12** | Is **`Promowane`** sufficient disclosure wording, and a bordered band sufficient prominence, under the Polish implementation of the Omnibus Directive (2019/2161) and the DSA — and must the ranking criteria themselves be published? | [058](decisions/058-what-we-sell.md) §6 — **boost cannot ship until answered**. The label is decided; whether it satisfies the statute is not. The only item here gated on law rather than an engineering answer; single-sourced, so confirm against the current text or counsel before it reaches code |
+| **V13** | On what lawful basis do we collect and retain a hardware identifier, for how long, and how does a permanent ban list coexist with the erasure right [011](decisions/011-accounts-and-login.md) implements? | [058](decisions/058-what-we-sell.md) §6c — **blocks HWID banning**. A hardware identifier is personal data, and [012](decisions/012-security.md) currently advertises **zero persisted application IPs**: this is a deliberate reversal of that posture and must be assessed and written down. Salted hash only |
+| **V14** | Does the server-side AC actually decide ~65% of cases, at a false-positive rate low enough to auto-ban on? | [058](decisions/058-what-we-sell.md) §6c — **blocks auto-banning and any published detection rate**. The figure is an estimate made before a single match; calibrate against the corpus. A false ban in a scene this small cannot be undone, the same reasoning as **V11** |
+| **V15** | **Can the game server trigger a client-side POV demo recording** — CS 1.6 (AMXX `client_cmd`), CS:GO and CS2 — or is it blocked as a protected client command? | [058](decisions/058-what-we-sell.md) §6c — **the whole appeal path**. CS:GO and CS2 restricted server-issued client commands considerably; **1.6 is the most likely to work and the one that needs it most**, since it has no server-side demo pipeline at all. Verify on a real server per game, exactly as **V2b/V3/V4** are treated |
 | — | Do **Unbounded** and **IBM Plex** actually cover Cyrillic? | [019](decisions/019-visual-identity.md) |
 
 ## Design note

@@ -67,6 +67,22 @@ spoofable by default.
 > **Two exceptions:** on **our own managed servers** ([058](058-what-we-sell.md) line 4) running a
 > vendor is a fact about our infrastructure, and a **signed partnership** removes the objection
 > altogether. Neither changes what a verdict *means* — only what we may say about who produced it.
+>
+> **[058](058-what-we-sell.md) §6c settles the shape of our own anti-cheat: two components.** A
+> **sold server-side AC**, and a **free on-demand client scanner** — the scanner is a *verification
+> tool*, not a live client anti-cheat. It never runs during a match and is never required to play,
+> so §"The trade we already made" holds unchanged and zero-install remains the default. A flag from
+> the server side (or an admin) sends a player to verification; he scans; the report reaches our
+> panel **and him**, with the verdict.
+>
+> **Three constraints this document imposes on that flow.** (1) The scanner runs on the machine it
+> is investigating, so **a dirty report is strong evidence, a clean one is weak, and a tampered or
+> missing report counts as refusal — never as clean.** (2) The ~65% the server side is expected to
+> decide alone is **an estimate, not a measurement** (**V14**); the residual 35% is not a failure
+> but the corpus this document calls the moat. (3) **HWID bans key on a salted hash and only widen
+> a ban already decided** — a user-mode identifier from a suspect's own machine could otherwise be
+> forged to aim a ban at a rival, and an HWID ban hits a shared machine, so appeal to a human is
+> mandatory (**V13**).
 
 ## Decision: detect and make consequential, do not attempt to prevent
 
@@ -128,6 +144,13 @@ community's players from the whole platform would be a worse problem than the ch
   plugins and demos raise the cost; they do not prevent it.
 - **CS 1.6 has almost no defence.** No demo pipeline ([024](024-demos.md)), spoofable identity,
   non-Steam clients. Rated 1.6 play rests on the format defence in §1 and on human judgement.
+
+  > **Softened 2026-08-22 by [058](058-what-we-sell.md) §6c — but only for the appeal.** A
+  > **client-side POV demo**, armed by the server when the suspicion meter flags a player and
+  > uploaded when he appeals, gives 1.6 the video evidence this bullet says it lacks. It is not GOTV,
+  > not routine retention, and it is not *demos for 1.6*. **Rated 1.6 play still rests on the
+  > format defence and human judgement** — this adds one artefact to the referee's desk in the case
+  > that matters most (⊘ **V15**).
 
   > **For 1.6 we specify a baseline, we do not write one.** The community already solved this
   > server-side, which is exactly our shape — the stack admins actually run is Metamod + AMXX +

@@ -258,6 +258,41 @@ _Checked: 2026-08-11._
 
 ---
 
+### 2.8 EasyCheatDetector (ECD) — checked at source, and it is not what it looks like
+
+The Polish/CIS CS 1.6 scene already runs free client-side cheat scanners. ECD is the most
+prominent, and it was assumed to be a live client anti-cheat. **It is not.**
+
+| | |
+| --- | --- |
+| **Games** | CS 1.6 **95%**, CS:S, **CS2 50%**, HL1/HL2 mods, Minecraft; RUST 0% (in development) |
+| **Detects** | Running processes, loaded modules, active drivers, cheat traces (installed / run / downloaded) |
+| **Mode** | **On-demand scanner.** The user runs the executable and it produces a `report.ecd`. **Not real-time, not a live anti-cheat** |
+| **Transmits** | SteamID and partial IP, AES-256 + RSA-2048. **No hardware identifier** |
+| **Licence** | **None stated** — no `LICENSE` file, binary-only releases, no source published |
+| **Integration** | No API, no webhook. An offline Report Viewer only |
+
+**Three consequences, all load-bearing for
+[058](docs/decisions/058-what-we-sell.md) §6b–§6c:**
+
+1. **It cannot be the client half of a live anti-cheat product**, because it does not run during a
+   match. What it *is* — and this is genuinely useful — is the *"run ECD and post your report"*
+   workflow the scene already uses, which fits a referee's dispute flow exactly.
+2. **We cannot ship or bundle it.** No licence means all rights reserved by default. Any plan that
+   redistributes it needs written permission first, which is why
+   [058](docs/decisions/058-what-we-sell.md) §6b makes a signed partnership a **precondition**
+   rather than an opportunity.
+3. **CS2 coverage is 50%**, so leaning on it for CS2 leaves half the problem unsolved. This is the
+   concrete gap that justifies writing our own scanner — a capability argument, not a branding one.
+
+Contact is public (Telegram `@karaul0v`, `karaulov@fungun.net`) should a partnership ever be
+pursued.
+
+Sources: [github.com/UnrealKaraulov/EasyCheatDetector](https://github.com/UnrealKaraulov/EasyCheatDetector/),
+[fungun.top/ecd](https://fungun.top/ecd/).
+
+_Checked: 2026-08-22._
+
 ## 3. Engineering principles
 
 These are binding, not aspirational.
@@ -455,7 +490,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [037](docs/decisions/037-platform-hosting.md) | Platform hosting & tenancy | **decided** — single hosted instance on our own domain; organisers are tenants, not installers |
 | [038](docs/decisions/038-build-order.md) | Build order | **decided** — web platform first; plugins replaced by a real HTTP **simulator**, not a stub |
 | [039](docs/decisions/039-public-api.md) | Public API + API style | **decided** — REST (gRPC impossible for CS 1.6, GraphQL solves a problem we don't have); **SSE** for live updates, not WebSockets |
-| [058](docs/decisions/058-what-we-sell.md) | **What we sell** | **decided** — five lines: **boost**, anti-cheat, a standalone plugin licence, managed CS 1.6 servers, sponsored slots. **Free where it feeds the rating or the catalogue; paid on top.** **Overturns [057](docs/decisions/057-server-browser-and-seo.md) §5** — money buys position inside the list, but **only a `Verified` server may be boosted**, so the paid line recruits for the free plugin. Reopens [007](docs/decisions/007-server-hosting-model.md) and [042](docs/decisions/042-hosting.md). Licensing withholds config rather than shipping a checkable branch. **V12 blocks boost** |
+| [058](docs/decisions/058-what-we-sell.md) | **What we sell** | **decided** — five lines: **boost**, **server-side anti-cheat**, a standalone plugin licence, managed CS 1.6 servers, sponsored slots. **Free where it feeds the rating, the catalogue or the corpus; paid on top.** **Overturns [057](docs/decisions/057-server-browser-and-seo.md) §5** — money buys position inside the list, but **only a `Verified` server may be boosted**. Anti-cheat is two components: a **sold server-side AC** and a **free on-demand scanner**, with suspicion as a meter, a monitoring phase, POV-demo appeals and salted-hash HWID propagation. Licensing withholds config rather than shipping a checkable branch. **V12 blocks boost; V13–V15 block the anti-cheat** |
 
 ---
 
@@ -497,6 +532,9 @@ verified before code depends on it — per project instruction, test before ackn
 | **V10** | The CS:GO community-server population justifies reopening [001](docs/decisions/001-game-scope.md) for tournaments | [057](docs/decisions/057-server-browser-and-seo.md) | The listing measures it — ship the list, count, then commit plugin work |
 | **V11** | Padded player counts are distinguishable from real ones over a multi-week series, at a false-positive rate low enough to publish | [057](docs/decisions/057-server-browser-and-seo.md) §5a | Poll for a month before labelling anything. **The plugin-verified servers are the ground truth** to calibrate against — a false accusation against a legitimate server cannot be undone |
 | **V12** | Paid-placement disclosure under the Polish implementation of the Omnibus Directive (2019/2161) and the DSA — is **`Promowane`** sufficient wording, is a bordered band sufficient prominence, and must the ranking criteria themselves be published? | [058](docs/decisions/058-what-we-sell.md) §6 | **Blocks boost shipping.** The label is decided (`PROMOWANE · ZWERYFIKOWANE`); what is unconfirmed is whether it satisfies the statute. The first item here gated on law rather than engineering, and single-sourced — confirm against the current text or counsel *before* it reaches code |
+| **V13** | Lawful basis, retention period and erasure-right reconciliation for a stored hardware identifier | [058](docs/decisions/058-what-we-sell.md) §6c | **Blocks HWID banning.** A hardware identifier is personal data, and [012](docs/decisions/012-security.md) currently advertises **zero persisted application IPs** — reversing that is a decision, not a side effect. **Salted hash only; the raw value is never stored** |
+| **V14** | Does the server-side AC decide ~65% of cases at a false-positive rate low enough to auto-ban on? | [058](docs/decisions/058-what-we-sell.md) §6c | **Blocks auto-banning and any published rate.** An estimate made before a single match was played. Calibrate against the corpus first — **a sold anti-cheat makes a promise a free one does not** ([052](docs/decisions/052-cheating-and-rating-integrity.md)) |
+| **V15** | Can the game server trigger a client-side POV demo recording on CS 1.6, CS:GO and CS2, or is it a protected client command? | [058](docs/decisions/058-what-we-sell.md) §6c | **Blocks the appeal path.** CS:GO/CS2 restricted server-issued client commands; **1.6 both needs it most and is likeliest to allow it** — it has no server-side demo pipeline ([024](docs/decisions/024-demos.md)). Verify per game on real hardware before any code depends on it |
 
 **V3 is the highest priority**, and this paragraph used to say V1 — which its own table above
 had already marked resolved on 2026-08-10. Corrected 2026-08-17.

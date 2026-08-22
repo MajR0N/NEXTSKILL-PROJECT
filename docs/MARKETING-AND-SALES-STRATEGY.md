@@ -630,7 +630,7 @@ that becomes possible because they are big.*
 | # | Line | Paid by | The pitch |
 | --- | --- | --- | --- |
 | **1** | **Boost** — a verified server pays to sit higher in the list for a period | Server owner | An existing market at an existing price: owners already pay CS-Boost, tsarvar and GO-Setti. **Ours is the only one where the population figure is real**, because only verified servers are eligible |
-| **2** | **Anti-cheat** — ours, or integration with the one they already run (fungun/ECD, Wargods) | Organiser / server owner | The thing a prize final actually needs, and §10's named risk that kills the rating. Integrating rather than replacing means an owner keeps what his players already trust |
+| **2** | **Server-side anti-cheat** — sold. **The client scanner beside it is free**, on-demand, and never runs during a match | Organiser / server owner | The thing a prize final actually needs, and §10's named risk that kills the rating. Zero-install stays the default: nobody installs anything to play, only to answer a suspicion |
 | **3** | **Tournament / bracket plugins** — standalone licence | Organiser | Free when the match reports to us; paid when it does not. See below |
 | **4** | **Managed game servers on our VPS**, CS 1.6 first | Organiser / community | *Play where the hitboxes are right* — ReHLDS + ReGameDLL_CS, our plugins and our anti-cheat, guaranteed present together |
 | **5** | **Sponsored slots** beside the list | Advertiser / server owner | Placement next to a list people *trust* is worth more per impression than placement inside one they don't |

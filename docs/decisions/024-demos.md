@@ -5,6 +5,16 @@
 **Applies to CS2 only** — CS 1.6 has no server-side demo pipeline
 ([001](001-game-scope.md)).
 
+> **Narrowed 2026-08-22 by [058](058-what-we-sell.md) §6c.** *"CS 1.6 has no server-side demo
+> pipeline"* remains true and this document still applies to CS2 only. But a **client-side POV
+> demo** is a different mechanism and it exists in 1.6: the server-side AC arms recording when its
+> suspicion meter flags a player, and he uploads his own demo **only when he appeals a ban**.
+>
+> **Nothing here changes.** There is no broadcast pipeline, no routine retention, no storage cost —
+> we hold nothing unless someone appeals — and **it must never be marketed as demos for 1.6**
+> ([005](005-cs16-plugin.md) §"No demos" stands). What it buys is one artefact for the referee in
+> the case that matters most, where 1.6 previously had none (⊘ **V15**).
+
 ---
 
 ## Scale
