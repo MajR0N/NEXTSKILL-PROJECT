@@ -14,6 +14,14 @@
 > we hold nothing unless someone appeals — and **it must never be marketed as demos for 1.6**
 > ([005](005-cs16-plugin.md) §"No demos" stands). What it buys is one artefact for the referee in
 > the case that matters most, where 1.6 previously had none. **Confirmed available** — AMXX `client_cmd` is field-proven for exactly this ([CONTEXT §2.9](../../CONTEXT.md)); the residual question is only whether a player who enables `cl_filterstuffcmd` can refuse it, which §6c already treats as refusal rather than clean.
+>
+> **Extended the same day.** A client POV demo is not merely 1.6's substitute for what this
+> document describes — **it is the higher-fidelity artefact in every game.** GOTV runs at snapshot
+> rate with interpolated, quantised angles, which is fine for a match record and **not sufficient
+> for per-tick aim analysis** ([CONTEXT §2.9](../../CONTEXT.md)). Nothing in this document's
+> retention or budget changes — **POV demos cost us nothing until someone appeals** — but a referee
+> deciding from GOTV alone must have that labelled, so no verdict reads as if it rested on evidence
+> it did not have.
 
 ---
 

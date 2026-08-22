@@ -844,11 +844,15 @@ Concretely, one at a time. **No shared abstraction until both exist** ([001](dec
     at the flag**, so its existence is never the player's choice and *"I was not recording"* is not
     a defence. He uploads on appeal, so **nothing is stored unless he appeals**. **An interrupted or
     stopped recording counts as refusal, never clean**
-  - ☐ **Per game, and only 1.6 needs it** ([CONTEXT §2.9](../CONTEXT.md)) — **CS 1.6: proven** via
-    AMXX `client_cmd`, and it is the game with no GOTV, so this is where the artefact was missing.
-    **CS:GO / CS2: not needed** — POV is reconstructed from the retained GOTV demo by spectating
-    the accused player inside it, so a CS2 appeal is answered from [024](decisions/024-demos.md)
-    with no client command at all
+  - ☐ **Per game** ([CONTEXT §2.9](../CONTEXT.md)) — **CS 1.6: proven** via AMXX `client_cmd`.
+    **CS:GO / CS2: open (V15).** **GOTV is not a substitute** — snapshot rate and interpolated,
+    quantised angles smooth away the per-tick view-angle behaviour an aimbot signal lives in, and
+    it is the *expensive* artefact ([024](decisions/024-demos.md) budgets ~156 GB/year) while a POV
+    demo costs us nothing until someone appeals
+  - ☐ **If forcing fails on CS2, ask instead** — a player told to record either does or does not,
+    and a missing recording is already **refusal, never clean**. Weaker, not a dead end
+  - ☐ **A GOTV-only verdict is labelled as such** — a referee must never record a decision as if it
+    rested on POV evidence that did not exist
   - ☐ **Check `cl_filterstuffcmd` while testing V2b/V3** — the CS 1.6 command filter names `setinfo`
     among the commands it restricts, and `setinfo` is the identity mechanism
     ([005](decisions/005-cs16-plugin.md), [010](decisions/010-identity-binding.md)). A player who
@@ -902,7 +906,7 @@ Carried from CONTEXT §7. **Must be resolved before the code that depends on the
 | **V12** | Is **`Promowane`** sufficient disclosure wording, and a bordered band sufficient prominence, under the Polish implementation of the Omnibus Directive (2019/2161) and the DSA — and must the ranking criteria themselves be published? | [058](decisions/058-what-we-sell.md) §6 — **boost cannot ship until answered**. The label is decided; whether it satisfies the statute is not. The only item here gated on law rather than an engineering answer; single-sourced, so confirm against the current text or counsel before it reaches code |
 | **V13** | On what lawful basis do we collect and retain a hardware identifier, for how long, and how does a permanent ban list coexist with the erasure right [011](decisions/011-accounts-and-login.md) implements? | [058](decisions/058-what-we-sell.md) §6c — **blocks HWID banning**. A hardware identifier is personal data, and [012](decisions/012-security.md) currently advertises **zero persisted application IPs**: this is a deliberate reversal of that posture and must be assessed and written down. Salted hash only |
 | **V14** | Does the server-side AC actually decide ~65% of cases, at a false-positive rate low enough to auto-ban on? | [058](decisions/058-what-we-sell.md) §6c — **blocks auto-banning and any published detection rate**. The figure is an estimate made before a single match; calibrate against the corpus. A false ban in a scene this small cannot be undone, the same reasoning as **V11** |
-| **V15** | ~~Can the server trigger client POV recording?~~ **Answered** ([CONTEXT §2.9](../CONTEXT.md)): CS 1.6 **yes, field-proven**; CS:GO/CS2 **not needed** — POV is reconstructed from the retained GOTV demo by spectating the player inside it. **Residual:** does `cl_filterstuffcmd 1` let a 1.6 player refuse `record`? | [058](decisions/058-what-we-sell.md) §6c — **closed as a blocker.** The residual is already handled by design: a recording that does not start is **refusal, never clean**. Test the filter with **V2b/V2c/V3** |
+| **V15** | **Can the server force client POV recording on CS:GO / CS2**, and does CS2 `record` still freeze the client in 2026? | [058](decisions/058-what-we-sell.md) §6c — **reopened 2026-08-22.** CS 1.6 proven and closed. **GOTV is not a substitute**: snapshot-rate interpolation smooths away the per-tick view-angle detail that distinguishes an aimbot ([CONTEXT §2.9](../CONTEXT.md)). **Answer by testing a live CS2 client** — the web recycles one 2023 post. If forcing is impossible, asking still yields a signal, since a missing recording is refusal |
 | — | Do **Unbounded** and **IBM Plex** actually cover Cyrillic? | [019](decisions/019-visual-identity.md) |
 
 ## Design note
