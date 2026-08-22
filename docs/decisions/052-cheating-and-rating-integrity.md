@@ -61,6 +61,12 @@ spoofable by default.
 > rule §"The AC state belongs on the record" states below. Several of these tools are old, closed
 > and publicly bypassed: *"an AC was running"* is not a security claim and must never be sold as one.
 > We bundle no third-party binary and warrant nobody else's detection quality.
+> **And we do not say *"powered by"* about a server we do not own.** It claims a relationship we do not have and points the wrong
+> way — a server owner chose to run it. A recorded anti-cheat renders as an observation
+> (`Anty-cheat: Wargods (zgłoszony)`), never as a guarantee ([058](058-what-we-sell.md) §6b).
+> **Two exceptions:** on **our own managed servers** ([058](058-what-we-sell.md) line 4) running a
+> vendor is a fact about our infrastructure, and a **signed partnership** removes the objection
+> altogether. Neither changes what a verdict *means* — only what we may say about who produced it.
 
 ## Decision: detect and make consequential, do not attempt to prevent
 

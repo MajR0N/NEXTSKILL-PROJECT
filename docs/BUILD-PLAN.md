@@ -760,8 +760,11 @@ launches with a decided palette and a designed OG card rather than in monochrome
   - ☐ **`Verified` servers only** — all three eligibility routes, partnership included. Money never
     buys the badge; the badge is the ticket to buy anything. **So this cannot ship before the
     activity plugin does** (Phase 6), which puts a free component on the critical path to revenue
-  - ☐ **Every boosted row is labelled**, rendered server-side and present with JavaScript off —
-    **a legal requirement, not a design choice** (⊘ blocked on **V12**)
+  - ☐ **The band reads `PROMOWANE · ZWERYFIKOWANE`** — bordered, badged, rendered server-side and
+    present with JavaScript off. `Promowane` is the **legally required** disclosure;
+    `Zweryfikowane` is the half no competitor can say. **`MasterBoost` rejected — GO-Setti's brand,
+    and "boost" alone never says *paid*.** Product name TBD; the disclosure ships regardless
+    (⊘ blocked on **V12**)
   - ☐ **Boost moves a row and nothing else** — count, human/bot split and confidence tier are
     byte-identical boosted or not. The ranking `/ranking/serwery/{month}` is untouched entirely
   - ☐ **Capped per page and per facet**, sold per period, **never auctioned**. A padding flag
@@ -823,6 +826,16 @@ Concretely, one at a time. **No shared abstraction until both exist** ([001](dec
     provenance-tagged evidence a referee weighs ([052](decisions/052-cheating-and-rating-integrity.md) §3).
     Several of these tools are old, closed and publicly bypassed: *"an AC was running"* is not a
     security claim and the product must never present it as one
+  - ☐ **Named as an observation, never an endorsement** — `Anty-cheat: Wargods (zgłoszony)` on a
+    server page; `Współpracuje z ECD, fungun i Wargods` in our own copy. **`Powered by` rejected**:
+    it claims a relationship we do not have and points the wrong way — a server owner chose to run
+    it, nothing of ours is powered by it. No vendor logos, no "official", no "partner" — **for servers
+    we do not own, and until something is signed**
+    ([058](decisions/058-what-we-sell.md) §6b)
+  - ☐ **Two exceptions** — on **our own managed servers** (058 line 4) running ECD is a fact about
+    our infrastructure, and **ECD is free to use**, so it ships at no licence cost. A **signed
+    partnership** lifts the restriction generally. Whether to pursue one with ECD or Wargods is a
+    **marketing-strategy question**, deferred there deliberately
 
 ## Phase 7 — Ship
 
@@ -850,7 +863,7 @@ Carried from CONTEXT §7. **Must be resolved before the code that depends on the
 | **V9** | Does `GetServerList` return community servers for app 730 and CS:GO, at a rate limit that allows polling the whole Polish catalogue every ~15 min? | [057](decisions/057-server-browser-and-seo.md) — **gates the confidence tiers, not just the listing** |
 | **V10** | Is the CS:GO community-server population large enough to justify reopening [001](decisions/001-game-scope.md) for tournaments? | [057](decisions/057-server-browser-and-seo.md) — **the listing measures it for free** before any CS:GO plugin work |
 | **V11** | Are padded player counts distinguishable from real ones over a multi-week series, at a publishable false-positive rate? | [057](decisions/057-server-browser-and-seo.md) §5a — calibrate against plugin-verified servers; a false accusation cannot be undone |
-| **V12** | What must a paid placement disclose under the Polish implementation of the Omnibus Directive (2019/2161) and under the DSA — wording, prominence, and whether the ranking criteria themselves must be published? | [058](decisions/058-what-we-sell.md) §6 — **boost cannot ship until answered**. The only item in this table gated on a statute rather than an engineering answer; single-sourced, so confirm against the current law or counsel before it reaches code |
+| **V12** | Is **`Promowane`** sufficient disclosure wording, and a bordered band sufficient prominence, under the Polish implementation of the Omnibus Directive (2019/2161) and the DSA — and must the ranking criteria themselves be published? | [058](decisions/058-what-we-sell.md) §6 — **boost cannot ship until answered**. The label is decided; whether it satisfies the statute is not. The only item here gated on law rather than an engineering answer; single-sourced, so confirm against the current text or counsel before it reaches code |
 | — | Do **Unbounded** and **IBM Plex** actually cover Cyrillic? | [019](decisions/019-visual-identity.md) |
 
 ## Design note

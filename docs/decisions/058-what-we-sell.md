@@ -144,6 +144,11 @@ own hardware the game server stops being untrusted third-party infrastructure, w
 [035](035-match-result-integrity.md) and [052](052-cheating-and-rating-integrity.md) for every
 match played there.
 
+**Anti-cheat on our own hardware is our choice to make.** ECD is free to use, so a NEXTSKILL-run
+server can ship with it at no licence cost, and *"our servers run ECD"* is a factual statement about
+our own infrastructure rather than a claim about anyone else's (§6b). Which vendor, and whether it
+becomes a mutual promotion, is a go-to-market question deferred to the marketing strategy.
+
 **Sequenced last** (§7). It is the only line that can lose money.
 
 ## 5. Decompilation is not the threat model
@@ -182,17 +187,40 @@ never an objection to *paid position* — it was an objection to paid position t
 apart from evidence. Under these four rules a boosted row is still a proven row; it has simply paid
 to be seen first.
 
-### Rule 1 — a promoted row is unmistakable, and that is the law, not a scruple
+### Rule 1 — a boosted row is unmistakable, and that is the law, not a scruple
 
-Every promoted row carries a visible, permanent label. Not a subtle tint, not a small icon: a word.
+Every boosted row carries a visible, permanent label. Not a subtle tint, not a small icon: a word.
 
 This is **not optional and not a design preference.** EU consumer law (the Omnibus Directive
 2019/2161, in force in Poland since 1 January 2023) requires disclosure of paid placement that
-affects ranking, and the DSA requires advertising to be identifiable as such. **A promoted row we
+affects ranking, and the DSA requires advertising to be identifiable as such. **A boosted row we
 failed to label is a regulatory problem before it is a trust problem.** See [V12](#verification).
 
-The commercial consequence is the useful one: a label is exactly what stops promotion from eating
-the evidence, and we are required to ship it anyway.
+The commercial consequence is the useful one: a label is exactly what stops boost from eating the
+evidence, and we are required to ship it anyway.
+
+#### The label, decided 2026-08-22
+
+> **`PROMOWANE · ZWERYFIKOWANE`** — a bordered band above the organic list, with its own badge.
+
+| Element | Decision |
+| --- | --- |
+| **Wording** | **`Promowane`** — standard Polish e-commerce usage (Allegro), so it reads as familiar rather than invented, and it **states the commercial nature**, which is the actual legal test |
+| **`· Zweryfikowane`** | The second half says the thing **no competitor can say**: everything in this band is plugin-verified (rule 4). The disclosure and the differentiator are the same string |
+| **Treatment** | A **bordered band**, visually separated from the organic rows, plus a distinct badge per row. Borders serve the *prominence* half of the requirement, not only aesthetics |
+| **Rendering** | Server-side, present with JavaScript off. **No code path may emit a boosted row without it** — runnable check 7 |
+| **Language** | Polish on the Polish surface. Any other locale needs the same test applied to *that* jurisdiction's wording, not a translation of ours |
+
+**`MasterBoost` was proposed and rejected.** It is **GO-Setti's product name**
+([MARKETING §2](../MARKETING-AND-SALES-STRATEGY.md)), so adopting it carries trademark and
+unfair-competition exposure (*ustawa o zwalczaniu nieuczciwej konkurencji*) — and it is
+strategically backwards, handing away the differentiator inside the label. It also **fails the
+legal test on its own**: "boost" never says *paid*, and a visitor who does not already know the
+term learns nothing from it.
+
+> **The internal product name is TBD.** Whatever it becomes, it is a *name*, never the disclosure.
+> `Promowane` is the disclosure and it appears regardless. Two constraints on the eventual name:
+> **not a competitor's brand**, and **not a word that implies the ranking was earned.**
 
 ### Rule 2 — promotion moves a row, it never touches a number
 
@@ -377,6 +405,53 @@ plus whatever ingest each vendor already offers. Ceiling: no live enforcement, n
 output cannot be read without reverse-engineering it. Upgrade path is a real vendor agreement, and
 only for one that a paying organiser actually asks for.
 
+### How a third-party anti-cheat is named on the page
+
+*"Powered by ECD / fungun"* was proposed and **rejected**, for three reasons that stack:
+
+| | |
+| --- | --- |
+| **It claims a relationship we do not have** | *"Powered by"* is the standard phrasing for a licensed integration or an endorsement. We have neither, and implying one is a misrepresentation before it is a trademark question |
+| **It points the wrong way** | Nothing of ours is powered by their anti-cheat. **A server owner chose to run it.** The fact belongs to the server, not to NEXTSKILL |
+| **It reads as a security guarantee** | Which is exactly what [052](052-cheating-and-rating-integrity.md) forbids. Several of these tools are old, closed and publicly bypassed; *"an AC was running"* is an observation, not protection |
+
+**Decided: neutral factual attribution, worded as an observation, attached to the server or the
+match — never to us.**
+
+| Surface | Wording |
+| --- | --- |
+| Server page / match record | **`Anty-cheat: Wargods (zgłoszony)`** — names the vendor and the version, and **`zgłoszony`** carries the provenance: it was *reported* to us through infrastructure [007](007-server-hosting-model.md) treats as untrusted |
+| Our own marketing | **`Współpracuje z ECD, fungun i Wargods`** — a compatibility claim about *our* software, which is ours to make. **Never their logos, never "official", never "partner"** unless one actually signs something |
+
+**The distinction that keeps this safe:** *"our product works with theirs"* is a factual statement
+about what we built. *"Powered by theirs"* is a statement about them. **We only ever make the
+first.**
+
+`ponytail:` this is a label and a nullable vendor string, not an integration programme. Ceiling: it
+says what ran, never how well. Upgrade path is a signed agreement with a vendor, and only if one
+ever wants their name used more strongly than this.
+### Two cases where naming a vendor *is* legitimate
+
+The rule above forbids claiming someone else's relationship or endorsement. It does **not** forbid
+stating a true one. Two cases where the claim is ours to make:
+
+| Case | Why it is fine | Wording |
+| --- | --- | --- |
+| **We run it on our own managed servers** (line 4) | On hardware we own, running ECD is a fact about **our** infrastructure, not a claim about theirs. *"Our servers run ECD"* is simply true | **`Nasze serwery: ECD`** — and here *powered by* is defensible, because the thing being powered is genuinely ours |
+| **An actual signed partnership** | The objection was *"claims a relationship we do not have."* **Signing one removes the objection.** Mutual promotion is an ordinary commercial arrangement | Whatever the agreement permits. Logos and *"official"* become available **only then** |
+
+**ECD is free to use**, which makes both cases cheap: line 4 carries no anti-cheat licence cost,
+and a partnership can trade exposure rather than money — attractive to a free project that gains
+distribution, and to us for the credibility of shipping something CS 1.6 owners already trust.
+
+> **Deferred to the marketing strategy, deliberately.** Whether to approach ECD or Wargods for a
+> partnership, what each side gives, and whether NEXTSKILL-run servers standardise on one vendor
+> are **go-to-market questions, not decisions this document should settle.** What 058 fixes is only
+> the constraint: **until something is signed, we describe, we do not endorse** — and even after,
+> §6b's record rules hold, because a partnership changes what we may *say*, never what a verdict
+> *means*.
+
+
 ## 7. Sequencing
 
 Forced by dependency, not preference. **Rule 4 changed this order**, and the change is worth
@@ -477,3 +552,8 @@ seeing rather than discovering:
     `(vendor, version, verdict)` record alters no rating and issues no ban, and the match record
     shows which anti-cheat produced it ([052](052-cheating-and-rating-integrity.md) §3,
     [050](050-match-results-and-ratings.md)).
+15. **No boosted row renders without the disclosure word** — `Promowane` is present in the
+    server-rendered HTML for every boosted row, with JavaScript off, in every locale (§6 rule 1).
+16. **No page claims an *unearned* third-party endorsement** — outside our own managed servers and any signed partnership, *"powered by"* appears nowhere near a
+    vendor name, and a recorded anti-cheat renders as an observation (`zgłoszony`), never as a
+    guarantee (§6b).

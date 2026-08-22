@@ -635,6 +635,22 @@ that becomes possible because they are big.*
 | **4** | **Managed game servers on our VPS**, CS 1.6 first | Organiser / community | *Play where the hitboxes are right* — ReHLDS + ReGameDLL_CS, our plugins and our anti-cheat, guaranteed present together |
 | **5** | **Sponsored slots** beside the list | Advertiser / server owner | Placement next to a list people *trust* is worth more per impression than placement inside one they don't |
 
+
+> **On naming other people's anti-cheats:** *"Powered by ECD/fungun"* is rejected **for servers we do not own**. It
+> claims a relationship we do not have, points the wrong way — **a server owner chose to run it**;
+> nothing of ours is powered by it — and reads as a security guarantee that
+> [052](decisions/052-cheating-and-rating-integrity.md) forbids. We say **`Współpracuje z ECD,
+> fungun i Wargods`**, a factual claim about our own software, and on a server page
+> **`Anty-cheat: Wargods (zgłoszony)`**. Never their logos, never "official", never "partner"
+> ([058](decisions/058-what-we-sell.md) §6b).
+>
+> **Two exceptions, and one of them is a real opportunity.** On **our own managed servers** (line 4)
+> running ECD is a fact about our infrastructure, so *powered by* is defensible there — and **ECD is
+> free to use**, so it costs nothing. And a **signed partnership** removes the objection entirely,
+> since the objection was only ever *"a relationship we do not have."* Mutual promotion with ECD or
+> Wargods — they gain distribution, we gain credibility with owners who already trust them — is
+> **an open go-to-market question for this document to settle**, not for 058.
+
 ### What stays free, and why that is commercial rather than generous
 
 | Free | Charging for it would… |
@@ -699,12 +715,19 @@ starts near zero.
 
 | | |
 | --- | --- |
-| **Labelled, always** | Every boosted row says so. **EU disclosure law requires it** (Omnibus, DSA) — this is a legal obligation before it is a trust choice. See **V12** |
+| **Labelled, always** | The band reads **`PROMOWANE · ZWERYFIKOWANE`**, bordered and badged. `Promowane` is the disclosure **EU law requires** (Omnibus, DSA) — see **V12**; `Zweryfikowane` is the half no competitor can say. The disclosure and the differentiator are the same string |
 | **No number ever moves** | Boost changes position and nothing else. *Liczby z serwera, nie z zapytania* stays literally true |
 | **The ranking stays unbuyable** | `/ranking/serwery/{month}` — *which server was best this month?* — is earned from player votes and is not for sale at any price |
 | **Verified only, all three routes** | Including partnership. A partner who will not run the plugin cannot be boosted |
 | **Capped** | A hard maximum of boosted rows per page. Uncapped, the list becomes a directory of whoever paid — the product we are competing against |
 | **No auctions** | Sold per period, never bid. An auction turns the cap into an escalating price for the same thing and reinstates *the richest server is always first* |
+
+
+> **`MasterBoost` was proposed as the name and rejected — it is GO-Setti's.** Adopting a
+> competitor's brand carries trademark and unfair-competition exposure, hands away the
+> differentiator inside the label, and **fails the legal test anyway**: "boost" never says *paid*.
+> The product name is **TBD**; whatever it becomes, `Promowane` is the disclosure and appears
+> regardless.
 
 ### Three routes in, still to be settled
 
