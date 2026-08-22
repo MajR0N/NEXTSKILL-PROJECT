@@ -369,6 +369,76 @@ _Checked 2026-08-22. The CS:GO/CS2 half was corrected twice the same day — fir
 
 
 ---
+### 2.10 Paid-placement disclosure law — V12 researched at statute level
+
+Researched for [058](docs/decisions/058-what-we-sell.md) §6 (boost). **Not legal advice — but the
+provisions are specific enough to design against, and one of them changed our label.**
+
+#### The binding rule: Art. 7 pkt 11a u.p.n.p.r.
+
+Poland implemented the Omnibus Directive (EU) 2019/2161 in the **ustawa o przeciwdziałaniu
+nieuczciwym praktykom rynkowym**, in force **1 January 2023**. The operative provision is on the
+**black list** — practices that are unfair *in all circumstances*, with no balancing test and no
+harm to prove:
+
+> **Art. 7 pkt 11a** — *"podawanie wyników wyszukiwania bez wyraźnego ujawnienia płatnej reklamy lub
+> płatności dokonanej specjalnie w celu uzyskania wyższego plasowania produktów w ramach wyników
+> wyszukiwania"*
+
+**There is no size exemption.** This binds us from the first boost sold.
+
+#### The second obligation, and it is a build item nobody had noticed
+
+> **Art. 6 ust. 4 pkt 8** — general information on **the main parameters determining placement and
+> their relative importance**, made available *"w specjalnej części interfejsu internetowego
+> dostępnej w sposób bezpośredni i łatwy ze strony, na której prezentowane są wyniki wyszukiwania"*.
+
+So the ranking criteria **must be published**, and in a specific place: **a dedicated section
+reachable directly and easily from the results page.** A line buried in a privacy policy does not
+satisfy it. This is a page we have to write, not just a label we have to render.
+
+**It also suits us.** [057](docs/decisions/057-server-browser-and-seo.md) already orders the list by
+live human count and the ranking by player votes; being *required* to publish that is an
+advertisement for the part of the product competitors cannot copy.
+
+#### The DSA does not reach us at this size
+
+**DSA Art. 26** (advertising transparency) and **Art. 27** (recommender-system transparency) sit in
+Chapter III **Section 3 (Arts. 24–28)**, and **Art. 19 excludes providers that are micro or small
+enterprises** (Recommendation 2003/361/EC: <50 staff, ≤€10m) — everything except **Art. 24(3)**. The
+carve-back applies only to designated VLOPs.
+
+> **So the DSA's "who paid for this ad" disclosure and ad repository are not obligations for us**,
+> and should not be built speculatively. **Re-check on crossing the small-enterprise threshold** —
+> and note the exemption is by *enterprise size*, not by traffic.
+
+#### The wording finding that changed our label
+
+The statute says *"wyraźne ujawnienie"* — clear disclosure — and prescribes no specific word. But
+UOKiK's published guidance on marking paid content is explicit that a label must convey the **paid**
+character: it **rejects *"współpraca"*** precisely because it states only that a relationship exists.
+Its accepted vocabulary is built on **`reklama`**, **`sponsorowany`**, **`płatna współpraca`**. It
+also warns against foreign-language, abbreviated or ambiguous labels.
+
+> **`Promowane` has exactly the weakness UOKiK named.** It says a row was promoted; it does not say
+> anyone paid. **Changed to `SPONSOROWANE`** — Google's Polish wording, in UOKiK's accepted family,
+> same length, no cost.
+
+**Honest limits of this finding:** UOKiK's guidance addresses influencer marketing rather than search
+ranking, and **Allegro uses `Promowane` at scale without apparent sanction**, so `Promowane` is
+defensible market practice. We took the safer word because the rule it sits under is black-listed —
+if it is wrong there is nothing to argue.
+
+Sources:
+[Omnibus Directive 2019/2161](https://eur-lex.europa.eu/eli/dir/2019/2161/oj/eng),
+[u.p.n.p.r. rozdz. 2 — Art. 6, Art. 7](https://lexlege.pl/ustawa-o-przeciwdzialaniu-nieuczciwym-praktykom-rynkowym/rozdzial-2-nieuczciwe-praktyki-rynkowe/3728/),
+[DSA Art. 19 — exclusion for micro and small enterprises](https://www.cms-digitallaws.com/en/dsa/article-19/),
+[UOKiK ad-labelling recommendations](https://www.parp.gov.pl/component/content/article/84396:reklamowanie-towarow-i-uslug-przez-influencera-w-swietle-prawa-i-rekomendacji-uokik).
+
+_Checked: 2026-08-22. **Statute-level research, not counsel.** Confirm before the first paid
+placement goes live._
+
+---
 
 ## 3. Engineering principles
 
@@ -609,7 +679,7 @@ verified before code depends on it — per project instruction, test before ackn
 | **V9** | `IGameServersService/GetServerList` returns community servers for app 730 and for CS:GO, with usable filters and a workable rate limit | [057](docs/decisions/057-server-browser-and-seo.md) | Get a Web API key, call it, record the rate ceiling. **Now gates more than the listing:** the confidence tiers need the whole Polish catalogue polled every ~15 min, so the rate ceiling decides whether the CS2 differentiation is possible at all |
 | **V10** | The CS:GO community-server population justifies reopening [001](docs/decisions/001-game-scope.md) for tournaments | [057](docs/decisions/057-server-browser-and-seo.md) | The listing measures it — ship the list, count, then commit plugin work |
 | **V11** | Padded player counts are distinguishable from real ones over a multi-week series, at a false-positive rate low enough to publish | [057](docs/decisions/057-server-browser-and-seo.md) §5a | Poll for a month before labelling anything. **The plugin-verified servers are the ground truth** to calibrate against — a false accusation against a legitimate server cannot be undone |
-| **V12** | Paid-placement disclosure under the Polish implementation of the Omnibus Directive (2019/2161) and the DSA — is **`Promowane`** sufficient wording, is a bordered band sufficient prominence, and must the ranking criteria themselves be published? | [058](docs/decisions/058-what-we-sell.md) §6 | **Blocks boost shipping.** The label is decided (`PROMOWANE · ZWERYFIKOWANE`); what is unconfirmed is whether it satisfies the statute. The first item here gated on law rather than engineering, and single-sourced — confirm against the current text or counsel *before* it reaches code |
+| **V12** | ~~Paid-placement disclosure wording and prominence?~~ **Researched at statute level ([§2.10](#210-paid-placement-disclosure-law--v12-researched-at-statute-level)).** Art. 7 pkt 11a (black-listed, no size exemption) + Art. 6 ust. 4 pkt 8 (publish ranking parameters, dedicated section); DSA Arts. 26–27 excluded at micro/small size. | [058](docs/decisions/058-what-we-sell.md) §6 | **Design unblocked; build to it.** Label changed `Promowane` → **`Sponsorowane`**, because UOKiK requires a label to convey *payment* — it rejects *"współpraca"* for the same gap. **Counsel confirmation before the first paid placement goes live**, and re-check the DSA exemption on crossing small-enterprise size |
 | **V13** | Lawful basis, retention period and erasure-right reconciliation for a stored hardware identifier | [058](docs/decisions/058-what-we-sell.md) §6c | **Blocks HWID banning.** A hardware identifier is personal data, and [012](docs/decisions/012-security.md) currently advertises **zero persisted application IPs** — reversing that is a decision, not a side effect. **Salted hash only; the raw value is never stored** |
 | **V14** | Does the server-side AC decide ~65% of cases at a false-positive rate low enough to auto-ban on? | [058](docs/decisions/058-what-we-sell.md) §6c | **Blocks auto-banning and any published rate.** An estimate made before a single match was played. Calibrate against the corpus first — **a sold anti-cheat makes a promise a free one does not** ([052](docs/decisions/052-cheating-and-rating-integrity.md)) |
 | **V15** | **Can the server force a client POV recording on CS:GO and CS2**, and does CS2 `record` still freeze the client in 2026? | [058](docs/decisions/058-what-we-sell.md) §6c | **Reopened 2026-08-22.** CS 1.6 is proven and closed. **GOTV is not a substitute** — snapshot-rate interpolation removes the per-tick view-angle detail an aimbot signal lives in ([§2.9](#29-server-triggered-client-pov-demo-recording--per-game-and-the-answer-differs)). **Test on a live CS2 client; the web only recycles a 2023 post.** If forcing proves impossible, *asking* still yields a signal — a missing recording is refusal, never clean |

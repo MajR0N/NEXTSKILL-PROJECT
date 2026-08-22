@@ -715,7 +715,8 @@ starts near zero.
 
 | | |
 | --- | --- |
-| **Labelled, always** | The band reads **`PROMOWANE · ZWERYFIKOWANE`**, bordered and badged. `Promowane` is the disclosure **EU law requires** (Omnibus, DSA) — see **V12**; `Zweryfikowane` is the half no competitor can say. The disclosure and the differentiator are the same string |
+| **Labelled, always** | The band reads **`SPONSOROWANE · ZWERYFIKOWANE`**, bordered and badged. `Sponsorowane` is the disclosure **Polish law requires** — Art. 7 pkt 11a, a practice unfair *in all circumstances*; `Zweryfikowane` is the half no competitor can say. **The disclosure and the differentiator are the same string** |
+| **We publish how we rank** | **Art. 6 ust. 4 pkt 8** obliges it, in a section reachable straight from the list. **Good news dressed as compliance**: being made to say *live human count orders the list, player votes order the ranking, and money orders nothing but the sponsored band* is an advertisement for the moat |
 | **No number ever moves** | Boost changes position and nothing else. *Liczby z serwera, nie z zapytania* stays literally true |
 | **The ranking stays unbuyable** | `/ranking/serwery/{month}` — *which server was best this month?* — is earned from player votes and is not for sale at any price |
 | **Verified only, all three routes** | Including partnership. A partner who will not run the plugin cannot be boosted |
@@ -726,8 +727,14 @@ starts near zero.
 > **`MasterBoost` was proposed as the name and rejected — it is GO-Setti's.** Adopting a
 > competitor's brand carries trademark and unfair-competition exposure, hands away the
 > differentiator inside the label, and **fails the legal test anyway**: "boost" never says *paid*.
-> The product name is **TBD**; whatever it becomes, `Promowane` is the disclosure and appears
+> The product name is **TBD**; whatever it becomes, `Sponsorowane` is the disclosure and appears
 > regardless.
+>
+> **`Promowane` was also rejected, on research rather than instinct.** UOKiK's guidance on marking
+> paid content turns on whether a label conveys **payment** — it rejects *"współpraca"* for saying
+> only that a relationship exists, and *"promowane"* has the same gap. Allegro uses it at scale
+> without apparent sanction, so it is defensible; we simply have no reason to rely on that when the
+> rule above is unfair *in all circumstances* ([CONTEXT §2.10](../CONTEXT.md)).
 
 ### Three routes in, still to be settled
 

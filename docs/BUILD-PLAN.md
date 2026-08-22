@@ -760,11 +760,20 @@ launches with a decided palette and a designed OG card rather than in monochrome
   - ☐ **`Verified` servers only** — all three eligibility routes, partnership included. Money never
     buys the badge; the badge is the ticket to buy anything. **So this cannot ship before the
     activity plugin does** (Phase 6), which puts a free component on the critical path to revenue
-  - ☐ **The band reads `PROMOWANE · ZWERYFIKOWANE`** — bordered, badged, rendered server-side and
-    present with JavaScript off. `Promowane` is the **legally required** disclosure;
-    `Zweryfikowane` is the half no competitor can say. **`MasterBoost` rejected — GO-Setti's brand,
-    and "boost" alone never says *paid*.** Product name TBD; the disclosure ships regardless
-    (⊘ blocked on **V12**)
+  - ☐ **The band reads `SPONSOROWANE · ZWERYFIKOWANE`** — bordered, badged, rendered server-side and
+    present with JavaScript off. **`Sponsorowane` satisfies Art. 7 pkt 11a** (black-listed, no size
+    exemption); `Zweryfikowane` is the half no competitor can say. **`Promowane` was rejected on
+    research** — UOKiK requires a label to convey *payment*, and rejects *"współpraca"* for exactly
+    that gap. **`MasterBoost` rejected — GO-Setti's brand.** Product name TBD; the disclosure ships
+    regardless ([CONTEXT §2.10](../CONTEXT.md))
+  - ☐ **A published "jak plasujemy serwery" page** — **Art. 6 ust. 4 pkt 8** requires the main
+    ranking parameters *and their relative importance* in **a dedicated section reachable directly
+    and easily from the results page**. A privacy-policy line does not satisfy it. **This is a page,
+    not a label** — and it advertises the thing competitors cannot copy: live human count for the
+    list, player votes for the ranking, **and money for nothing except the sponsored band**
+  - ⊘ **Do not build DSA ad-transparency machinery** — Arts. 26–27 are excluded for micro and small
+    enterprises by Art. 19 (except 24(3)). **Re-check on crossing <50 staff / €10m**, which is an
+    enterprise-size test, not a traffic one
   - ☐ **Boost moves a row and nothing else** — count, human/bot split and confidence tier are
     byte-identical boosted or not. The ranking `/ranking/serwery/{month}` is untouched entirely
   - ☐ **Capped per page and per facet**, sold per period, **never auctioned**. A padding flag
@@ -903,7 +912,7 @@ Carried from CONTEXT §7. **Must be resolved before the code that depends on the
 | **V9** | Does `GetServerList` return community servers for app 730 and CS:GO, at a rate limit that allows polling the whole Polish catalogue every ~15 min? | [057](decisions/057-server-browser-and-seo.md) — **gates the confidence tiers, not just the listing** |
 | **V10** | Is the CS:GO community-server population large enough to justify reopening [001](decisions/001-game-scope.md) for tournaments? | [057](decisions/057-server-browser-and-seo.md) — **the listing measures it for free** before any CS:GO plugin work |
 | **V11** | Are padded player counts distinguishable from real ones over a multi-week series, at a publishable false-positive rate? | [057](decisions/057-server-browser-and-seo.md) §5a — calibrate against plugin-verified servers; a false accusation cannot be undone |
-| **V12** | Is **`Promowane`** sufficient disclosure wording, and a bordered band sufficient prominence, under the Polish implementation of the Omnibus Directive (2019/2161) and the DSA — and must the ranking criteria themselves be published? | [058](decisions/058-what-we-sell.md) §6 — **boost cannot ship until answered**. The label is decided; whether it satisfies the statute is not. The only item here gated on law rather than an engineering answer; single-sourced, so confirm against the current text or counsel before it reaches code |
+| **V12** | ~~Is the wording and prominence sufficient?~~ **Researched** ([CONTEXT §2.10](../CONTEXT.md)): **Art. 7 pkt 11a u.p.n.p.r.** is black-listed with no size exemption; **Art. 6 ust. 4 pkt 8** requires the ranking parameters published in a dedicated, directly-reachable section; **DSA Arts. 26–27 do not bind us** at micro/small size (Art. 19, except 24(3)). Label changed to **`Sponsorowane`**. | [058](decisions/058-what-we-sell.md) §6 — **design may proceed.** Remaining: **counsel sign-off before the first paid placement is live**, and a DSA re-check if the enterprise ever exceeds small (<50 staff, ≤€10m) |
 | **V13** | On what lawful basis do we collect and retain a hardware identifier, for how long, and how does a permanent ban list coexist with the erasure right [011](decisions/011-accounts-and-login.md) implements? | [058](decisions/058-what-we-sell.md) §6c — **blocks HWID banning**. A hardware identifier is personal data, and [012](decisions/012-security.md) currently advertises **zero persisted application IPs**: this is a deliberate reversal of that posture and must be assessed and written down. Salted hash only |
 | **V14** | Does the server-side AC actually decide ~65% of cases, at a false-positive rate low enough to auto-ban on? | [058](decisions/058-what-we-sell.md) §6c — **blocks auto-banning and any published detection rate**. The figure is an estimate made before a single match; calibrate against the corpus. A false ban in a scene this small cannot be undone, the same reasoning as **V11** |
 | **V15** | **Can the server force client POV recording on CS:GO / CS2**, and does CS2 `record` still freeze the client in 2026? | [058](decisions/058-what-we-sell.md) §6c — **reopened 2026-08-22.** CS 1.6 proven and closed. **GOTV is not a substitute**: snapshot-rate interpolation smooths away the per-tick view-angle detail that distinguishes an aimbot ([CONTEXT §2.9](../CONTEXT.md)). **Answer by testing a live CS2 client** — the web recycles one 2023 post. If forcing is impossible, asking still yields a signal, since a missing recording is refusal |

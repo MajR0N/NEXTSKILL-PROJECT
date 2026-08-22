@@ -194,23 +194,45 @@ Every boosted row carries a visible, permanent label. Not a subtle tint, not a s
 
 This is **not optional and not a design preference.** EU consumer law (the Omnibus Directive
 2019/2161, in force in Poland since 1 January 2023) requires disclosure of paid placement that
-affects ranking, and the DSA requires advertising to be identifiable as such. **A boosted row we
-failed to label is a regulatory problem before it is a trust problem.** See [V12](#verification).
+affects ranking. **A boosted row we failed to label is a regulatory problem before it is a trust
+problem** — and the exact provisions are below, researched rather than assumed.
 
 The commercial consequence is the useful one: a label is exactly what stops boost from eating the
 evidence, and we are required to ship it anyway.
 
+
+#### The two obligations, from the statute ([CONTEXT §2.10](../../CONTEXT.md))
+
+| | |
+| --- | --- |
+| **Disclose the payment** | **Art. 7 pkt 11a u.p.n.p.r.** — presenting search results without clearly disclosing paid advertising or payment for higher placement. **Black-listed: unfair in all circumstances**, no balancing test, no size exemption. This binds us from the first boost sold |
+| **Publish the ranking parameters** | **Art. 6 ust. 4 pkt 8** — the main parameters determining placement *and their relative importance*, in **a dedicated section reachable directly and easily from the results page**. A line in a privacy policy does not satisfy it. **This is a page we must write, not just a label we must render** |
+| **The DSA does not reach us** | Arts. 26–27 sit in Section 3, and **Art. 19 excludes micro and small enterprises** (<50 staff, ≤€10m) except Art. 24(3). **Do not build the ad repository or "who paid for this" disclosure speculatively** — re-check on crossing the threshold, which is by *enterprise size*, not traffic |
+
+**The second obligation suits us.** [057](057-server-browser-and-seo.md) orders the list by live
+human count and the ranking by player votes. Being *required* to publish that is a free
+advertisement for the part of the product a competitor cannot copy.
+
 #### The label, decided 2026-08-22
 
-> **`PROMOWANE · ZWERYFIKOWANE`** — a bordered band above the organic list, with its own badge.
+> **`SPONSOROWANE · ZWERYFIKOWANE`** — a bordered band above the organic list, with its own badge.
 
 | Element | Decision |
 | --- | --- |
-| **Wording** | **`Promowane`** — standard Polish e-commerce usage (Allegro), so it reads as familiar rather than invented, and it **states the commercial nature**, which is the actual legal test |
+| **Wording** | **`Sponsorowane`** — Google's Polish wording and inside UOKiK's accepted vocabulary (`reklama` / `sponsorowany` / `płatna`). **It states that someone paid**, which is the actual legal test |
 | **`· Zweryfikowane`** | The second half says the thing **no competitor can say**: everything in this band is plugin-verified (rule 4). The disclosure and the differentiator are the same string |
 | **Treatment** | A **bordered band**, visually separated from the organic rows, plus a distinct badge per row. Borders serve the *prominence* half of the requirement, not only aesthetics |
 | **Rendering** | Server-side, present with JavaScript off. **No code path may emit a boosted row without it** — runnable check 7 |
 | **Language** | Polish on the Polish surface. Any other locale needs the same test applied to *that* jurisdiction's wording, not a translation of ours |
+
+
+> **`Promowane` was chosen first and changed on 2026-08-22, after V12 was researched
+> ([CONTEXT §2.10](../../CONTEXT.md)).** UOKiK's guidance on marking paid content **rejects
+> *"współpraca"*** for saying only that a relationship exists, without conveying payment.
+> **`Promowane` has the same gap** — it says a row was promoted, not that anyone paid for it. Since
+> **Art. 7 pkt 11a is black-listed** (unfair in all circumstances, no balancing test), a word that
+> costs nothing to change is not worth defending. Allegro's use of `Promowane` at scale makes it
+> defensible market practice; we simply do not need to rely on that.
 
 **`MasterBoost` was proposed and rejected.** It is **GO-Setti's product name**
 ([MARKETING §2](../MARKETING-AND-SALES-STRATEGY.md)), so adopting it carries trademark and
@@ -220,7 +242,7 @@ legal test on its own**: "boost" never says *paid*, and a visitor who does not a
 term learns nothing from it.
 
 > **The internal product name is TBD.** Whatever it becomes, it is a *name*, never the disclosure.
-> `Promowane` is the disclosure and it appears regardless. Two constraints on the eventual name:
+> `Sponsorowane` is the disclosure and it appears regardless. Two constraints on the eventual name:
 > **not a competitor's brand**, and **not a word that implies the ranking was earned.**
 
 ### Rule 2 — promotion moves a row, it never touches a number
@@ -339,7 +361,7 @@ restored after the list has lost its reputation.
 
 | # | Question | Blocks |
 | --- | --- | --- |
-| **V12** | What exactly must a paid placement disclose under the Polish implementation of the Omnibus Directive and under the DSA — wording, prominence, and whether the ranking criteria themselves must be published? | **Promotion cannot ship until answered.** Single-sourced here from general knowledge; **confirm with the current statute or counsel before it reaches code** |
+| **V12** | ~~Disclosure wording and prominence?~~ **Researched at statute level ([CONTEXT §2.10](../../CONTEXT.md)).** **Art. 7 pkt 11a u.p.n.p.r.** — black-listed, no size exemption — requires clear disclosure of paid placement; **Art. 6 ust. 4 pkt 8** requires the ranking parameters published in a dedicated, directly-reachable section; **DSA Arts. 26–27 do not apply** at micro/small size (Art. 19). Label changed `Promowane` → **`Sponsorowane`** on UOKiK's reasoning that a label must convey *payment*. | **No longer blocks design — build to this.** What remains is **confirmation by counsel before the first paid placement goes live**, plus a re-check of the DSA exemption on crossing the small-enterprise threshold |
 
 ## 6b. The offer is modular — the owner picks what he wants
 
@@ -764,8 +786,12 @@ seeing rather than discovering:
     `(vendor, version, verdict)` record alters no rating and issues no ban, and the match record
     shows which anti-cheat produced it ([052](052-cheating-and-rating-integrity.md) §3,
     [050](050-match-results-and-ratings.md)).
-15. **No boosted row renders without the disclosure word** — `Promowane` is present in the
-    server-rendered HTML for every boosted row, with JavaScript off, in every locale (§6 rule 1).
+15. **No boosted row renders without the disclosure word** — `Sponsorowane` is present in the
+    server-rendered HTML for every boosted row, with JavaScript off, in every locale
+    (§6 rule 1, Art. 7 pkt 11a).
+15a. **The ranking-parameters page is reachable from the results page** — one link, no JavaScript,
+    and it names what orders each surface. **Art. 6 ust. 4 pkt 8 makes its *placement* part of the
+    obligation**, so a page that exists but is not linked from `/serwery` does not satisfy it.
 16. **No page claims an *unearned* third-party endorsement** — outside our own managed servers and any signed partnership, *"powered by"* appears nowhere near a
     vendor name, and a recorded anti-cheat renders as an observation (`zgłoszony`), never as a
     guarantee (§6b).
