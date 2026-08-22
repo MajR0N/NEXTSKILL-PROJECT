@@ -4,7 +4,7 @@ The design phase is complete (**51 decision records** in `docs/decisions/`, two 
 deliberately reopened). This is the implementation sequence, derived from
 [038 — build order](decisions/038-build-order.md).
 
-**Currently: Phase 4, nearly complete. 316 checks passing.** The marks below are audited
+**Currently: Phase 4, nearly complete. 358 checks passing.** The marks below are audited
 rather than asserted — see the note at the end of Phase 4 about what "◐" means here.
 
 **Status legend:** ☐ pending · ◐ in progress · ☑ done · ⊘ blocked — nothing to test until the slice it belongs to exists · ➡ deliberately moved
@@ -287,7 +287,7 @@ endpoint, request, handler and validator together.
   - ☑ **Check-in before start, and forfeit as an event exit** — every captain confirms after registration closes; start revalidates every roster under the tournament lock and creates no partial bracket on refusal. A captain may forfeit only their own team; organiser staff may record either side with exact-tag confirmation and a reason. The audited, scoreless result advances the opponent, never changes rating, and propagates a resolved vacancy so the exiting team cannot reappear in a double-elimination lower bracket. Late plugin events serialize on the match and cannot overwrite it
   - ☑ **Season assignment** — create/edit offers every non-closed platform season plus an explicit independent-event option; active season is the default on a fresh form, and templates deliberately copy neither season nor date. Submitted ids are checked against live rows, scheduled dates must fall inside the season window, the database enforces the relationship with a foreign key, and public tournament surfaces show the assignment. Closed-season membership is frozen and a tournament assigned to one cannot start ([021](decisions/021-site-structure.md), [046](decisions/046-tournament-lifecycle.md))
   - ☑ **Discord announcements on registration open / match start / confirmed results** — each event writes a deduplicated fact to a transactional PostgreSQL outbox, then a background worker sends a rich embed with bounded backoff. The per-tournament webhook is accepted only at the exact Discord HTTPS boundary, encrypted through Data Protection, never returned or logged, and destroyed on removal; redirects and private/reserved DNS destinations are refused. Delivery state and abandoned jobs are visible on the tournament editor. Plugin retries cannot duplicate start/results, disputed results stay silent, and scoreless confirmed forfeits use the same seam ([014](decisions/014-discord.md))
-- ◐ **Brackets** — the engine now runs on live data ([023](decisions/023-bracket.md))
+- ☑ **Brackets** — the engine runs on live data, the reset arms itself, and a phone gets both mobile views ([023](decisions/023-bracket.md))
   - ☑ Schema: bracket position + routing as **real foreign keys**, so a dangling link is impossible
   - ☑ `winner_team_id` stored rather than derived from the score
   - ☑ Generation on start, in one transaction — a tournament cannot be `Running` without a bracket
@@ -296,7 +296,28 @@ endpoint, request, handler and validator together.
   - ☑ `/t/{id}/bracket` — wide canvas, its own horizontal scroll ([041](decisions/041-layout-system.md))
   - ☑ Advancing on a **reported result** — `map_end` now stores the winner and calls
     `AdvanceAsync`, gated on integrity, on not-already-decided, and on a real winner
-  - ☐ Bracket reset triggered live; mobile round-by-round view ([023](decisions/023-bracket.md))
+  - ☑ **Bracket reset, live** ([022](decisions/022-tournament-formats.md), [023](decisions/023-bracket.md)) —
+    the row has existed since generation *specifically so the rule could not be forgotten*, and
+    nothing ever armed it. The engine has triggered it correctly since Phase 2, so a real double
+    elimination would have ended with an undefeated team eliminated on its first defeat: the exact
+    failure 022 named the most-forgotten rule in tournament software, one layer down from where it
+    was checked
+  - **Only from a played result.** A forfeited or vacated grand final reaches its winner by other
+    paths on purpose — a team that exited the event must not be summoned back into a second final
+    it cannot play. Three checks: armed when the lower-bracket team wins, *not* invented when the
+    upper-bracket team wins, and *not* armed by a forfeit
+  - ☑ **Mobile round-by-round** ([023](decisions/023-bracket.md)) — the same columns render; all but
+    the chosen one are hidden under 720px, and the arrows are **ordinary links** carrying `?round=`.
+    No second markup, no canvas, no JavaScript — so the view survives a reload and travels in a URL
+    pasted into Discord. It defaults to the round in play, because that is the question a phone
+    arrives with, and a hand-edited round number clamps rather than throwing
+  - ☑ **Follow-team** ([023](decisions/023-bracket.md)) — the view 023 calls the more important of
+    the two, because a link shared into Discord arrives with a question the tree cannot answer: did
+    we advance, and when do we play next. One team's route across both brackets as a **sequence**,
+    read in the order it was played, with `?team=` in the URL so the answer is shareable in turn
+  - A resolved empty opponent reads *wolny los* and an unresolved one *czeka na rywala* — collapsing
+    both to a dash would hide a free win. Outcomes are words, never a glyph alone
+    ([019](decisions/019-visual-identity.md))
 > ### The remaining slices are ordered, and the order is load-bearing
 >
 > [050](decisions/050-match-results-and-ratings.md) and [051](decisions/051-phase-4-remainder.md)
@@ -406,7 +427,7 @@ endpoint, request, handler and validator together.
   to read them; invites were findable only because the teams page listed them as a stopgap.
   Reading the inbox is what marks it read. Polling stays a 5c enhancement on a number that is
   already correct without JavaScript ([043](decisions/043-page-contents.md), [018](decisions/018-frontend-architecture.md))
-- ◐ **LFT board + recruitment** ([056](decisions/056-lft-board.md)) — **built 2026-08-17**
+- ☑ **LFT board + recruitment** ([056](decisions/056-lft-board.md)) — **built 2026-08-17, closed 2026-08-18**
   - `/lft`: one server-rendered two-sided board defaulting to **CS2 / teams recruiting**, with game,
     view and every filter in the URL. `noindex, follow`, and it browses without an account
   - **Freshness orders it and rating never buys prominence** — proven by putting a 2400-rated team
@@ -427,9 +448,56 @@ endpoint, request, handler and validator together.
     a lifecycle worker for expiry, one reminder and retention — and **public reads exclude expired
     rows without it**, so a late worker can never leave a stale advert up
   - Erasure removes listings, applications, interests, grants and blocks immediately
-  - ⊘ Remaining from 056: weekly availability capture and overlap filtering (the columns and the
-    UTC hour-of-week normaliser ship; the form does not), reporting/moderation of adverts, and
-    conversion of a mutual contact into the roster invitation that is the only real success metric
+  - ☑ **Reporting and moderation** — a `<details>` control on every card for signed-in visitors,
+    one report per person per advert enforced by a partial unique index, and `/admin/reports` for
+    the human 056 promised. **Report stays separate from decline and block**: an ordinary decline
+    must never be recorded as an abuse allegation, and a block is a private pair-level control that
+    needs no moderator
+  - ☑ **Availability capture and overlap filtering** — the columns and the UTC hour-of-week
+    normaliser had shipped with nothing writing them and nothing reading them. Both publish forms
+    now capture a window, and `/lft` gains `day/from/to/tz` alongside every other filter, in the URL
+  - **The check that earns the design is cross-zone**: a filter written in London hours must find a
+    Warsaw advert an hour later. Comparing the numbers people typed would get that backwards in both
+    directions, which is precisely what normalising to UTC on write makes impossible. An unknown
+    zone or a backwards range is **refused**, like every other filter value — one that silently
+    stops applying shows a broader set than the URL claims
+  - ⚠ **The first working version was wrong in three ways no same-zone check could see**, all
+    corrected before the slice closed:
+    - It pinned a **January reference week**, so every window used winter offsets. Warsaw and London
+      shift together and hid it; Moscow has been UTC+3 with no DST since 2014, so all summer a
+      Moscow filter missed a Warsaw advert by exactly one hour — both sides wrong together, which is
+      why nothing failed. Conversions now anchor to the week they happen in
+    - It read any stored set back as a **rectangle** (one set of days, one min/max range). That was
+      true only because the form could not produce anything else, so the guarantee lived in a form
+      rather than in the function. `FromUtcHours` now decomposes into maximal contiguous runs and is
+      exact for any set — checked against a shape the form still cannot make
+    - It converted through the **hour that does not exist**. Local 02:00–03:00 on the spring-forward
+      Sunday throws, and nudging it would silently move somebody's morning; that hour is now simply
+      not available. The check that found this was itself wrong first — it pointed at 2026-03-30, a
+      Monday, and so at an ordinary Sunday a week after the switch
+  - **A window per weekday, not one for the week** — seven rows, still no script. Weekend mornings
+    and midweek evenings are both expressible, which one window could not hold
+  - **GIN indexes on both `availability_hours` columns**, and a check asserts the predicate reaches
+    SQL as `&&` rather than an `EXISTS` over `unnest()`. An index nothing reaches is storage
+  - `ponytail:` remaining ceiling — an advert stores the hours computed in its publication week, so
+    one straddling a switch is an hour out for the rest of its life. At most 14 days, twice a year,
+    in a discovery filter. Upgrade path: renormalise live adverts from the lifecycle worker that
+    already sweeps them
+  - Availability **narrows and never gates**: an advert without a window still publishes and is
+    still listed — 056 makes only game and roster slot hard requirements. The board labels a window
+    in the publisher's own zone, since nothing stores a viewer's yet and a silently shifted
+    schedule is worse than a labelled one
+  - ☑ **Contact → invitation** — the board's only real success metric, and until now the trail went
+    cold at two revealed identifiers. A captain converts a live grant into the **ordinary** roster
+    invitation from [045](decisions/045-teams-and-rosters.md), under the same per-slot capacity cap,
+    and the request becomes `Converted`
+  - **Converting does NOT fill the vacancy.** The invitation is pending; the opening closes when the
+    player *accepts*, because a recruiter must not be able to mark their own success — 056 draws
+    exactly that line between a conversation and a result. Everyone else waiting on the filled
+    vacancy is closed **neutrally** as `OpeningClosed`, which is not a rejection of them
+  - `TeamMembership.FromTeamOpeningId` is what keeps the two events **separately measurable**, which
+    056 requires and which marketing claims depend on: without it "a player joined a team" and "the
+    LFT board filled a vacancy" are the same row
 - ☑ **News/CMS** — `/news` and `/news/{slug}`, scheduled posts invisible until their time
   - `DisableHtml()` **plus a scheme allow-list** (http, https, mailto, relative, anchor). Allow-list
     rather than block-list, because the dangerous schemes are open-ended and the useful ones are not
@@ -456,7 +524,7 @@ endpoint, request, handler and validator together.
     fix looks correct in whichever direction it was tested. `%` and `_` stay literal text
   - Drafts stay sealed (the search goes through `PublicTournaments`) and erased accounts are not
     findable, since erasure that leaves you searchable is not erasure
-- ◐ **Organiser panel** — servers ☑, **disputes ☑**, staff ☐
+- ☑ **Organiser panel** — servers ☑, disputes ☑, **staff ☑**
   - `/org/disputes` lists contested matches for organisers the actor may referee, separating the
     machine's doubt (`Integrity`) from a captain's claim (`DisputedAt`) rather than merging two
     different facts
@@ -468,7 +536,19 @@ endpoint, request, handler and validator together.
     the one it replaces. `ponytail:` ceiling — the replay is platform-wide per reversal; upgrade
     path is a per-season snapshot, and [051](decisions/051-phase-4-remainder.md) §4 already gives
     seasons a closing timestamp
-- ◐ **Staff panel** — users ☑, orgs ☑, audit ☑, maintenance mode ➡ Phase 7
+  - `/org/staff` — **every organiser-scoped permission in the product reads `organiser_staff`, and
+    until now nothing could write it.** `Actors.CurrentAsync` has built the organiser half of an
+    `Actor` from that table since Phase 1, so a referee, an admin or an owner existed only if
+    somebody ran SQL by hand. Grant by nickname, change a role in place, revoke — owner-only,
+    because a referee who can appoint referees is not a referee
+  - **The last owner cannot be removed, and cannot demote themselves either** — the same safeguard
+    as "the last captain cannot leave" ([045](decisions/045-teams-and-rosters.md)), and a safeguard
+    rather than a trap because handing over first is allowed. Demotion is the same hole as removal,
+    so one rule closes both, under the organiser row lock that stops two owners demoting each other
+    on the strength of both having read "there are two of us"
+  - `RevokeRole` is a **separate** audit action rather than a `GrantRole` row with a reason string:
+    *when did this person lose access* is precisely the question the log exists to answer
+- ☑ **Staff panel** — users ☑, orgs ☑, audit ☑, news ☑, merges ☑, reports ☑, maintenance mode ➡ Phase 7
   - `/admin/organisers` — **the `trusted` flag finally has a user interface.** It has been in the
     schema since the first migration and now decides whose results skip the challenge window, while
     the only way to set it was editing the database by hand. Owner-only; staff moderate people, and
@@ -480,8 +560,73 @@ endpoint, request, handler and validator together.
     account-enumeration oracle ([040](decisions/040-threat-model.md))
   - `/admin/audit` — read-only, with a denied-only filter. **Until this existed the log was storage
     rather than security**: an append-only record nobody can view protects nothing
-  - ☐ Still missing: account merges, advert moderation, and the news CMS editor (posts are still
-    seeded by hand)
+  - `/admin/news` — **the CMS finally has an author.** The renderer, the scheme allow-list, the
+    scheduling rule and pinned-on-home were all built and checked against rows inserted by hand, so
+    the one content type the platform publishes had no way in. Create, edit in place, schedule, pin;
+    an empty date means draft rather than *now*, and a duplicate slug+locale surfaces as a form
+    error instead of a 500
+  - **Deliberately a markdown textarea, not a rich-text editor.** The whole XSS defence rests on
+    markdown parsed with raw HTML disabled ([051](decisions/051-phase-4-remainder.md) §8) — an
+    editor emitting HTML would emit exactly the input the sanitiser exists to refuse. The check that
+    matters drives the **author path** end to end: staff post `javascript:` through the real form,
+    and the reader's page does not contain it. The seeded rows never proved that
+  - `ManageNews` is its own operation rather than a second use of `ModerateUsers`: publishing to
+    every visitor and sanctioning a person are the same authority today and need not stay that way
+  - `/admin/merge` — **one person, two accounts.** [043](decisions/043-page-contents.md) chose the
+    single account model so this would be rare, not so it would never happen: somebody registers
+    twice before linking Steam, or gets a `setinfo` token onto the wrong account. Match
+    participation, roster places and organiser roles move to the surviving account; Steam, Discord
+    and the `setinfo` hash move **only where the survivor has none**, because a merge never
+    overwrites a live identity with a dead one
+  - **A merge moves history; it never decides which of two roles, rosters or results was the real
+    one.** That single rule is why the code has no arbitration in it: where the two accounts
+    genuinely coexisted — the same match, the same live roster, the same organiser — the merge is
+    *refused* and a human resolves the overlap first. Two identities in one match is not a duplicate
+    account, it is one human counted twice in a result
+  - **The ratings are restated by the replay a reversal already uses**, not by patching two players'
+    numbers. Moving the participants changes who each result was about, and the sweeper then
+    rebuilds from `(EndedAt, Id)` order — so `DisputeResolution.ReplayAsync` gained a second caller
+    rather than the merge growing arithmetic that looks careful and is wrong
+  - The losing account ends as the **same anonymous tombstone erasure produces**: `AccountDeletion`
+    kept one copy of that path and the merge calls it, because two hand-written GDPR erasures will
+    always drift. Confirmation is the losing nickname typed exactly, like disbanding a team (045);
+    superseded ledger rows and audit rows keep the old account id, because both record what was
+    true when they were written
+  - `/admin/reports` — the reported-advert queue. **A takedown sets `ClosedAt` as well as
+    `ModeratedAt`**, which is why not one public query changed: every board read already filters on
+    `ClosedAt == null && ExpiresAt > now`. The second column is the one that matters — a listing is
+    *one row per account and game*, reused on republication, so without it the author puts the
+    moderated advert back with a single click and the whole queue is theatre. That is the check the
+    slice is built around
+  - One decision answers **every** open report about the same advert, so the queue cannot regrow
+    with work already done; the card shows how many other people flagged it, because one complaint
+    and six are different facts
+  - `ponytail:` ceiling — a takedown removes the advert, not the advertiser. A *team opening* is a
+    new row on every publish, so a determined team can post a fresh one; the escalation for that is
+    the ban that `/admin/users` already performs, not a weaker per-advert duplicate of it
+
+- ☑ **Panel navigation** ([021](decisions/021-site-structure.md), [036](decisions/036-authorization.md))
+  - **Nine working pages had no link anywhere in the product.** Every slice skipped navigation
+    because the pages beside it had none either, which is how a finished panel stays invisible.
+    The headbar shows one entry to whoever has somewhere to go; panel paths render a section strip
+  - Built in the layout rather than in each page, so a **new** section cannot ship unreachable the
+    way every existing one did. Each entry asks an **operation**, never a role, so the nav cannot
+    drift from what the page will actually serve — a link that appears and then 403s is worse than
+    no link
+  - ⚠ **It surfaced a real gap, since fixed.** `/org/disputes` built its list from the actor's *own*
+    organiser roles, so platform staff were refused **by the page** — while
+    [036](decisions/036-authorization.md) grants them `ResolveDispute` precisely so they can settle
+    disputes *between* organisers, which by definition have no referee inside either one. The policy
+    had always answered correctly; the page never asked it about anybody else's organiser. The
+    candidate set is still reduced to concrete ids and then filtered by the policy, so an
+    organiser's referee still sees only their own events. `ponytail:` ceiling — a platform role
+    loads every organiser id; upgrade path is to restrict candidates to organisers that currently
+    *have* a contested match, which is the query the page runs next anyway
+- ☑ **Account merge moved to owner-only** — it shipped on `ModerateUsers` because
+  [015](decisions/015-admin-panel.md) lists merges beside bans, which is where they belong on a
+  screen. But a ban ends an account's access, while a merge rewrites whose results a finished match
+  was about and then replays every rating on the platform. `SetOrganiserTrusted` was already
+  owner-only for strictly less, and blast radius is what these rules exist to track
 
 > ### What ◐ means here
 >

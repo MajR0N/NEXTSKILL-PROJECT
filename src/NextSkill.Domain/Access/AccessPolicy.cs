@@ -39,6 +39,21 @@ public enum Operation
 
     // platform scope
     ModerateUsers,
+    ManageNews,
+
+    /// <summary>
+    /// Fold one person's duplicate account into the account they keep.
+    ///
+    /// <b>Owner-only, and deliberately not part of <see cref="ModerateUsers"/>.</b>
+    /// [015](015-admin-panel.md) lists merges beside bans, which is where they
+    /// belong on a screen — but a ban ends an account's access and a merge
+    /// rewrites whose results a finished match was about, then replays every
+    /// rating on the platform. <see cref="SetOrganiserTrusted"/> is already
+    /// owner-only for strictly less, and blast radius is what these rules are
+    /// meant to track.
+    /// </summary>
+    MergeAccounts,
+
     ViewAuditLog,
     SetMaintenanceMode,
     SetOrganiserTrusted,
@@ -97,10 +112,13 @@ public static class AccessPolicy
         if (op == Operation.ReadSecret) return false;
 
         // ── platform scope ───────────────────────────────────────────────
-        if (op is Operation.SetMaintenanceMode or Operation.SetOrganiserTrusted)
+        if (op is Operation.SetMaintenanceMode or Operation.SetOrganiserTrusted or Operation.MergeAccounts)
             return actor.Platform == PlatformRole.Owner;
 
-        if (op is Operation.ModerateUsers)
+        // Publishing an announcement is not moderating a person, so it gets its
+        // own operation rather than riding on ModerateUsers — the two authorities
+        // are the same today and there is no reason they must stay that way.
+        if (op is Operation.ModerateUsers or Operation.ManageNews)
             return actor.Platform is PlatformRole.Owner or PlatformRole.Staff;
 
         if (op is Operation.ViewAuditLog)

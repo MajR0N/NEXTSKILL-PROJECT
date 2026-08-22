@@ -173,7 +173,51 @@ public static class BracketBuilder
         // forever for a team that cannot arrive.
         await PlaceAsync(db, match.LoserToMatchId, match.LoserToSlot, loserTeamId, 0, ct);
 
+        await TriggerResetIfNeededAsync(db, match, winnerTeamId, ct);
+
         await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// The bracket reset (decisions 022, 023).
+    ///
+    /// <b>The row was generated up front so it could not be forgotten, and then
+    /// nothing ever activated it.</b> The engine has triggered this correctly
+    /// since Phase 2; the persisted bracket did not, so a real double
+    /// elimination would have ended with an undefeated team eliminated on its
+    /// first defeat — the exact failure 022 called the most-forgotten rule in
+    /// tournament software.
+    ///
+    /// The grand final's slot A holds the upper-bracket winner and slot B the
+    /// lower-bracket winner, so B winning is the whole condition: both teams
+    /// then have exactly one loss and must play again.
+    ///
+    /// <b>Only from a played result.</b> A forfeit and a vacancy both reach the
+    /// grand final by other paths on purpose — a team that exited the event must
+    /// not be summoned back into a second final it cannot play.
+    /// </summary>
+    private static async Task TriggerResetIfNeededAsync(
+        NextSkillDb db, Match grandFinal, Guid winnerTeamId, CancellationToken ct)
+    {
+        if (grandFinal is not { Side: BracketSide.GrandFinal, IsConditional: false }) return;
+        if (winnerTeamId != grandFinal.TeamBId) return;
+
+        var reset = await db.Matches.FirstOrDefaultAsync(m =>
+            m.TournamentId == grandFinal.TournamentId &&
+            m.Side == BracketSide.GrandFinal &&
+            m.IsConditional, ct);
+
+        // Single elimination has no reset row, and an already-filled one means
+        // this ran before — both are "nothing to do" rather than errors.
+        if (reset is null || reset.TeamAId is not null || reset.TeamBId is not null) return;
+
+        // Placed directly rather than through PlaceAsync: the generator gave
+        // this match Slot.Empty and no incoming routing links, precisely because
+        // its occupants are decided by a condition and not by a link.
+        reset.TeamAId = grandFinal.TeamAId;
+        reset.TeamBId = grandFinal.TeamBId;
+        reset.SlotAResolved = true;
+        reset.SlotBResolved = true;
     }
 
     /// <summary>

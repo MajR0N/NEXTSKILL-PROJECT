@@ -324,4 +324,253 @@
   <data name="Match.LinkCode.Help" xml:space="preserve">
     <value>Wpisz go na serwerze, żeby przypisać swoje konto do tego meczu. Kod działa raz i tylko dla Ciebie — sam token z konfiguracji nie wystarczy.</value>
   </data>
+  <data name="Staff.Eyebrow" xml:space="preserve">
+    <value>Panel organizatora</value>
+  </data>
+  <data name="Staff.Title" xml:space="preserve">
+    <value>Zespół</value>
+  </data>
+  <data name="Staff.Intro" xml:space="preserve">
+    <value>Kto pracuje przy Twoich turniejach i z jakimi uprawnieniami. Role nadaje wyłącznie właściciel, a każda zmiana trafia do dziennika zdarzeń.</value>
+  </data>
+  <data name="Staff.Grant.Title" xml:space="preserve">
+    <value>Nadaj rolę</value>
+  </data>
+  <data name="Staff.Grant.Action" xml:space="preserve">
+    <value>Nadaj rolę</value>
+  </data>
+  <data name="Staff.Revoke.Action" xml:space="preserve">
+    <value>Odbierz</value>
+  </data>
+  <data name="Staff.Field.Organiser" xml:space="preserve">
+    <value>Organizator</value>
+  </data>
+  <data name="Staff.Field.Nickname" xml:space="preserve">
+    <value>Nick</value>
+  </data>
+  <data name="Staff.Field.Nickname.Hint" xml:space="preserve">
+    <value>Nick istniejącego konta NEXTSKILL. Nadanie roli komuś, kto ją już ma, po prostu ją zmienia.</value>
+  </data>
+  <data name="Staff.Field.Role" xml:space="preserve">
+    <value>Rola</value>
+  </data>
+  <data name="Staff.Field.Role.Hint" xml:space="preserve">
+    <value>Sędzia rozstrzyga sporne mecze. Administrator dodatkowo prowadzi turnieje i serwery. Właściciel jako jedyny zarządza zespołem.</value>
+  </data>
+  <data name="Staff.Role.Owner" xml:space="preserve">
+    <value>Właściciel</value>
+  </data>
+  <data name="Staff.Role.Admin" xml:space="preserve">
+    <value>Administrator</value>
+  </data>
+  <data name="Staff.Role.Referee" xml:space="preserve">
+    <value>Sędzia</value>
+  </data>
+  <data name="Staff.List.Title" xml:space="preserve">
+    <value>Zespół</value>
+  </data>
+  <data name="Staff.List.Empty" xml:space="preserve">
+    <value>Nikt jeszcze nie ma roli u tego organizatora.</value>
+  </data>
+  <data name="Staff.Since" xml:space="preserve">
+    <value>od {0}</value>
+  </data>
+  <data name="Staff.Error.Invalid" xml:space="preserve">
+    <value>Podaj nick i wybierz rolę z listy.</value>
+  </data>
+  <data name="Staff.Error.NoSuchPlayer" xml:space="preserve">
+    <value>Nie ma gracza o takim nicku.</value>
+  </data>
+  <data name="Staff.Error.NoSuchStaff" xml:space="preserve">
+    <value>Ta osoba nie ma już roli u tego organizatora.</value>
+  </data>
+  <data name="News.Admin.Eyebrow" xml:space="preserve">
+    <value>Panel platformy</value>
+  </data>
+  <data name="News.Admin.Title" xml:space="preserve">
+    <value>Aktualności</value>
+  </data>
+  <data name="News.Admin.Intro" xml:space="preserve">
+    <value>Wpis bez daty publikacji jest szkicem — nikt go nie widzi. Data w przyszłości oznacza publikację zaplanowaną. Treść piszesz w Markdownie; surowy HTML nigdy nie trafia na stronę.</value>
+  </data>
+  <data name="News.Admin.New" xml:space="preserve">
+    <value>Nowy wpis</value>
+  </data>
+  <data name="News.Admin.Edit" xml:space="preserve">
+    <value>Edytuj</value>
+  </data>
+  <data name="News.Admin.Save" xml:space="preserve">
+    <value>Zapisz</value>
+  </data>
+  <data name="News.Admin.Cancel" xml:space="preserve">
+    <value>Anuluj</value>
+  </data>
+  <data name="News.Admin.List" xml:space="preserve">
+    <value>Wszystkie wpisy</value>
+  </data>
+  <data name="News.Admin.Empty" xml:space="preserve">
+    <value>Nie ma jeszcze żadnego wpisu.</value>
+  </data>
+  <data name="News.Admin.Draft" xml:space="preserve">
+    <value>szkic</value>
+  </data>
+  <data name="News.Admin.PublishedAt" xml:space="preserve">
+    <value>publikacja {0}</value>
+  </data>
+  <data name="News.Field.Slug" xml:space="preserve">
+    <value>Adres (slug)</value>
+  </data>
+  <data name="News.Field.Slug.Hint" xml:space="preserve">
+    <value>Małe litery, cyfry i myślniki. Ten sam slug w kilku językach to ten sam wpis w tłumaczeniach.</value>
+  </data>
+  <data name="News.Field.Locale" xml:space="preserve">
+    <value>Język</value>
+  </data>
+  <data name="News.Field.Locale.Hint" xml:space="preserve">
+    <value>Brakujące tłumaczenie nie daje pustej strony — czytelnik dostaje wersję polską.</value>
+  </data>
+  <data name="News.Field.Title" xml:space="preserve">
+    <value>Tytuł</value>
+  </data>
+  <data name="News.Field.Body" xml:space="preserve">
+    <value>Treść</value>
+  </data>
+  <data name="News.Field.Body.Hint" xml:space="preserve">
+    <value>Markdown. Linki https, mailto, względne i kotwice działają; pozostałe schematy są usuwane, a tekst linku zostaje.</value>
+  </data>
+  <data name="News.Field.PublishedAt" xml:space="preserve">
+    <value>Data publikacji (UTC)</value>
+  </data>
+  <data name="News.Field.PublishedAt.Hint" xml:space="preserve">
+    <value>Puste pole = szkic. Czas liczony w UTC, nie w czasie lokalnym.</value>
+  </data>
+  <data name="News.Field.Pinned" xml:space="preserve">
+    <value>Przypięty</value>
+  </data>
+  <data name="News.Field.Pinned.Hint" xml:space="preserve">
+    <value>Przypięte wpisy pokazują się na stronie głównej.</value>
+  </data>
+  <data name="News.Error.Slug" xml:space="preserve">
+    <value>Slug może zawierać tylko małe litery, cyfry i pojedyncze myślniki.</value>
+  </data>
+  <data name="News.Error.Locale" xml:space="preserve">
+    <value>Wybierz jeden z obsługiwanych języków.</value>
+  </data>
+  <data name="News.Error.Title" xml:space="preserve">
+    <value>Tytuł jest wymagany i może mieć najwyżej 200 znaków.</value>
+  </data>
+  <data name="News.Error.Body" xml:space="preserve">
+    <value>Treść jest wymagana i może mieć najwyżej 20 000 znaków.</value>
+  </data>
+  <data name="News.Error.Duplicate" xml:space="preserve">
+    <value>Wpis o tym slugu w tym języku już istnieje. Otwórz go do edycji zamiast tworzyć drugi.</value>
+  </data>
+  <data name="Staff.Error.LastOwner" xml:space="preserve">
+    <value>To ostatni właściciel. Najpierw nadaj rolę właściciela komuś innemu — inaczej nikt nie mógłby już zarządzać zespołem.</value>
+  </data>
+  <data name="Merge.Eyebrow" xml:space="preserve">
+    <value>Panel platformy</value>
+  </data>
+  <data name="Merge.Title" xml:space="preserve">
+    <value>Scalanie kont</value>
+  </data>
+  <data name="Merge.Intro" xml:space="preserve">
+    <value>Jedna osoba, dwa konta. Historia meczów, składy i role przechodzą na konto, które zostaje; konto scalane zamienia się w anonimowy ślad i nie da się na nie zalogować. Operacji nie da się cofnąć.</value>
+  </data>
+  <data name="Merge.Action" xml:space="preserve">
+    <value>Scal konta</value>
+  </data>
+  <data name="Merge.Done" xml:space="preserve">
+    <value>Scalono. Historia jest teraz na koncie {0}; rankingi przeliczają się w tle.</value>
+  </data>
+  <data name="Merge.Field.Losing" xml:space="preserve">
+    <value>Konto scalane (zniknie)</value>
+  </data>
+  <data name="Merge.Field.Losing.Hint" xml:space="preserve">
+    <value>To konto przestanie istnieć jako osobna osoba.</value>
+  </data>
+  <data name="Merge.Field.Surviving" xml:space="preserve">
+    <value>Konto docelowe (zostaje)</value>
+  </data>
+  <data name="Merge.Field.Surviving.Hint" xml:space="preserve">
+    <value>Przejmie mecze, składy i role. Powiązania Steam, Discord i token setinfo przejmie tylko tam, gdzie samo ich nie ma.</value>
+  </data>
+  <data name="Merge.Field.Confirmation" xml:space="preserve">
+    <value>Potwierdzenie</value>
+  </data>
+  <data name="Merge.Field.Confirmation.Hint" xml:space="preserve">
+    <value>Wpisz dokładny nick konta scalanego.</value>
+  </data>
+  <data name="Merge.Field.Reason" xml:space="preserve">
+    <value>Uzasadnienie</value>
+  </data>
+  <data name="Merge.Refusals.Title" xml:space="preserve">
+    <value>Kiedy scalenie zostanie odrzucone</value>
+  </data>
+  <data name="Merge.Refusals.Match" xml:space="preserve">
+    <value>Oba konta wystąpiły w tym samym meczu — to nie duplikat, tylko jedna osoba policzona dwa razy w wyniku.</value>
+  </data>
+  <data name="Merge.Refusals.Team" xml:space="preserve">
+    <value>Oba konta są w tym samym aktywnym składzie — usuń duplikat ze składu i spróbuj ponownie.</value>
+  </data>
+  <data name="Merge.Refusals.Organiser" xml:space="preserve">
+    <value>Oba konta mają rolę u tego samego organizatora — odbierz rolę duplikatowi i spróbuj ponownie.</value>
+  </data>
+  <data name="Merge.Error.Reason" xml:space="preserve">
+    <value>Uzasadnienie jest wymagane i może mieć najwyżej 500 znaków.</value>
+  </data>
+  <data name="Merge.Error.NoSuchPlayer" xml:space="preserve">
+    <value>Nie ma konta o takim nicku.</value>
+  </data>
+  <data name="Merge.Error.SameAccount" xml:space="preserve">
+    <value>To jest to samo konto.</value>
+  </data>
+  <data name="Merge.Error.AccountMissing" xml:space="preserve">
+    <value>Któreś z kont już nie istnieje.</value>
+  </data>
+  <data name="Merge.Error.ConfirmationFailed" xml:space="preserve">
+    <value>Potwierdzenie nie zgadza się z nickiem konta scalanego.</value>
+  </data>
+  <data name="Merge.Error.SharedMatch" xml:space="preserve">
+    <value>Oba konta grały w tym samym meczu. Scalenie przepisałoby wynik — najpierw wyjaśnij ten mecz.</value>
+  </data>
+  <data name="Merge.Error.SharedTeam" xml:space="preserve">
+    <value>Oba konta są w tym samym aktywnym składzie. Usuń duplikat ze składu i spróbuj ponownie.</value>
+  </data>
+  <data name="Merge.Error.SharedOrganiser" xml:space="preserve">
+    <value>Oba konta mają rolę u tego samego organizatora. Odbierz rolę duplikatowi i spróbuj ponownie.</value>
+  </data>
+  <data name="Merge.Error.LastPlatformOwner" xml:space="preserve">
+    <value>To ostatni właściciel platformy. Najpierw nadaj tę rolę komuś innemu.</value>
+  </data>
+  <data name="Panel.Title" xml:space="preserve">
+    <value>Panel</value>
+  </data>
+  <data name="Panel.Servers" xml:space="preserve">
+    <value>Serwery</value>
+  </data>
+  <data name="Panel.Disputes" xml:space="preserve">
+    <value>Sporne mecze</value>
+  </data>
+  <data name="Panel.Staff" xml:space="preserve">
+    <value>Zespół</value>
+  </data>
+  <data name="Panel.Users" xml:space="preserve">
+    <value>Moderacja</value>
+  </data>
+  <data name="Panel.Reports" xml:space="preserve">
+    <value>Zgłoszenia</value>
+  </data>
+  <data name="Panel.News" xml:space="preserve">
+    <value>Aktualności</value>
+  </data>
+  <data name="Panel.Organisers" xml:space="preserve">
+    <value>Organizatorzy</value>
+  </data>
+  <data name="Panel.Merge" xml:space="preserve">
+    <value>Scalanie kont</value>
+  </data>
+  <data name="Panel.Audit" xml:space="preserve">
+    <value>Dziennik zdarzeń</value>
+  </data>
 </root>

@@ -121,6 +121,8 @@ builder.Services.AddScoped<IExternalIdentityProvider, DiscordOAuthProvider>();
 builder.Services.AddScoped<ExternalLinkState>();
 builder.Services.AddScoped<ExternalAccountLinks>();
 builder.Services.AddScoped<AccountDeletion>();
+builder.Services.AddScoped<AccountMerge>();
+builder.Services.AddScoped<NextSkill.Api.Features.Panels.PanelLinks>();
 
 // Tournament announcements use a transactional outbox. The request that
 // opens registration or records a result only writes a durable row; this

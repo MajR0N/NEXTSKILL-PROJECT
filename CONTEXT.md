@@ -4,7 +4,7 @@ The shared, general-purpose document. Anything true across the whole project liv
 Anything specific to one decision lives in `docs/` as its own file.
 
 **Status:** **building.** Phases 0–3 complete; **Phase 4 (web platform) past its keystone**.
-**316 checks passing** against a real PostgreSQL, including in-process end-to-end runs of the
+**358 checks passing** against a real PostgreSQL, including in-process end-to-end runs of the
 plugin pipeline, the tournament and bracket flow, and the whole authentication surface.
 
 > **The definition-of-done sentence is now true in code (2026-08-17):** a bracket advances
@@ -20,7 +20,7 @@ plugin pipeline, the tournament and bracket flow, and the whole authentication s
 | Accounts — register, login, logout, **account-wide session revocation**, **password reset**, **two-factor (TOTP + SMS)**, recovery codes, private `/me`, rotate-only `setinfo` tokens, verified Steam/Discord links, GDPR erasure with anonymous history tombstones and zero persisted application IPs | [011](docs/decisions/011-accounts-and-login.md), [012](docs/decisions/012-security.md), [029](docs/decisions/029-profile-login-footer.md), [047](docs/decisions/047-two-factor.md) |
 | Teams — create, invite, accept, roster slots (5 + 3 + 2), promote, edit, disband and captain-authorised restoration | [045](docs/decisions/045-teams-and-rosters.md) |
 | Tournaments — create, private drafts, reusable organiser templates, lifecycle-safe editing, season assignment, registration, seeding, captain check-in, audited event forfeits, and durable Discord announcements for registration/start/confirmed results | [014](docs/decisions/014-discord.md), [015](docs/decisions/015-admin-panel.md), [021](docs/decisions/021-site-structure.md), [046](docs/decisions/046-tournament-lifecycle.md) |
-| Brackets — generated into the database on start, routing as real foreign keys, byes and forfeit vacancies resolved | [023](docs/decisions/023-bracket.md) |
+| Brackets — generated into the database on start, routing as real foreign keys, byes and forfeit vacancies resolved, **the grand-final reset armed live**, and a phone gets one round at a time rather than a shrunken tree | [023](docs/decisions/023-bracket.md) |
 | Ranking — team + player views, provisional separation, search and cursor pagination | [025](docs/decisions/025-rating-system.md) |
 | Player profiles — public ratings/team/LFT history plus a private account and security surface | [029](docs/decisions/029-profile-login-footer.md) |
 | Plugin API — HMAC-signed ingest, sequencing, reconciliation, integrity gates | [009](docs/decisions/009-api-contract.md), [035](docs/decisions/035-match-result-integrity.md) |
@@ -35,8 +35,9 @@ plugin pipeline, the tournament and bracket flow, and the whole authentication s
 | **Seasons archive** — `/seasons/{n}` read as at the closing instant, with a database constraint refusing to close a season without recording when | [021](docs/decisions/021-site-structure.md), [051](docs/decisions/051-phase-4-remainder.md) |
 | **News** — `/news`, scheduled posts invisible until due, markdown with raw HTML disabled and a link-scheme allow-list applied to the parsed document | [015](docs/decisions/015-admin-panel.md), [040](docs/decisions/040-threat-model.md), [051](docs/decisions/051-phase-4-remainder.md) |
 | **Competitive history** — integrity-aware team record and ledger-backed rating trend; player match history labelled by provenance | [049](docs/decisions/049-team-page.md), [029](docs/decisions/029-profile-login-footer.md) |
-| **Staff panel** — `/admin/*`: the `trusted` flag finally has a user interface, bans end every live session and are refused for staff and the owner, and the audit log has a reader with a denied-only filter | [015](docs/decisions/015-admin-panel.md), [036](docs/decisions/036-authorization.md) |
-| **LFT board** — `/lft`, two explicit sides, freshness-ordered with rating never buying prominence; a team approach always names a real opening; ten pending per side; mutual acceptance reveals one verified contact each way for 30 days, and there is no recruitment chat | [056](docs/decisions/056-lft-board.md) |
+| **Staff panel** — `/admin/*`: the `trusted` flag finally has a user interface, bans end every live session and are refused for staff and the owner, the audit log has a reader with a denied-only filter, the **news CMS** finally has an author, reported adverts have a **moderation queue**, and **account merges** are owner-only | [015](docs/decisions/015-admin-panel.md), [036](docs/decisions/036-authorization.md) |
+| **Organiser panel** — `/org/*`: servers, the referee's desk, and **staff roles** — every organiser-scoped permission reads `organiser_staff`, and until now nothing could write it. All panel sections are reachable from a navigation strip that asks operations rather than roles | [015](docs/decisions/015-admin-panel.md), [021](docs/decisions/021-site-structure.md), [036](docs/decisions/036-authorization.md) |
+| **LFT board** — `/lft`, two explicit sides, freshness-ordered with rating never buying prominence; a team approach always names a real opening; ten pending per side; mutual acceptance reveals one verified contact each way for 30 days, and there is no recruitment chat. **Weekly availability** is captured per weekday and compared as genuine overlap across time zones; adverts can be **reported** and moderated | [056](docs/decisions/056-lft-board.md) |
 | **Secrets encrypted at rest** — the signing credential, the TOTP seed and the per-match link code are encrypted with a key held **outside** the database; none can be hashed, since each must be replayed. A startup backfill closes the pre-encryption window | [012](docs/decisions/012-security.md) |
 | **Rate limiting behind a proxy** — the auth limiter partitions on the visitor's address, recovered from `X-Forwarded-For` **only** for requests arriving from a configured network. Empty configuration leaves it inert | [011](docs/decisions/011-accounts-and-login.md), [042](docs/decisions/042-hosting.md) |
 
@@ -49,16 +50,16 @@ plugin pipeline, the tournament and bracket flow, and the whole authentication s
 2. **The product ships monochrome on purpose** until [044](docs/decisions/044-visual-direction.md)
    closes. Colour is an open question, not an oversight.
 3. **Phase 4 is nearly complete, and what remains is named.** Match completion, ratings, the
-   referee's desk, the staff panel, the LFT board, the home page, notifications, search, seasons,
-   news and competitive history all run end to end. Still open:
-   - **Weekly availability capture and overlap filtering** on the LFT board. The columns and the
-     UTC hour-of-week normaliser ship; the form that collects windows does not, so the schedule
-     filter [056](docs/decisions/056-lft-board.md) specifies is not yet offered.
-   - **Advert reporting/moderation**, and converting a mutual contact into the roster invitation
-     that is the only thing counting as recruitment success.
-   - **The news CMS editor** — posts are still seeded by hand.
+   referee's desk, both panels, the LFT board with availability and moderation, the home page,
+   notifications, search, seasons, news with an editor, and competitive history all run end to end.
+   **Every buildable item is now built.** What remains is blocked on something outside Phase 4:
    - **Team trophies**, blocked on placement standings: nothing computes a top-three finish beyond
      the bracket winner.
+   - **Team logos**, blocked on [044](docs/decisions/044-visual-direction.md), and needing upload
+     validation, storage and moderation decisions of their own.
+   - **A real email/SMS provider** and deliverability, blocked on production credentials. The seam
+     exists and **fails closed**, so production refuses to start without a real sender.
+   - **Authentication events in the audit log**, deferred with the reader that would show them.
    - **Maintenance mode** ([033](docs/decisions/033-maintenance-mode.md)) is Phase 7 by design.
    - The organiser server inventory stays unusable by a real organiser until the Phase 6 plugin can
      send a signed heartbeat — which is the real gate on a first live cup, not anything in Phase 4.

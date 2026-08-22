@@ -550,7 +550,19 @@ public enum AuditAction
     RegisterServer,
     SetOrganiserTrusted,
     GrantRole,
+
+    /// <summary>
+    /// Kept separate from <see cref="GrantRole"/> rather than folded into it
+    /// with a reason string: "when did this person lose access" is a question
+    /// the log exists to answer, and a Grant row meaning a revoke is exactly the
+    /// kind of thing nobody unpicks at 3am.
+    /// </summary>
+    RevokeRole,
+
     BanUser,
+    PublishNews,
+    MergeAccounts,
+    ModerateAdvert,
 
     /// <summary>
     /// Someone asked for an RCON credential, a <c>setinfo</c> token or a server

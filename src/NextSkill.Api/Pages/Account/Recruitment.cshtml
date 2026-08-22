@@ -3,6 +3,7 @@
 @using System.Globalization
 @using NextSkill.Api.Shared.Persistence
 @using NextSkill.Domain.Recruitment
+@using NextSkill.Api.Features.Recruitment
 @{
     ViewData["Title"] = "Rekrutacja";
     var locale = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
@@ -97,6 +98,44 @@
                 }
             </fieldset>
 
+
+
+            @* Availability, one row PER DAY (056). Seven optional rows rather
+               than one window for the whole week, so weekend mornings and
+               midweek evenings are both expressible — and still no script:
+               leaving a row's two hours equal means "not that day". *@
+            <fieldset>
+                <legend>Dostępność (opcjonalna)</legend>
+                @for (var day = 0; day < AvailabilityText.Weekdays.Length; day++)
+                {
+                    <div class="row">
+                        <span style="min-width:3.5em">@AvailabilityText.Weekdays[day]</span>
+                        <label class="visually-hidden" for="listing-from-@day">Od godziny</label>
+                        <select id="listing-from-@day" name="Listing.FromHours">
+                            @for (var hour = 0; hour < 24; hour++)
+                            {
+                                <option value="@hour">@hour.ToString("D2"):00</option>
+                            }
+                        </select>
+                        <label class="visually-hidden" for="listing-to-@day">Do godziny</label>
+                        <select id="listing-to-@day" name="Listing.ToHours">
+                            @for (var hour = 0; hour <= 24; hour++)
+                            {
+                                <option value="@hour">@hour.ToString("D2"):00</option>
+                            }
+                        </select>
+                    </div>
+                }
+                <label for="listing-tz">Strefa czasowa</label>
+                <select id="listing-tz" name="Listing.TimeZoneId">
+                    @foreach (var zone in RecruitmentRules.TimeZones)
+                    {
+                        <option value="@zone">@zone</option>
+                    }
+                </select>
+                <span class="field__hint">Te same godziny od i do oznaczają, że tego dnia nie grasz.</span>
+            </fieldset>
+
             <label for="listing-note">Notatka (maks. 300 znaków, bez linków)</label>
             <textarea id="listing-note" asp-for="Listing.Note" maxlength="300" rows="2"></textarea>
 
@@ -166,6 +205,44 @@
                     {
                         <label><input type="checkbox" name="Opening.Roles" value="@role" /> @role</label>
                     }
+                </fieldset>
+
+
+
+                @* Availability, one row PER DAY (056). Seven optional rows rather
+                   than one window for the whole week, so weekend mornings and
+                   midweek evenings are both expressible — and still no script:
+                   leaving a row's two hours equal means "not that day". *@
+                <fieldset>
+                    <legend>Dostępność (opcjonalna)</legend>
+                    @for (var day = 0; day < AvailabilityText.Weekdays.Length; day++)
+                    {
+                        <div class="row">
+                            <span style="min-width:3.5em">@AvailabilityText.Weekdays[day]</span>
+                            <label class="visually-hidden" for="opening-from-@day">Od godziny</label>
+                            <select id="opening-from-@day" name="Opening.FromHours">
+                                @for (var hour = 0; hour < 24; hour++)
+                                {
+                                    <option value="@hour">@hour.ToString("D2"):00</option>
+                                }
+                            </select>
+                            <label class="visually-hidden" for="opening-to-@day">Do godziny</label>
+                            <select id="opening-to-@day" name="Opening.ToHours">
+                                @for (var hour = 0; hour <= 24; hour++)
+                                {
+                                    <option value="@hour">@hour.ToString("D2"):00</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    <label for="opening-tz">Strefa czasowa</label>
+                    <select id="opening-tz" name="Opening.TimeZoneId">
+                        @foreach (var zone in RecruitmentRules.TimeZones)
+                        {
+                            <option value="@zone">@zone</option>
+                        }
+                    </select>
+                    <span class="field__hint">Te same godziny od i do oznaczają, że tego dnia nie grasz.</span>
                 </fieldset>
 
                 <label for="opening-note">Notatka (maks. 300 znaków, bez linków)</label>
@@ -243,6 +320,26 @@
                         Dostęp wygasa @contact.ExpiresAt.ToString("yyyy-MM-dd").
                         Możemy usunąć swój zapis, ale nie skasujemy tego, co ktoś już sobie zapisał.
                     </p>
+
+                    @* The conversation is the point; THIS is the only thing that
+                       counts as recruitment success (056). It sends an ordinary
+                       invitation — the player still has to accept it. *@
+                    @if (contact.CanConvert)
+                    {
+                        <form method="post" asp-page-handler="Convert" asp-route-openingId="@contact.OpeningId"
+                              style="margin-top:var(--s3)">
+                            <button class="btn btn--primary" type="submit">
+                                Wyślij zaproszenie do składu (@contact.Slot.ToString().ToLowerInvariant())
+                            </button>
+                            <span class="field__hint">
+                                Zaproszenie trzeba jeszcze zaakceptować. Ogłoszenie zamknie się dopiero wtedy.
+                            </span>
+                        </form>
+                    }
+                    else if (contact.CannotConvertBecause is { } why)
+                    {
+                        <p class="dim">@why</p>
+                    }
                 </div>
             }
         </section>

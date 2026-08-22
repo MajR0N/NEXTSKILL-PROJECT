@@ -29,6 +29,44 @@ public class BracketModel(NextSkillDb db) : PageModel
     [BindProperty(SupportsGet = true)]
     public bool Forfeited { get; set; }
 
+    /// <summary>
+    /// Which round the <b>mobile</b> view shows (decision 023).
+    ///
+    /// A query parameter rather than a script, so the arrows are ordinary links:
+    /// the view survives a reload, and a link pasted into Discord opens on the
+    /// round the sender was looking at. Desktop renders every column regardless
+    /// and never reads it.
+    /// </summary>
+    [BindProperty(SupportsGet = true, Name = "round")]
+    public int? Round { get; set; }
+
+    /// <summary>Index into <see cref="Columns"/>, already clamped.</summary>
+    public int ShownRound { get; private set; }
+
+    /// <summary>
+    /// Follow one team's route through the bracket (decision 023).
+    ///
+    /// <b>023 calls this the more important of the two mobile views</b>, and it
+    /// is the one a shared Discord link arrives at: somebody opening a bracket
+    /// on a phone is asking "did we advance, and when do we play next", not
+    /// "what is the shape of the tournament". A tree answers the second
+    /// question at the cost of the first.
+    /// </summary>
+    [BindProperty(SupportsGet = true, Name = "team")]
+    public Guid? FollowTeamId { get; set; }
+
+    public sealed record Step(
+        string Label, string Opponent, int? ScoreFor, int? ScoreAgainst,
+        bool Played, bool Won, bool Live, bool Forfeited, Guid MatchId);
+
+    public string? FollowTeamName { get; private set; }
+
+    /// <summary>Played, next and still-unreachable matches, in bracket order.</summary>
+    public IReadOnlyList<Step> Route { get; private set; } = [];
+
+    /// <summary>Teams that can be followed, for the picker.</summary>
+    public IReadOnlyList<(Guid Id, string Name)> Entrants { get; private set; } = [];
+
     public Tournament? Tournament { get; private set; }
     public string OrganiserName { get; private set; } = "";
 
@@ -94,6 +132,8 @@ public class BracketModel(NextSkillDb db) : PageModel
              AccessPolicy.Can(actor, Operation.ManageRoster, new ResourceRef(TeamId: match.TeamAId)) ||
              AccessPolicy.Can(actor, Operation.ManageRoster, new ResourceRef(TeamId: match.TeamBId)));
 
+        var matchesById = matches.ToDictionary(m => m.Id);
+
         var nodes = matches.Select(m => new Node(
             m.Id, m.Side, m.Round, m.Position,
             ToSlot(m.TeamAId, m.ScoreA, m.WinnerTeamId),
@@ -122,6 +162,64 @@ public class BracketModel(NextSkillDb db) : PageModel
         if (grandFinal.Count > 0) columns.Add(("Wielki finał", grandFinal));
 
         Columns = columns;
+
+        // Default to the round being played, because "when do we play next" is
+        // the question a phone arrives with (023). An inactive reset match is
+        // not an undecided round — it is a match that may never exist.
+        var current = columns.FindIndex(c => c.Item2.Any(n =>
+            !n.Decided && !n.IsBye && (!n.IsConditional || n.A.Team is not null)));
+
+        ShownRound = Math.Clamp(
+            Round ?? (current < 0 ? columns.Count - 1 : current),
+            0, Math.Max(0, columns.Count - 1));
+
+        // ── follow one team (023) ────────────────────────────────────────
+        Entrants = [.. matches
+            .SelectMany(m => new[] { m.TeamAId, m.TeamBId })
+            .Where(x => x is not null).Select(x => x!.Value).Distinct()
+            .Where(teams.ContainsKey)
+            .Select(x => (x, teams[x].Name))
+            .OrderBy(x => x.Name)];
+
+        if (FollowTeamId is { } followed && teams.TryGetValue(followed, out var followedTeam))
+        {
+            FollowTeamName = followedTeam.Name;
+
+            // Every match this team is IN, in the order the columns are drawn —
+            // which is already upper, then lower, then the final, so a lower
+            // bracket run reads in the sequence it was played.
+            var order = columns
+                .SelectMany(column => column.Item2.Select(node => (Node: node, Label: column.Item1)))
+                .ToList();
+
+            Route = [.. order
+                .Where(x => matchesById[x.Node.Id] is { } m &&
+                            (m.TeamAId == followed || m.TeamBId == followed))
+                .Select(x =>
+                {
+                    var m = matchesById[x.Node.Id];
+                    var isA = m.TeamAId == followed;
+                    var opponentId = isA ? m.TeamBId : m.TeamAId;
+                    var opponentResolved = isA ? m.SlotBResolved : m.SlotAResolved;
+
+                    return new Step(
+                        x.Label,
+                        opponentId is { } o && teams.TryGetValue(o, out var opponent)
+                            ? opponent.Name
+                            // A resolved empty opponent is a walkover, and an
+                            // unresolved one is a match still waiting upstream.
+                            // Saying "—" for both would hide a free win.
+                            : opponentResolved ? "wolny los" : "czeka na rywala",
+                        isA ? m.ScoreA : m.ScoreB,
+                        isA ? m.ScoreB : m.ScoreA,
+                        m.WinnerTeamId is not null,
+                        m.WinnerTeamId == followed,
+                        m.Status == MatchStatus.Live,
+                        m.Status == MatchStatus.Forfeited,
+                        m.Id);
+                })];
+        }
+
         return Page();
     }
 

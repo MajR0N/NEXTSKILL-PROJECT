@@ -44,6 +44,7 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
     public DbSet<ContactGrant> ContactGrants => Set<ContactGrant>();
     public DbSet<Season> Seasons => Set<Season>();
     public DbSet<NewsPost> News => Set<NewsPost>();
+    public DbSet<AdvertReport> AdvertReports => Set<AdvertReport>();
 
     /// <summary>
     /// Accent-insensitive text, for search (decisions 043, 051 §8).
@@ -398,6 +399,12 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
                 .HasFilter("left_at IS NULL")
                 .HasDatabaseName("ix_one_active_membership_per_team");
             e.HasIndex(x => x.AccountId);
+
+            // SetNull rather than Cascade: a closed or deleted opening must
+            // never take a roster place with it (045).
+            e.HasOne<TeamOpening>().WithMany()
+                .HasForeignKey(x => x.FromTeamOpeningId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         b.Entity<OrganiserStaff>(e =>
@@ -445,6 +452,9 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
             // or the board starves exactly the new players it exists to serve.
             e.HasIndex(x => new { x.Game, x.PublishedAt });
             e.HasIndex(x => x.ExpiresAt).HasFilter("closed_at IS NULL");
+
+            // Same reason as team_openings: `&&` needs GIN, not a btree.
+            e.HasIndex(x => x.AvailabilityHours).HasMethod("gin");
         });
 
         b.Entity<TeamOpening>(e =>
@@ -456,8 +466,45 @@ public sealed class NextSkillDb(DbContextOptions<NextSkillDb> options, ITenantCo
             e.HasIndex(x => new { x.TeamId, x.ClosedAt });
             e.HasIndex(x => x.ExpiresAt).HasFilter("closed_at IS NULL");
 
+            // The schedule filter is an array intersection (`&&`), which only a
+            // GIN index can answer without reading every live advert.
+            e.HasIndex(x => x.AvailabilityHours).HasMethod("gin");
+
             e.HasOne<Team>().WithMany()
                 .HasForeignKey(x => x.TeamId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<AdvertReport>(e =>
+        {
+            e.Property(x => x.Reason).HasMaxLength(500);
+
+            // Exactly one target. Enforced by the database rather than by
+            // whichever handler happens to build the row, because a report
+            // pointing at nothing — or at two things — is unmoderatable.
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_advert_report_one_target",
+                "(lft_listing_id IS NOT NULL)::int + (team_opening_id IS NOT NULL)::int = 1"));
+
+            // One report per person per advert. Partial, one per target column,
+            // so a reporter cannot flood the queue by clicking twice.
+            e.HasIndex(x => new { x.ReporterAccountId, x.LftListingId })
+                .IsUnique()
+                .HasFilter("lft_listing_id IS NOT NULL")
+                .HasDatabaseName("ix_one_report_per_listing");
+            e.HasIndex(x => new { x.ReporterAccountId, x.TeamOpeningId })
+                .IsUnique()
+                .HasFilter("team_opening_id IS NOT NULL")
+                .HasDatabaseName("ix_one_report_per_opening");
+
+            // The queue reads exactly this.
+            e.HasIndex(x => x.CreatedAt).HasFilter("resolved_at IS NULL");
+
+            e.HasOne<LftListing>().WithMany()
+                .HasForeignKey(x => x.LftListingId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<TeamOpening>().WithMany()
+                .HasForeignKey(x => x.TeamOpeningId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

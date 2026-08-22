@@ -53,6 +53,22 @@ public class TeamMembership
     /// <summary>Null until the invite is accepted — an invite is a pending membership.</summary>
     public DateTimeOffset? JoinedAt { get; set; }
 
+    /// <summary>
+    /// The published vacancy this invitation came from, when it came from one
+    /// (decision 056).
+    ///
+    /// <b>The board's only real success metric depends on this column.</b> 056
+    /// is explicit that mutual contact is a conversation start and only an
+    /// accepted, slot-specific roster invitation counts as recruitment success —
+    /// and that the two must stay <i>separately measurable</i>. Without a link
+    /// back to the opening, "somebody joined a team" and "the LFT board filled a
+    /// vacancy" are the same row and the claim cannot be made honestly.
+    ///
+    /// It is also what lets acceptance close the opening as filled, rather than
+    /// conversion optimistically closing it before the player agreed.
+    /// </summary>
+    public Guid? FromTeamOpeningId { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? LeftAt { get; set; }
 }
@@ -172,6 +188,16 @@ public class LftListing
 
     /// <summary>Closed by the player. Kept privately for republication.</summary>
     public DateTimeOffset? ClosedAt { get; set; }
+
+    /// <summary>
+    /// Taken down by platform staff after a report (decisions 015, 056).
+    ///
+    /// A takedown sets <see cref="ClosedAt"/> too, so every public read already
+    /// hides it and no query had to change. This column is what stops the
+    /// author simply republishing the same row a minute later — without it a
+    /// moderation queue would be theatre.
+    /// </summary>
+    public DateTimeOffset? ModeratedAt { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
 }

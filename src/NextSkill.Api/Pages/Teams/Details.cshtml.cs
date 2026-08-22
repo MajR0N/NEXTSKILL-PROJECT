@@ -8,6 +8,7 @@ using NextSkill.Api.Shared.Persistence;
 using NextSkill.Domain.Access;
 using NextSkill.Domain.Matches;
 using NextSkill.Domain.Ratings;
+using NextSkill.Domain.Recruitment;
 using NextSkill.Domain.Teams;
 
 namespace NextSkill.Api.Pages.Teams;
@@ -198,6 +199,34 @@ public class DetailsModel(NextSkillDb db) : PageModel
         if (accept)
         {
             invite.JoinedAt = DateTimeOffset.UtcNow;
+
+            // THE ONLY THING 056 COUNTS AS RECRUITMENT SUCCESS. Mutual contact
+            // is a conversation start; a vacancy is filled when the player
+            // agrees to fill it, which is here and not at the captain's end.
+            // Closing at conversion instead would let a recruiter mark their
+            // own success.
+            if (invite.FromTeamOpeningId is { } openingId)
+            {
+                await db.TeamOpenings
+                    .Where(o => o.Id == openingId && o.ClosedAt == null)
+                    .ExecuteUpdateAsync(
+                        u => u.SetProperty(o => o.ClosedAt, invite.JoinedAt), default);
+
+                // Everyone still waiting on a vacancy that no longer exists is
+                // closed neutrally — the same shape a material listing change
+                // already uses. It is not a rejection of them.
+                foreach (var state in new[] { RecruitmentState.Pending })
+                {
+                    await db.OpeningApplications
+                        .Where(a => a.TeamOpeningId == openingId && a.State == state)
+                        .ExecuteUpdateAsync(
+                            u => u.SetProperty(a => a.State, RecruitmentState.OpeningClosed), default);
+                    await db.TeamInterests
+                        .Where(i => i.TeamOpeningId == openingId && i.State == state)
+                        .ExecuteUpdateAsync(
+                            u => u.SetProperty(i => i.State, RecruitmentState.OpeningClosed), default);
+                }
+            }
 
             var captains = await db.TeamMemberships
                 .Where(m => m.TeamId == id && m.Role == TeamRole.Captain && m.LeftAt == null)

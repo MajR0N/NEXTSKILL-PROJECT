@@ -335,6 +335,197 @@ public static class BracketPersistenceChecks
                 "an event forfeit must never drop the team into the lower bracket");
         });
 
+        // ── the reset, live (023) ────────────────────────────────────────
+        //
+        // The engine has triggered this since Phase 2 and the row has existed
+        // since generation — and nothing ever connected the two.
+
+        /// Advances every ready match except the grand final, slot A always winning.
+        void PlayUpTo(Guid tournamentId)
+        {
+            using var db = Db();
+            for (var guard = 0; ; guard++)
+            {
+                if (guard > 200) throw new Exception("The bracket did not drain — routing is probably cyclic.");
+
+                var next = db.Matches.FirstOrDefault(m =>
+                    m.TournamentId == tournamentId && m.Side != BracketSide.GrandFinal &&
+                    m.WinnerTeamId == null && !m.IsConditional && m.Status == MatchStatus.Scheduled &&
+                    m.SlotAResolved && m.SlotBResolved && m.TeamAId != null && m.TeamBId != null);
+
+                if (next is null) return;
+
+                BracketBuilder.AdvanceAsync(db, next, next.TeamAId!.Value).GetAwaiter().GetResult();
+                db.ChangeTracker.Clear();
+            }
+        }
+
+        (Match GrandFinal, Match Reset) FinalsOf(NextSkillDb db, Guid tournamentId)
+        {
+            var finals = db.Matches
+                .Where(m => m.TournamentId == tournamentId && m.Side == BracketSide.GrandFinal)
+                .ToList();
+            return (finals.Single(m => !m.IsConditional), finals.Single(m => m.IsConditional));
+        }
+
+        check("BRACKET RESET, LIVE: the lower-bracket team wins the grand final → the reset is armed", () =>
+        {
+            var id = BuildFor(4, TournamentFormat.DoubleElimination);
+            PlayUpTo(id);
+
+            using var db = Db();
+            var (grandFinal, reset) = FinalsOf(db, id);
+
+            that(grandFinal.TeamAId is not null && grandFinal.TeamBId is not null,
+                "the grand final must have both finalists before this proves anything");
+            that(reset.TeamAId is null && reset.TeamBId is null && !reset.SlotAResolved,
+                "and the reset must still be empty");
+
+            var lowerBracketTeam = grandFinal.TeamBId!.Value;
+            var upperBracketTeam = grandFinal.TeamAId!.Value;
+            BracketBuilder.AdvanceAsync(db, grandFinal, lowerBracketTeam).GetAwaiter().GetResult();
+
+            db.ChangeTracker.Clear();
+            var armed = FinalsOf(db, id).Reset;
+
+            // Without this the undefeated team is eliminated on its first
+            // defeat, which is not double elimination at all (022).
+            that(armed.TeamAId == upperBracketTeam && armed.TeamBId == lowerBracketTeam,
+                "both finalists now have one loss, so the SAME two must play again");
+            that(armed.SlotAResolved && armed.SlotBResolved,
+                "and the match must be playable, not merely populated");
+            that(armed.IsConditional,
+                "it stays flagged as the reset — that is what the bracket renders differently");
+        });
+
+        check("bracket: the UPPER-bracket team winning ends it — no reset is invented", () =>
+        {
+            var id = BuildFor(4, TournamentFormat.DoubleElimination);
+            PlayUpTo(id);
+
+            using var db = Db();
+            var (grandFinal, _) = FinalsOf(db, id);
+            BracketBuilder.AdvanceAsync(db, grandFinal, grandFinal.TeamAId!.Value).GetAwaiter().GetResult();
+
+            db.ChangeTracker.Clear();
+            var reset = FinalsOf(db, id).Reset;
+            that(reset.TeamAId is null && reset.TeamBId is null && !reset.SlotAResolved,
+                "an undefeated team that wins has beaten everyone twice — a second final would be inventing one");
+        });
+
+        check("bracket: a FORFEITED grand final never summons a team back for a reset", () =>
+        {
+            var id = BuildFor(4, TournamentFormat.DoubleElimination);
+            PlayUpTo(id);
+
+            using var db = Db();
+            var (grandFinal, _) = FinalsOf(db, id);
+
+            // The upper-bracket team exits the event, so the lower-bracket team
+            // "wins" — the same shape that arms the reset from a played result.
+            BracketBuilder.ForfeitAsync(
+                db, grandFinal, grandFinal.TeamAId!.Value, Guid.NewGuid(), "Nie stawili się.")
+                .GetAwaiter().GetResult();
+
+            db.ChangeTracker.Clear();
+            var reset = FinalsOf(db, id).Reset;
+            that(reset.TeamAId is null && reset.TeamBId is null,
+                "a team that left the event cannot be put back into a final it cannot play");
+        });
+
+        check("bracket: mobile shows ONE round, defaults to the one in play, clamps — and follows a team", () =>
+        {
+            var id = BuildFor(4, TournamentFormat.DoubleElimination);
+            using (var db = Db())
+            {
+                db.Tournaments.Single(t => t.Id == id).Status = TournamentStatus.Running;
+                db.SaveChanges();
+            }
+
+            using var factory = TestHost.Create();
+            using var browser = factory.NewClient();
+
+            int Occurrences(string html, string needle)
+            {
+                var count = 0;
+                for (var at = html.IndexOf(needle, StringComparison.Ordinal);
+                     at >= 0;
+                     at = html.IndexOf(needle, at + 1, StringComparison.Ordinal))
+                    count++;
+                return count;
+            }
+
+            /// Which column carries the marker, counted in render order.
+            int ShownIndex(string html)
+            {
+                var marker = html.IndexOf("bracket__col--shown", StringComparison.Ordinal);
+                if (marker < 0) return -1;
+                return Occurrences(html[..marker], "class=\"bracket__col") - 1;
+            }
+
+            var first = browser.GetStringAsync($"/pl/t/{id}/bracket").GetAwaiter().GetResult();
+            that(Occurrences(first, "bracket__col--shown") == 1,
+                "a phone gets exactly one round — the tree is a desktop artifact (023)");
+
+            // Nothing is played yet, so the round in play is the first column.
+            that(ShownIndex(first) == 0,
+                $"the default is the round being played, because that is the question a phone arrives with; got column {ShownIndex(first)}");
+
+            // The arrow has to be a working link, not an empty href. Everything
+            // else here would still pass if the tag helper produced nothing.
+            that(first.Contains($"/pl/t/{id}/bracket?round=1", StringComparison.Ordinal),
+                "the next-round arrow must keep the tournament in the URL and add the round");
+
+            var second = browser.GetStringAsync($"/pl/t/{id}/bracket?round=2").GetAwaiter().GetResult();
+            that(Occurrences(second, "bracket__col--shown") == 1 && ShownIndex(second) == 2,
+                $"the arrows are links, so the chosen round survives a reload and a pasted URL; got column {ShownIndex(second)}");
+
+            // ── follow one team (023) ────────────────────────────────
+            //
+            // The question a shared Discord link actually arrives with: did we
+            // advance, and when do we play next. The tree cannot answer it.
+            Guid followed;
+            string followedName;
+            using (var db = Db())
+            {
+                var opener = db.Matches.AsNoTracking()
+                    .First(m => m.TournamentId == id && m.TeamAId != null);
+                followed = opener.TeamAId!.Value;
+                followedName = db.Teams.AsNoTracking().Single(t => t.Id == followed).Name;
+            }
+
+            var route = browser.GetStringAsync($"/pl/t/{id}/bracket?team={followed}").GetAwaiter().GetResult();
+            that(route.Contains(followedName, StringComparison.Ordinal),
+                "the followed team must be named");
+            that(route.Contains("route__step", StringComparison.Ordinal),
+                "and its route must render as a sequence, not as a tree");
+
+            // The route is THIS team's matches and nobody else's: a four-team
+            // double elimination gives one team at most upper R1, upper final,
+            // two lower rounds and two grand finals.
+            var steps = Occurrences(route, "route__step");
+            that(steps is > 0 and <= 6,
+                $"a route is one team's own matches, got {steps} steps");
+
+            var noRoute = browser.GetStringAsync($"/pl/t/{id}/bracket").GetAwaiter().GetResult();
+            that(!noRoute.Contains("route__step", StringComparison.Ordinal),
+                "and without a team the page stays the ordinary bracket");
+
+            var stranger = browser
+                .GetAsync($"/pl/t/{id}/bracket?team={Guid.NewGuid()}").GetAwaiter().GetResult();
+            that(stranger.StatusCode == System.Net.HttpStatusCode.OK,
+                $"a team id from another tournament must not break the page, got {(int)stranger.StatusCode}");
+
+            var silly = browser.GetAsync($"/pl/t/{id}/bracket?round=999").GetAwaiter().GetResult();
+            that(silly.StatusCode == System.Net.HttpStatusCode.OK,
+                $"a hand-edited round number must clamp, not throw; got {(int)silly.StatusCode}");
+
+            var clamped = silly.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            that(Occurrences(clamped, "bracket__col--shown") == 1 &&
+                 ShownIndex(clamped) == Occurrences(clamped, "class=\"bracket__col") - 1,
+                "and clamp to the LAST round rather than showing none");
+        });
+
         check("bracket: generating twice is refused by the DATABASE, not by luck", () =>
         {
             using var db = Db();

@@ -1,0 +1,123 @@
+@page
+@model NextSkill.Api.Pages.Admin.NewsModel
+@using Microsoft.Extensions.Localization
+@using NextSkill.Api.Localisation
+@inject IStringLocalizer<UiText> T
+@{
+    ViewData["Title"] = T["News.Admin.Title"];
+    var editing = Model.Input.Id is not null;
+}
+
+<div class="wrap-narrow section">
+    <p class="eyebrow">@T["News.Admin.Eyebrow"]</p>
+    <h1>@T["News.Admin.Title"]</h1>
+    <p class="lede">@T["News.Admin.Intro"]</p>
+
+    <form method="post" class="card" style="margin-top:var(--s6)">
+        <h2>@(editing ? T["News.Admin.Edit"] : T["News.Admin.New"])</h2>
+
+        @if (ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+        {
+            <div class="alert alert--error" role="alert">
+                @foreach (var error in ViewData.ModelState[string.Empty]!.Errors)
+                {
+                    <div>@error.ErrorMessage</div>
+                }
+            </div>
+        }
+
+        <input type="hidden" asp-for="Input.Id" />
+
+        <div class="field">
+            <label asp-for="Input.Slug">@T["News.Field.Slug"]</label>
+            <input class="input" asp-for="Input.Slug" maxlength="120" required autocomplete="off" placeholder="pierwszy-turniej" />
+            <span class="field__hint">@T["News.Field.Slug.Hint"]</span>
+            <span class="field__error" asp-validation-for="Input.Slug"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.Locale">@T["News.Field.Locale"]</label>
+            <select class="input" asp-for="Input.Locale">
+                @foreach (var locale in Locales.Supported)
+                {
+                    <option value="@locale">@locale</option>
+                }
+            </select>
+            <span class="field__hint">@T["News.Field.Locale.Hint"]</span>
+            <span class="field__error" asp-validation-for="Input.Locale"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.Title">@T["News.Field.Title"]</label>
+            <input class="input" asp-for="Input.Title" maxlength="200" required />
+            <span class="field__error" asp-validation-for="Input.Title"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.Body">@T["News.Field.Body"]</label>
+            <textarea class="input" asp-for="Input.Body" rows="14" maxlength="20000" required></textarea>
+            <span class="field__hint">@T["News.Field.Body.Hint"]</span>
+            <span class="field__error" asp-validation-for="Input.Body"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.PublishedAt">@T["News.Field.PublishedAt"]</label>
+            <input class="input" asp-for="Input.PublishedAt" type="datetime-local" />
+            <span class="field__hint">@T["News.Field.PublishedAt.Hint"]</span>
+        </div>
+
+        <div class="field">
+            <label>
+                <input asp-for="Input.Pinned" type="checkbox" />
+                @T["News.Field.Pinned"]
+            </label>
+            <span class="field__hint">@T["News.Field.Pinned.Hint"]</span>
+        </div>
+
+        <button class="btn btn--primary" type="submit">@T["News.Admin.Save"]</button>
+        @if (editing)
+        {
+            <a class="btn" href="/@Locales.Current/admin/news">@T["News.Admin.Cancel"]</a>
+        }
+    </form>
+
+    <section style="margin-top:var(--s7)" aria-labelledby="news-list-title">
+        <h2 id="news-list-title">@T["News.Admin.List"]</h2>
+
+        @if (Model.Posts.Count == 0)
+        {
+            <div class="empty">@T["News.Admin.Empty"]</div>
+        }
+        else
+        {
+            <div class="stack">
+                @foreach (var post in Model.Posts)
+                {
+                    <article class="card">
+                        <div class="row" style="justify-content:space-between;align-items:center">
+                            <div>
+                                <b>@post.Title</b>
+                                <p class="dim">
+                                    @post.Slug · @post.Locale ·
+                                    @if (post.PublishedAt is { } at)
+                                    {
+                                        @T["News.Admin.PublishedAt", at.ToString("u")]
+                                    }
+                                    else
+                                    {
+                                        @T["News.Admin.Draft"]
+                                    }
+                                    @if (post.Pinned)
+                                    {
+                                        <span> · @T["News.Field.Pinned"]</span>
+                                    }
+                                </p>
+                            </div>
+                            <a class="btn" href="/@Locales.Current/admin/news?id=@post.Id">@T["News.Admin.Edit"]</a>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+</div>

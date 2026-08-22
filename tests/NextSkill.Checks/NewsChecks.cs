@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NextSkill.Api.Features.News;
 using NextSkill.Api.Shared.Persistence;
 using NextSkill.Api.Shared.Tenancy;
+using NextSkill.Domain.Access;
 
 namespace NextSkill.Checks;
 
@@ -141,9 +142,163 @@ public static class NewsChecks
                 $"nor reachable by guessing its slug, got {(int)direct.StatusCode}");
         });
 
+        // ── the editor: until it existed, every post above was hand-seeded ──
+
+        var cmsSlug = $"cms-post-{stamp}";
+        var draftSlug = $"cms-draft-{stamp}";
+        const string password = "a-long-enough-passphrase";
+
+        HttpClient SignedInAs(string nickname)
+        {
+            var http = factory.NewClient();
+            http.PostFormAsync("/pl/account/register", new()
+            {
+                ["Input.Nickname"] = nickname,
+                ["Input.Email"] = $"{nickname.ToLowerInvariant()}@nextskill.test",
+                ["Input.Password"] = password,
+            }).GetAwaiter().GetResult();
+            return http;
+        }
+
+        var editorNick = $"NEd{stamp}";
+        var playerNick = $"NPl{stamp}";
+        using var editor = SignedInAs(editorNick);
+        using var player = SignedInAs(playerNick);
+
+        Guid editorId, playerId;
         using (var db = Db())
         {
-            db.Database.ExecuteSqlRaw("DELETE FROM news WHERE slug IN ({0},{1})", slug, futureSlug);
+            editorId = db.Accounts.Single(a => a.Nickname == editorNick).Id;
+            playerId = db.Accounts.Single(a => a.Nickname == playerNick).Id;
+            db.Accounts.Single(a => a.Id == editorId).PlatformRole = PlatformRole.Staff;
+            db.SaveChanges();
+        }
+
+        HttpResponseMessage Save(HttpClient http, Dictionary<string, string> fields, string tokenPage) =>
+            http.PostFormAsync("/pl/admin/news", fields, tokenPage).GetAwaiter().GetResult();
+
+        check("news CMS: a player cannot reach the editor, and a hand-written POST is refused AND recorded", () =>
+        {
+            var page = player.GetAsync("/pl/admin/news").GetAwaiter().GetResult();
+            that(page.StatusCode == HttpStatusCode.Forbidden,
+                $"the editor writes the page every visitor sees; got {(int)page.StatusCode}");
+
+            var response = Save(player, new()
+            {
+                ["Input.Slug"] = $"hostile-{stamp}",
+                ["Input.Locale"] = "pl",
+                ["Input.Title"] = "Nie",
+                ["Input.Body"] = "Nie.",
+            }, "/pl/me");
+
+            that(response.StatusCode == HttpStatusCode.Forbidden,
+                $"and skipping the page must not skip the check; got {(int)response.StatusCode}");
+
+            using var db = Db();
+            that(!db.News.Any(n => n.Slug == $"hostile-{stamp}"), "nothing may have been written");
+            that(db.AuditEntries.Count(a =>
+                    a.ActorAccountId == playerId &&
+                    a.Action == AuditAction.PublishNews &&
+                    a.Outcome == AuditOutcome.Denied) == 1,
+                "a refused publish writes no post — only the log can hold the attempt");
+        });
+
+        check("news CMS: staff write a post through the FORM and readers get it, sanitised", () =>
+        {
+            var response = Save(editor, new()
+            {
+                ["Input.Slug"] = cmsSlug,
+                ["Input.Locale"] = "pl",
+                ["Input.Title"] = $"Z edytora {stamp}",
+                ["Input.Body"] = "Tekst z [linkiem](javascript:alert(1)) i [dobrym](https://example.test/cms).",
+                ["Input.PublishedAt"] = DateTime.UtcNow.AddMinutes(-5).ToString("yyyy-MM-ddTHH:mm"),
+            }, "/pl/admin/news");
+
+            that(response.StatusCode == HttpStatusCode.Redirect,
+                $"a successful save redirects; got {(int)response.StatusCode}");
+
+            using var reader = factory.NewClient();
+            var html = WebUtility.HtmlDecode(
+                reader.GetStringAsync($"/pl/news/{cmsSlug}").GetAwaiter().GetResult());
+
+            that(html.Contains($"Z edytora {stamp}", StringComparison.Ordinal),
+                "the post an author actually wrote must reach the reader");
+            that(html.Contains("https://example.test/cms", StringComparison.Ordinal),
+                "with its legitimate link intact");
+            that(!html.Contains("javascript:", StringComparison.OrdinalIgnoreCase),
+                "THE AUTHOR PATH is the one the sanitiser exists for — the seeded rows never proved it");
+
+            using var db = Db();
+            that(db.AuditEntries.Any(a =>
+                    a.ActorAccountId == editorId && a.Action == AuditAction.PublishNews &&
+                    a.Outcome == AuditOutcome.Allowed),
+                "and who published it is answerable");
+        });
+
+        check("news CMS: no date means draft, and editing publishes the SAME row", () =>
+        {
+            Save(editor, new()
+            {
+                ["Input.Slug"] = draftSlug,
+                ["Input.Locale"] = "pl",
+                ["Input.Title"] = $"Szkic {stamp}",
+                ["Input.Body"] = "Jeszcze nieskończone.",
+            }, "/pl/admin/news");
+
+            using (var db = Db())
+            {
+                var draft = db.News.AsNoTracking().Single(n => n.Slug == draftSlug);
+                that(draft.PublishedAt is null, "an empty date must mean draft, not 'now'");
+            }
+
+            var invisible = factory.NewClient();
+            that(invisible.GetAsync($"/pl/news/{draftSlug}").GetAwaiter().GetResult().StatusCode
+                    == HttpStatusCode.NotFound,
+                "and a draft must not be reachable by guessing its slug");
+            invisible.Dispose();
+
+            Guid id;
+            using (var db = Db()) id = db.News.AsNoTracking().Single(n => n.Slug == draftSlug).Id;
+
+            Save(editor, new()
+            {
+                ["Input.Id"] = id.ToString(),
+                ["Input.Slug"] = draftSlug,
+                ["Input.Locale"] = "pl",
+                ["Input.Title"] = $"Szkic {stamp}",
+                ["Input.Body"] = "Już skończone.",
+                ["Input.PublishedAt"] = DateTime.UtcNow.AddMinutes(-1).ToString("yyyy-MM-ddTHH:mm"),
+            }, "/pl/admin/news");
+
+            using var after = Db();
+            var rows = after.News.AsNoTracking().Where(n => n.Slug == draftSlug).ToList();
+            that(rows.Count == 1,
+                $"editing must update the post, not fork it into two under one slug; got {rows.Count}");
+            that(rows[0].PublishedAt is not null && rows[0].Id == id, "and it is the same row, now published");
+        });
+
+        check("news CMS: a duplicate slug+locale is refused with a message, not a 500", () =>
+        {
+            var response = Save(editor, new()
+            {
+                ["Input.Slug"] = cmsSlug,
+                ["Input.Locale"] = "pl",
+                ["Input.Title"] = "Drugi raz",
+                ["Input.Body"] = "To samo miejsce.",
+            }, "/pl/admin/news");
+
+            that(response.StatusCode == HttpStatusCode.OK,
+                $"the database rule must surface as a form error; got {(int)response.StatusCode}");
+
+            using var db = Db();
+            that(db.News.Count(n => n.Slug == cmsSlug && n.Locale == "pl") == 1,
+                "and exactly one post keeps that address");
+        });
+
+        using (var db = Db())
+        {
+            db.Database.ExecuteSqlRaw(
+                "DELETE FROM news WHERE slug IN ({0},{1},{2},{3})", slug, futureSlug, cmsSlug, draftSlug);
         }
     }
 }

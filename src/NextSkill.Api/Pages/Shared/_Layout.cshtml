@@ -10,8 +10,10 @@
 @using Microsoft.Extensions.Localization
 @using NextSkill.Api.Localisation
 @using NextSkill.Api.Features.Notifications
+@using NextSkill.Api.Features.Panels
 @inject IStringLocalizer<UiText> Text
 @inject NotificationBell Bell
+@inject PanelLinks Panels
 @{
     // The URL is the source of truth for language (018). RequestLocalization
     // has already resolved it by the time the layout renders.
@@ -91,6 +93,13 @@
                    aria-label="@Text["Notifications.Aria", unread]">
                     @Text["Notifications.Bell"]@(unread > 0 ? $" ({unread})" : "")
                 </a>
+                @* The panel had nine working pages and no link to any of them.
+                   Shown only to somebody who can actually reach one, because a
+                   link that 403s is worse than no link (036). *@
+                @if (await Panels.EntryAsync(User, locale) is { } panelEntry)
+                {
+                    <a href="@panelEntry">@Text["Panel.Title"]</a>
+                }
                 <a asp-page="/Account/Profile" asp-route-culture="@locale">@User.Identity.Name</a>
                 @* Logout is a POST, so it cannot be triggered by an <img src> on
                    someone else's page — and Razor Pages signs the form for us. *@
@@ -115,6 +124,28 @@
             </div>
         </nav>
     </header>
+
+    @* 021 gives panels their own navigation. Rendered here rather than in each
+       page so a new section cannot ship unreachable the way every existing one
+       did — the layout already knows the path. *@
+    @if (path.StartsWith($"/{locale}/org", StringComparison.Ordinal)
+         || path.StartsWith($"/{locale}/admin", StringComparison.Ordinal))
+    {
+        var sections = await Panels.ForAsync(User, locale);
+        if (sections.Count > 0)
+        {
+            <nav class="wrap panelnav" aria-label="@Text["Panel.Title"]">
+                @* `section` is a Razor keyword, so the loop variable cannot be called that. *@
+                @foreach (var entry in sections)
+                {
+                    <a href="@entry.Path"
+                       aria-current="@(path.StartsWith(entry.Path, StringComparison.Ordinal) ? "page" : "false")">
+                        @Text[entry.TextKey]
+                    </a>
+                }
+            </nav>
+        }
+    }
 
     <main id="main">
         @RenderBody()

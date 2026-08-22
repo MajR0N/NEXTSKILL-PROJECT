@@ -3,6 +3,7 @@
 @using System.Globalization
 @using NextSkill.Api.Pages.Lft
 @using NextSkill.Api.Shared.Persistence
+@using NextSkill.Api.Features.Recruitment
 @using NextSkill.Domain.Recruitment
 @{
     var players = Model.View == BoardView.Players;
@@ -76,8 +77,51 @@
             }
         </select>
 
+        @* Schedule overlap: an explicit window, because the board browses
+           without an account and "my availability" would mean something
+           different to a signed-out visitor (056). *@
+        <label class="visually-hidden" for="day">Dzień</label>
+        <select id="day" name="day">
+            <option value="">Każdy dzień</option>
+            @for (var d = 0; d < AvailabilityText.Weekdays.Length; d++)
+            {
+                <option value="@d" selected="@(Model.Day == d)">@AvailabilityText.Weekdays[d]</option>
+            }
+        </select>
+
+        <label class="visually-hidden" for="from">Od</label>
+        <select id="from" name="from">
+            <option value="">od</option>
+            @for (var hour = 0; hour < 24; hour++)
+            {
+                <option value="@hour" selected="@(Model.From == hour)">@hour.ToString("D2"):00</option>
+            }
+        </select>
+
+        <label class="visually-hidden" for="to">Do</label>
+        <select id="to" name="to">
+            <option value="">do</option>
+            @for (var hour = 1; hour <= 24; hour++)
+            {
+                <option value="@hour" selected="@(Model.To == hour)">@hour.ToString("D2"):00</option>
+            }
+        </select>
+
+        <label class="visually-hidden" for="tz">Strefa</label>
+        <select id="tz" name="tz">
+            @foreach (var zone in RecruitmentRules.TimeZones)
+            {
+                <option value="@zone" selected="@(Model.Zone == zone)">@zone</option>
+            }
+        </select>
+
         <button class="btn" type="submit">Filtruj</button>
     </form>
+
+    @if (Model.ActionNotice is not null)
+    {
+        <div class="alert" role="status" style="margin-top:var(--s4)">@Model.ActionNotice</div>
+    }
 
     @if (Model.ActionError is not null)
     {
@@ -174,12 +218,33 @@
                         <p style="margin-top:var(--s3)">@card.Note</p>
                     }
 
+                    @if (card.Availability is not null)
+                    {
+                        @* The publisher's own zone, named. Nothing stores a
+                           viewer's zone yet, and a silently shifted schedule is
+                           worse than a labelled one (056). *@
+                        <p class="dim" style="margin-top:var(--s3)">Gra: @card.Availability</p>
+                    }
+
                     <p class="dim" style="margin-top:var(--s3)">
                         Opublikowano @card.PublishedAt.ToString("yyyy-MM-dd")
                     </p>
 
                     @if (User.Identity?.IsAuthenticated == true)
                     {
+                        @* <details> rather than a modal: the platform already
+                           has progressive disclosure, and reporting must not be
+                           one stray click away from the apply button. *@
+                        <details style="margin-top:var(--s3)">
+                            <summary>Zgłoś ogłoszenie</summary>
+                            <form method="post" asp-page-handler="Report" class="stack" style="margin-top:var(--s3)">
+                                <input type="hidden" asp-for="Action.Id" value="@card.Id" />
+                                <label for="report-@card.Id">Co jest nie tak? (opcjonalnie)</label>
+                                <input id="report-@card.Id" asp-for="Action.Note" maxlength="500" />
+                                <button class="btn" type="submit">Zgłoś do moderacji</button>
+                            </form>
+                        </details>
+
                         @if (!players)
                         {
                             <form method="post" asp-page-handler="Apply" class="stack" style="margin-top:var(--s3)">
@@ -219,6 +284,7 @@
             {
                 <a asp-route-view="@Model.View" asp-route-game="@Model.Game" asp-route-role="@Model.Role"
                    asp-route-slot="@Model.Slot" asp-route-lang="@Model.Language" asp-route-region="@Model.Region"
+                   asp-route-day="@Model.Day" asp-route-from="@Model.From" asp-route-to="@Model.To" asp-route-tz="@Model.Zone"
                    asp-route-skip="@Math.Max(0, Model.Skip - NextSkill.Api.Pages.Lft.IndexModel.PageSize)"
                    asp-route-culture="@locale">Nowsze</a>
             }
@@ -226,6 +292,7 @@
             {
                 <a asp-route-view="@Model.View" asp-route-game="@Model.Game" asp-route-role="@Model.Role"
                    asp-route-slot="@Model.Slot" asp-route-lang="@Model.Language" asp-route-region="@Model.Region"
+                   asp-route-day="@Model.Day" asp-route-from="@Model.From" asp-route-to="@Model.To" asp-route-tz="@Model.Zone"
                    asp-route-skip="@(Model.Skip + NextSkill.Api.Pages.Lft.IndexModel.PageSize)"
                    asp-route-culture="@locale">Starsze</a>
             }

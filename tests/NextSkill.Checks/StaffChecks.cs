@@ -76,6 +76,52 @@ public static class StaffChecks
             db.SaveChanges();
         }
 
+        check("panel: every section is REACHABLE — nine pages had no link anywhere", () =>
+        {
+            // Each slice skipped navigation because the pages beside it had
+            // none, which is how a finished panel stays invisible.
+            var ownerHtml = owner.GetStringAsync("/pl/admin/users").GetAwaiter().GetResult();
+            foreach (var path in new[]
+                     {
+                         "/pl/admin/users", "/pl/admin/organisers", "/pl/admin/audit",
+                         "/pl/admin/news", "/pl/admin/merge", "/pl/admin/reports",
+                         "/pl/org/servers", "/pl/org/staff", "/pl/org/disputes",
+                     })
+            {
+                that(ownerHtml.Contains($"href=\"{path}\"", StringComparison.Ordinal),
+                    $"the platform owner must be able to REACH {path} without typing it");
+            }
+
+            // The referee's desk included. It used to read only the actor's OWN
+            // organiser roles, so a platform account was refused the page while
+            // 036 grants it ResolveDispute precisely for disputes BETWEEN
+            // organisers — which have no referee inside either of them.
+            foreach (var (who, browser) in new[] { ("owner", owner), ("staff", staff) })
+            {
+                var desk = browser.GetAsync("/pl/org/disputes").GetAwaiter().GetResult();
+                that(desk.StatusCode == System.Net.HttpStatusCode.OK,
+                    $"platform {who} must reach the referee's desk, got {(int)desk.StatusCode}");
+            }
+
+            // And no wider: a roleless player still gets nothing.
+            var refused = player.GetAsync("/pl/org/disputes").GetAwaiter().GetResult();
+            that(refused.StatusCode == System.Net.HttpStatusCode.Forbidden,
+                $"while somebody with no role anywhere is still refused, got {(int)refused.StatusCode}");
+
+            // And the nav is authority, not decoration: staff may not merge, so
+            // staff are not offered it (036).
+            var staffHtml = staff.GetStringAsync("/pl/admin/users").GetAwaiter().GetResult();
+            that(!staffHtml.Contains("href=\"/pl/admin/merge\"", StringComparison.Ordinal),
+                "a link that appears and then 403s is worse than no link");
+            that(staffHtml.Contains("href=\"/pl/admin/users\"", StringComparison.Ordinal),
+                "while what they CAN do is still offered");
+
+            // An ordinary player has no panel, so no entry point either.
+            var playerHtml = player.GetStringAsync("/pl/ranking").GetAwaiter().GetResult();
+            that(!playerHtml.Contains("/pl/admin/", StringComparison.Ordinal),
+                "and somebody with no role is shown no way in at all");
+        });
+
         check("staff panel: an ordinary player cannot reach any of it", () =>
         {
             foreach (var path in new[] { "/pl/admin/users", "/pl/admin/organisers", "/pl/admin/audit" })

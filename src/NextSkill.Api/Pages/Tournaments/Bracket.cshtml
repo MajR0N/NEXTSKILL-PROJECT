@@ -36,11 +36,96 @@
     {
         @* The horizontal scroll lives HERE, not on the page body — a bracket is
            the one thing allowed to be wider than the screen (041). *@
+        @* Follow one team — 023 calls this the more important mobile view,
+           because a shared link arrives with a question the tree cannot answer:
+           did we advance, and when do we play next. A plain GET form, so the
+           answer has its own URL. *@
+        <form method="get" class="row bracket__follow" style="margin-top:var(--s4)">
+            <input type="hidden" name="round" value="@Model.ShownRound" />
+            <label for="follow">Śledź drużynę</label>
+            <select id="follow" name="team">
+                <option value="">— cała drabinka —</option>
+                @foreach (var (teamId, name) in Model.Entrants)
+                {
+                    <option value="@teamId" selected="@(Model.FollowTeamId == teamId)">@name</option>
+                }
+            </select>
+            <button class="btn" type="submit">Pokaż</button>
+        </form>
+
+        @if (Model.FollowTeamName is { } followed)
+        {
+            <section class="card bracket__route" style="margin-top:var(--s5);max-width:560px"
+                     aria-labelledby="route-heading">
+                <h2 id="route-heading" style="margin-bottom:var(--s3)">@followed</h2>
+
+                @foreach (var step in Model.Route)
+                {
+                    <div class="route__step">
+                        <span class="route__round">@step.Label</span>
+                        <span class="route__opponent">@step.Opponent</span>
+                        <span class="route__result">
+                            @if (step.Forfeited)
+                            {
+                                <text>walkower</text>
+                            }
+                            else if (step.Played)
+                            {
+                                @* Never the glyph alone: the outcome survives
+                                   without shape or colour (019). *@
+                                <text>@(step.Won ? "wygrana" : "przegrana")</text>
+                                @if (step.ScoreFor is not null && step.ScoreAgainst is not null)
+                                {
+                                    <text> @step.ScoreFor–@step.ScoreAgainst</text>
+                                }
+                            }
+                            else if (step.Live)
+                            {
+                                <text>NA ŻYWO</text>
+                            }
+                            else
+                            {
+                                <text>przed nami</text>
+                            }
+                        </span>
+                    </div>
+                }
+
+                @if (Model.Route.Count == 0)
+                {
+                    <p class="dim">Ta drużyna nie ma jeszcze meczu w tej drabince.</p>
+                }
+            </section>
+        }
+
+        @* Mobile only (023): the arrows are links, not script — so the chosen
+           round survives a reload and travels in a pasted URL. *@
+        <nav class="bracket__rounds" aria-label="Rundy">
+            @if (Model.ShownRound > 0)
+            {
+                <a class="btn" asp-route-round="@(Model.ShownRound - 1)">◀ Poprzednia</a>
+            }
+            else
+            {
+                <span></span>
+            }
+            <b>@Model.Columns[Model.ShownRound].Label</b>
+            @if (Model.ShownRound < Model.Columns.Count - 1)
+            {
+                <a class="btn" asp-route-round="@(Model.ShownRound + 1)">Następna ▶</a>
+            }
+            else
+            {
+                <span></span>
+            }
+        </nav>
+
         <div style="overflow-x:auto;padding-block:var(--s5)">
             <div class="bracket">
-                @foreach (var (label, nodes) in Model.Columns)
+                @for (var columnIndex = 0; columnIndex < Model.Columns.Count; columnIndex++)
                 {
-                    <div class="bracket__col">
+                    var (label, nodes) = Model.Columns[columnIndex];
+                    <div class="bracket__col @(columnIndex == Model.ShownRound ? "bracket__col--shown" : "")">
                         <p class="label" style="margin-bottom:var(--s2)">@label</p>
                         @foreach (var node in nodes)
                         {

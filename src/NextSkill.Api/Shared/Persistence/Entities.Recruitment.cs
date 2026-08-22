@@ -102,6 +102,12 @@ public class TeamOpening
     /// <summary>Filled, withdrawn or the team disbanded. Never auto-renewed.</summary>
     public DateTimeOffset? ClosedAt { get; set; }
 
+    /// <summary>
+    /// Taken down by platform staff after a report (decisions 015, 056). See
+    /// <see cref="LftListing.ModeratedAt"/> — same rule, same reason.
+    /// </summary>
+    public DateTimeOffset? ModeratedAt { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
 }
 
@@ -197,4 +203,39 @@ public class ContactGrant
     public DateTimeOffset ExpiresAt { get; set; }
 
     public DateTimeOffset? RevokedAt { get; set; }
+}
+
+/// <summary>
+/// Somebody reported a public advert (decisions 015, 056).
+///
+/// <b>Report is not decline and not block.</b> 056 keeps all three separate on
+/// purpose: an ordinary decline must never be silently recorded as an abuse
+/// allegation, and a block is a private pair-level control that needs no
+/// moderator at all. Only this one enters a queue a human reads.
+///
+/// Two nullable foreign keys with a database CHECK rather than a
+/// kind-plus-id pair, for the reason stated at the top of this file: a row whose
+/// meaning changes with which column is populated is the shape 056 rejected.
+/// Real keys also mean an erased advert takes its reports with it.
+/// </summary>
+public class AdvertReport
+{
+    public Guid Id { get; set; }
+    public Guid ReporterAccountId { get; set; }
+
+    public Guid? LftListingId { get; set; }
+    public Guid? TeamOpeningId { get; set; }
+
+    /// <summary>Optional. Staff read the advert itself; this only says what to look at.</summary>
+    public string? Reason { get; set; }
+
+    public DateTimeOffset CreatedAt { get; set; }
+
+    // ── the decision ─────────────────────────────────────────────────────
+
+    public DateTimeOffset? ResolvedAt { get; set; }
+    public Guid? ResolvedByAccountId { get; set; }
+
+    /// <summary>True if the advert was taken down, false if the report was dismissed.</summary>
+    public bool Removed { get; set; }
 }

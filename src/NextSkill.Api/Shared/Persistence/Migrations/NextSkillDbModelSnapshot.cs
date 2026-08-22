@@ -122,6 +122,71 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                     b.ToTable("accounts");
                 });
 
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.AdvertReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("LftListingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lft_listing_id");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<bool>("Removed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("removed");
+
+                    b.Property<Guid>("ReporterAccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reporter_account_id");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<Guid?>("ResolvedByAccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resolved_by_account_id");
+
+                    b.Property<Guid?>("TeamOpeningId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("team_opening_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasFilter("resolved_at IS NULL");
+
+                    b.HasIndex("LftListingId");
+
+                    b.HasIndex("TeamOpeningId");
+
+                    b.HasIndex("ReporterAccountId", "LftListingId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_one_report_per_listing")
+                        .HasFilter("lft_listing_id IS NOT NULL");
+
+                    b.HasIndex("ReporterAccountId", "TeamOpeningId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_one_report_per_opening")
+                        .HasFilter("team_opening_id IS NOT NULL");
+
+                    b.ToTable("advert_reports", t =>
+                        {
+                            t.HasCheckConstraint("ck_advert_report_one_target", "(lft_listing_id IS NOT NULL)::int + (team_opening_id IS NOT NULL)::int = 1");
+                        });
+                });
+
             modelBuilder.Entity("NextSkill.Api.Shared.Persistence.AuditEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -393,6 +458,10 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnType("text[]")
                         .HasColumnName("languages");
 
+                    b.Property<DateTimeOffset?>("ModeratedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("moderated_at");
+
                     b.Property<string>("Note")
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)")
@@ -431,6 +500,10 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnName("time_zone_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AvailabilityHours");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AvailabilityHours"), "gin");
 
                     b.HasIndex("ExpiresAt")
                         .HasFilter("closed_at IS NULL");
@@ -1479,6 +1552,10 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<Guid?>("FromTeamOpeningId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("from_team_opening_id");
+
                     b.Property<DateTimeOffset?>("JoinedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("joined_at");
@@ -1504,6 +1581,8 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AccountId");
+
+                    b.HasIndex("FromTeamOpeningId");
 
                     b.HasIndex("TeamId", "AccountId")
                         .IsUnique()
@@ -1555,6 +1634,10 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnType("text[]")
                         .HasColumnName("languages");
 
+                    b.Property<DateTimeOffset?>("ModeratedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("moderated_at");
+
                     b.Property<string>("Note")
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)")
@@ -1593,6 +1676,10 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasColumnName("time_zone_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AvailabilityHours");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AvailabilityHours"), "gin");
 
                     b.HasIndex("ExpiresAt")
                         .HasFilter("closed_at IS NULL");
@@ -1846,6 +1933,19 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                     b.ToTable("tournament_templates");
                 });
 
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.AdvertReport", b =>
+                {
+                    b.HasOne("NextSkill.Api.Shared.Persistence.LftListing", null)
+                        .WithMany()
+                        .HasForeignKey("LftListingId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("NextSkill.Api.Shared.Persistence.TeamOpening", null)
+                        .WithMany()
+                        .HasForeignKey("TeamOpeningId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
             modelBuilder.Entity("NextSkill.Api.Shared.Persistence.ContactGrant", b =>
                 {
                     b.HasOne("NextSkill.Api.Shared.Persistence.TeamOpening", null)
@@ -1934,6 +2034,14 @@ namespace NextSkill.Api.Shared.Persistence.Migrations
                         .HasForeignKey("TeamOpeningId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("NextSkill.Api.Shared.Persistence.TeamMembership", b =>
+                {
+                    b.HasOne("NextSkill.Api.Shared.Persistence.TeamOpening", null)
+                        .WithMany()
+                        .HasForeignKey("FromTeamOpeningId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("NextSkill.Api.Shared.Persistence.TeamOpening", b =>

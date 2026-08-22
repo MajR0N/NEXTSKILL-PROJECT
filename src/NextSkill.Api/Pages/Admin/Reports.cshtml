@@ -1,0 +1,64 @@
+@page
+@model NextSkill.Api.Pages.Admin.ReportsModel
+@{
+    ViewData["Title"] = "Zgłoszone ogłoszenia";
+}
+
+<div class="wrap-narrow section">
+    <p class="eyebrow">Panel platformy</p>
+    <h1>Zgłoszone ogłoszenia</h1>
+    <p class="lede">
+        Zdjęcie ogłoszenia usuwa je z tablicy i blokuje ponowną publikację tego samego wpisu.
+        Nie blokuje konta — od tego jest moderacja kont.
+    </p>
+
+    @if (Model.Reports.Count == 0)
+    {
+        <div class="empty" style="margin-top:var(--s6)">Nic nie czeka na decyzję.</div>
+    }
+
+    @foreach (var report in Model.Reports)
+    {
+        <section class="card" style="margin-top:var(--s5)">
+            <div class="row" style="justify-content:space-between;align-items:baseline">
+                <div>
+                    <b>@report.Subject</b>
+                    <span class="dim"> · @(report.IsListing ? "ogłoszenie gracza" : "ogłoszenie drużyny")</span>
+                </div>
+                <span class="dim">@report.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(report.Note))
+            {
+                @* Razor escapes it, and no markdown renderer is near this path —
+                   a reported note must not become clickable in the panel either. *@
+                <p style="margin-top:var(--s3)">@report.Note</p>
+            }
+
+            <p class="dim" style="margin-top:var(--s3)">
+                Zgłosił: @report.Reporter
+                @if (report.OtherReports > 0)
+                {
+                    <text> · i jeszcze @report.OtherReports</text>
+                }
+            </p>
+
+            @if (!string.IsNullOrWhiteSpace(report.Reason))
+            {
+                <p style="margin-top:var(--s3)">„@report.Reason”</p>
+            }
+
+            @* Every decision states a reason: the audit row is only worth having
+               if it says why (012 §7, 036). *@
+            <form method="post" class="stack" style="margin-top:var(--s4)">
+                <input type="hidden" asp-for="Input.ReportId" value="@report.Id" />
+                <label for="reason-@report.Id">Uzasadnienie</label>
+                <input id="reason-@report.Id" asp-for="Input.Reason" maxlength="500" required />
+                <div class="row">
+                    <button class="btn" type="submit" asp-page-handler="Dismiss">Zostaw ogłoszenie</button>
+                    <button class="btn btn--danger" type="submit" asp-page-handler="Remove">Zdejmij ogłoszenie</button>
+                </div>
+            </form>
+        </section>
+    }
+</div>

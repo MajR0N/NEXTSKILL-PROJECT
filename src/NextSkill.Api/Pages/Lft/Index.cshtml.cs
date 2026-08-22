@@ -38,6 +38,7 @@ public class IndexModel(NextSkillDb db, TimeProvider clock) : PageModel
         string[] Languages,
         string[] Regions,
         string? Note,
+        string? Availability,
         double? Rating,
         double? Deviation,
         int Matches,
@@ -70,9 +71,45 @@ public class IndexModel(NextSkillDb db, TimeProvider clock) : PageModel
     [BindProperty(SupportsGet = true, Name = "skip")]
     public int Skip { get; set; }
 
+    // ── the schedule filter (056) ────────────────────────────────────────
+    //
+    // In the URL like every other filter, so a narrowed board stays shareable —
+    // and expressed as an explicit window rather than "my availability", because
+    // the board browses without an account and a filter that silently means
+    // something different when signed in is a filter nobody can reason about.
+
+    [BindProperty(SupportsGet = true, Name = "day")]
+    public int? Day { get; set; }
+
+    [BindProperty(SupportsGet = true, Name = "from")]
+    public int? From { get; set; }
+
+    [BindProperty(SupportsGet = true, Name = "to")]
+    public int? To { get; set; }
+
+    /// <summary>Defaults to the scene's zone rather than guessing from a header.</summary>
+    [BindProperty(SupportsGet = true, Name = "tz")]
+    public string Zone { get; set; } = RecruitmentRules.TimeZones[0];
+
+    /// <summary>
+    /// The requested window as UTC hours-of-week, empty when not filtering.
+    ///
+    /// Computed against <b>this week</b>, exactly as a freshly published advert
+    /// is — which is what makes a filter written in one zone find an advert
+    /// published in another whose daylight-saving rules differ.
+    /// </summary>
+    private int[] WantedHours =>
+        Day is { } day && From is { } from && To is { } to && RecruitmentRules.Zone(Zone) is { } zone
+            ? RecruitmentRules.ToUtcHours(
+                [new RecruitmentRules.Window(day, from, to)], zone, clock.GetUtcNow())
+            : [];
+
+    public bool FilteringSchedule => WantedHours.Length > 0;
+
     public IReadOnlyList<Card> Cards { get; private set; } = [];
     public bool HasMore { get; private set; }
-    public bool AnyFilter => Role is not null || Slot is not null || Language is not null || Region is not null;
+    public bool AnyFilter => Role is not null || Slot is not null || Language is not null
+        || Region is not null || FilteringSchedule;
 
     /// <summary>True when this game/view is empty regardless of filters.</summary>
     public bool WholeViewEmpty { get; private set; }
@@ -88,6 +125,64 @@ public class IndexModel(NextSkillDb db, TimeProvider clock) : PageModel
     public ActionInput Action { get; set; } = new();
 
     public string? ActionError { get; private set; }
+    public string? ActionNotice { get; private set; }
+
+    /// <summary>
+    /// Somebody flags a public advert for a human to look at (056).
+    ///
+    /// <b>Kept apart from decline and block on purpose.</b> An ordinary decline
+    /// must never be recorded as an abuse allegation, and a block is a private
+    /// pair-level control needing no moderator — only this enters a queue.
+    ///
+    /// The target is resolved by looking the id up in both tables rather than
+    /// trusting the board view, which arrives in the query string and would
+    /// otherwise decide which table a hand-written POST wrote a report against.
+    /// </summary>
+    public async Task<IActionResult> OnPostReportAsync(CancellationToken cancellationToken)
+    {
+        if (Sessions.AccountIdOf(User) is not { } accountId) return Challenge();
+
+        var reason = Action.Note?.Trim();
+        if (reason is { Length: > 500 }) return BadRequest();
+
+        var listingId = await db.LftListings
+            .Where(l => l.Id == Action.Id).Select(l => (Guid?)l.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        var openingId = listingId is null
+            ? await db.TeamOpenings
+                .Where(o => o.Id == Action.Id).Select(o => (Guid?)o.Id)
+                .FirstOrDefaultAsync(cancellationToken)
+            : null;
+
+        if (listingId is null && openingId is null) return NotFound();
+
+        db.AdvertReports.Add(new AdvertReport
+        {
+            Id = Guid.NewGuid(),
+            ReporterAccountId = accountId,
+            LftListingId = listingId,
+            TeamOpeningId = openingId,
+            Reason = string.IsNullOrEmpty(reason) ? null : reason,
+            CreatedAt = clock.GetUtcNow(),
+        });
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (
+            ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
+        {
+            // Already reported by this person. The database cap is what stops
+            // one reporter flooding the queue, and hitting it means the intent
+            // is already recorded — so this is success, not an error.
+            db.ChangeTracker.Clear();
+        }
+
+        ActionNotice = "Zgłoszenie trafiło do moderacji.";
+        await OnGetAsync(cancellationToken);
+        return Page();
+    }
 
     /// <summary>
     /// A player asks about one opening.
@@ -202,6 +297,14 @@ public class IndexModel(NextSkillDb db, TimeProvider clock) : PageModel
         if (Language is not null && !RecruitmentRules.Languages.Contains(Language)) return BadRequest("Nieznany język.");
         if (Region is not null && !RecruitmentRules.Regions.Contains(Region)) return BadRequest("Nieznany region.");
 
+        // Refused rather than dropped, exactly like the others above: a window
+        // that silently stops applying shows a broader set than the URL claims.
+        if (!RecruitmentRules.TimeZones.Contains(Zone)) return BadRequest("Nieznana strefa czasowa.");
+        if (Day is { } day && day is < 0 or > 6) return BadRequest("Nieprawidłowy dzień.");
+        if (From is { } from && from is < 0 or > 23) return BadRequest("Nieprawidłowa godzina.");
+        if (To is { } to && to is < 1 or > 24) return BadRequest("Nieprawidłowa godzina.");
+        if (From is { } f && To is { } t && t <= f) return BadRequest("Nieprawidłowy zakres godzin.");
+
         Skip = Math.Clamp(Skip, 0, 10_000);
 
         // Volatile state: worth following links out of, not worth indexing.
@@ -259,6 +362,17 @@ public class IndexModel(NextSkillDb db, TimeProvider clock) : PageModel
         if (Language is not null) query = query.Where(o => o.Languages.Contains(Language));
         if (Region is not null) query = query.Where(o => o.Regions.Contains(Region));
 
+        // Genuine weekly overlap, answered by PostgreSQL as an array
+        // intersection — which is the entire reason the hours were normalised to
+        // UTC on write instead of reconciled per row (056).
+        //
+        // It must reach SQL as `&&` rather than an EXISTS over unnest(), because
+        // `&&` is the only array predicate the GIN index on availability_hours
+        // can answer. A check asserts the generated SQL, since the shape of this
+        // expression is what decides it.
+        if (WantedHours is { Length: > 0 } wantedForOpenings)
+            query = query.Where(o => o.AvailabilityHours.Any(h => wantedForOpenings.Contains(h)));
+
         var rows = await query
             .OrderByDescending(o => o.PublishedAt)
             .ThenBy(o => o.Id)
@@ -293,6 +407,8 @@ public class IndexModel(NextSkillDb db, TimeProvider clock) : PageModel
                 r.Opening.Languages,
                 r.Opening.Regions,
                 r.Opening.Note,
+                Features.Recruitment.AvailabilityText.Describe(
+                    r.Opening.AvailabilityHours, r.Opening.TimeZoneId, r.Opening.PublishedAt),
                 rating?.Value,
                 rating?.Deviation,
                 rating?.MatchesPlayed ?? 0,
@@ -316,6 +432,9 @@ public class IndexModel(NextSkillDb db, TimeProvider clock) : PageModel
         if (Slot is not null) query = query.Where(l => l.Slots.Contains(Slot));
         if (Language is not null) query = query.Where(l => l.Languages.Contains(Language));
         if (Region is not null) query = query.Where(l => l.Regions.Contains(Region));
+
+        if (WantedHours is { Length: > 0 } wantedForPlayers)
+            query = query.Where(l => l.AvailabilityHours.Any(h => wantedForPlayers.Contains(h)));
 
         var rows = await query
             .OrderByDescending(l => l.PublishedAt)
@@ -349,6 +468,8 @@ public class IndexModel(NextSkillDb db, TimeProvider clock) : PageModel
                 r.Listing.Languages,
                 r.Listing.Regions,
                 r.Listing.Note,
+                Features.Recruitment.AvailabilityText.Describe(
+                    r.Listing.AvailabilityHours, r.Listing.TimeZoneId, r.Listing.PublishedAt),
                 // OpenSkill's canonical conservative score, exactly as ranking
                 // and profile display it.
                 rating is null ? null : rating.Value - 3 * rating.Deviation,

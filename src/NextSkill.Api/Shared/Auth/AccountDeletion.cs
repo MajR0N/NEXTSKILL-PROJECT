@@ -85,7 +85,29 @@ public sealed class AccountDeletion(NextSkillDb db)
                 cancellationToken))
             return AccountDeletionResult.Refused(AccountDeletionError.LastPlatformOwner);
 
-        var now = DateTimeOffset.UtcNow;
+        await TombstoneAsync(db, account, DateTimeOffset.UtcNow, cancellationToken);
+
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return AccountDeletionResult.Deleted();
+    }
+
+    /// <summary>
+    /// Turns a live account into an anonymous tombstone: pending invites gone,
+    /// live memberships closed, credentials, contact details, provider
+    /// identities and community state destroyed.
+    ///
+    /// <b>Adds and executes, but never saves or commits</b> — the caller owns
+    /// the transaction, exactly as <see cref="Persistence.Audit.Record"/> does.
+    /// Shared with <see cref="AccountMerge"/>, which needs the identical end
+    /// state for the losing account and must not grow a second, drifting copy
+    /// of a GDPR erasure path.
+    /// </summary>
+    internal static async Task TombstoneAsync(
+        NextSkillDb db, Account account, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var staff = db.OrganiserStaff.IgnoreQueryFilters();
+        var accountId = account.Id;
         var originalNickname = account.Nickname;
         var anonymousKey = Convert.ToHexString(RandomNumberGenerator.GetBytes(10)).ToLowerInvariant();
 
@@ -145,9 +167,5 @@ public sealed class AccountDeletion(NextSkillDb db)
         account.SteamId = null;
         account.DiscordId = null;
         account.DeletedAt = now;
-
-        await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return AccountDeletionResult.Deleted();
     }
 }

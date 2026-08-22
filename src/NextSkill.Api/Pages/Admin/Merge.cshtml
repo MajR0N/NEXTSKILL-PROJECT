@@ -1,0 +1,67 @@
+@page
+@model NextSkill.Api.Pages.Admin.MergeModel
+@using Microsoft.Extensions.Localization
+@using NextSkill.Api.Localisation
+@inject IStringLocalizer<UiText> T
+@{
+    ViewData["Title"] = T["Merge.Title"];
+}
+
+<div class="wrap-narrow section">
+    <p class="eyebrow">@T["Merge.Eyebrow"]</p>
+    <h1>@T["Merge.Title"]</h1>
+    <p class="lede">@T["Merge.Intro"]</p>
+
+    @if (Model.Done is { } survivor)
+    {
+        <div class="alert" role="status" style="margin-top:var(--s5)">
+            @T["Merge.Done", survivor]
+        </div>
+    }
+
+    <form method="post" class="card" style="margin-top:var(--s6)">
+        @if (ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+        {
+            <div class="alert alert--error" role="alert">
+                @foreach (var error in ViewData.ModelState[string.Empty]!.Errors)
+                {
+                    <div>@error.ErrorMessage</div>
+                }
+            </div>
+        }
+
+        <div class="field">
+            <label asp-for="Input.LosingNickname">@T["Merge.Field.Losing"]</label>
+            <input class="input" asp-for="Input.LosingNickname" maxlength="60" required autocomplete="off" />
+            <span class="field__hint">@T["Merge.Field.Losing.Hint"]</span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.SurvivingNickname">@T["Merge.Field.Surviving"]</label>
+            <input class="input" asp-for="Input.SurvivingNickname" maxlength="60" required autocomplete="off" />
+            <span class="field__hint">@T["Merge.Field.Surviving.Hint"]</span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.Confirmation">@T["Merge.Field.Confirmation"]</label>
+            <input class="input" asp-for="Input.Confirmation" maxlength="60" required autocomplete="off" />
+            <span class="field__hint">@T["Merge.Field.Confirmation.Hint"]</span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.Reason">@T["Merge.Field.Reason"]</label>
+            <input class="input" asp-for="Input.Reason" maxlength="500" required />
+        </div>
+
+        <button class="btn btn--danger" type="submit">@T["Merge.Action"]</button>
+    </form>
+
+    <section style="margin-top:var(--s6)">
+        <h2>@T["Merge.Refusals.Title"]</h2>
+        <ul>
+            <li>@T["Merge.Refusals.Match"]</li>
+            <li>@T["Merge.Refusals.Team"]</li>
+            <li>@T["Merge.Refusals.Organiser"]</li>
+        </ul>
+    </section>
+</div>

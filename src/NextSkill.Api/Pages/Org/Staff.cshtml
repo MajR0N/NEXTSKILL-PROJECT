@@ -1,0 +1,96 @@
+@page
+@model NextSkill.Api.Pages.Org.StaffModel
+@using Microsoft.Extensions.Localization
+@using NextSkill.Api.Localisation
+@using NextSkill.Domain.Access
+@inject IStringLocalizer<UiText> T
+@{
+    ViewData["Title"] = T["Staff.Title"];
+
+    string RoleName(OrganiserRole role) => T[$"Staff.Role.{role}"].Value;
+}
+
+<div class="wrap-narrow section">
+    <p class="eyebrow">@T["Staff.Eyebrow"]</p>
+    <h1>@T["Staff.Title"]</h1>
+    <p class="lede">@T["Staff.Intro"]</p>
+
+    <form method="post" asp-page-handler="Grant" class="card" style="margin-top:var(--s6)">
+        <h2>@T["Staff.Grant.Title"]</h2>
+
+        @if (ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+        {
+            <div class="alert alert--error" role="alert">
+                @foreach (var error in ViewData.ModelState[string.Empty]!.Errors)
+                {
+                    <div>@error.ErrorMessage</div>
+                }
+            </div>
+        }
+
+        @if (Model.ManageableOrganisers.Count == 1)
+        {
+            <input type="hidden" asp-for="Input.OrganiserId" value="@Model.ManageableOrganisers[0].Id" />
+        }
+        else
+        {
+            <div class="field">
+                <label asp-for="Input.OrganiserId">@T["Staff.Field.Organiser"]</label>
+                <select class="input" asp-for="Input.OrganiserId">
+                    @foreach (var organiser in Model.ManageableOrganisers)
+                    {
+                        <option value="@organiser.Id">@organiser.Name</option>
+                    }
+                </select>
+            </div>
+        }
+
+        <div class="field">
+            <label asp-for="Input.Nickname">@T["Staff.Field.Nickname"]</label>
+            <input class="input" asp-for="Input.Nickname" maxlength="40" required autocomplete="off" />
+            <span class="field__hint">@T["Staff.Field.Nickname.Hint"]</span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.Role">@T["Staff.Field.Role"]</label>
+            <select class="input" asp-for="Input.Role">
+                <option value="@OrganiserRole.Referee">@RoleName(OrganiserRole.Referee)</option>
+                <option value="@OrganiserRole.Admin">@RoleName(OrganiserRole.Admin)</option>
+                <option value="@OrganiserRole.Owner">@RoleName(OrganiserRole.Owner)</option>
+            </select>
+            <span class="field__hint">@T["Staff.Field.Role.Hint"]</span>
+        </div>
+
+        <button class="btn btn--primary" type="submit">@T["Staff.Grant.Action"]</button>
+    </form>
+
+    <section style="margin-top:var(--s7)" aria-labelledby="staff-list-title">
+        <h2 id="staff-list-title">@T["Staff.List.Title"]</h2>
+
+        @if (Model.Staff.Count == 0)
+        {
+            <div class="empty">@T["Staff.List.Empty"]</div>
+        }
+        else
+        {
+            <div class="stack">
+                @foreach (var member in Model.Staff)
+                {
+                    <article class="card">
+                        <div class="row" style="justify-content:space-between;align-items:center">
+                            <div>
+                                <b>@member.Nickname</b>
+                                <p class="dim">@member.Organiser · @RoleName(member.Role) · @T["Staff.Since", member.CreatedAt.ToString("yyyy-MM-dd")]</p>
+                            </div>
+                            <form method="post" asp-page-handler="Revoke">
+                                <input type="hidden" asp-for="Input.OrganiserId" value="@member.OrganiserId" />
+                                <input type="hidden" asp-for="Input.AccountId" value="@member.AccountId" />
+                                <button class="btn" type="submit">@T["Staff.Revoke.Action"]</button>
+                            </form>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+</div>

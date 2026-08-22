@@ -682,6 +682,71 @@ catch (Exception ex)
 }
 
 Console.WriteLine();
+Console.WriteLine("ORGANISER STAFF · the roles everything else already gated on  (decisions 015, 036)");
+try
+{
+    NextSkill.Checks.OrganiserStaffChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  organiser staff checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
+Console.WriteLine("RECRUITMENT CONVERSION · the board's only success metric  (decision 056)");
+try
+{
+    NextSkill.Checks.RecruitmentConversionChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  recruitment conversion checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
+Console.WriteLine("AVAILABILITY · captured, and compared across time zones  (decision 056)");
+try
+{
+    NextSkill.Checks.AvailabilityChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  availability checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
+Console.WriteLine("ADVERT MODERATION · report, and a human who can answer it  (decisions 015, 056)");
+try
+{
+    NextSkill.Checks.AdvertModerationChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  advert moderation checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
+Console.WriteLine("ACCOUNT MERGE · one person, two accounts  (decision 015)");
+try
+{
+    NextSkill.Checks.AccountMergeChecks.Run(connectionString, Check, That);
+}
+catch (Exception ex)
+{
+    failed++;
+    Console.WriteLine("  FAIL  account merge checks could not run");
+    Console.WriteLine($"        {ex.Message}");
+}
+
+Console.WriteLine();
 Console.WriteLine("NEWS · stored XSS, closed for real  (decisions 040, 051)");
 try
 {

@@ -55,7 +55,7 @@ public class DisputesModel(NextSkillDb db, TenantContext tenant, TimeProvider cl
         var actor = await Actors.CurrentAsync(db, User, cancellationToken);
         if (actor is null) return Challenge();
 
-        var refereeable = RefereeableOrganisers(actor);
+        var refereeable = await RefereeableOrganisersAsync(actor, cancellationToken);
         if (refereeable.Count == 0) return Forbid();
 
         var matches = await db.DisputesForManagement(refereeable)
@@ -158,9 +158,34 @@ public class DisputesModel(NextSkillDb db, TenantContext tenant, TimeProvider cl
         return Redirect($"/{Locales.Current}/org/disputes");
     }
 
-    private static List<Guid> RefereeableOrganisers(Actor actor) =>
-        (actor.Organisers ?? new Dictionary<Guid, OrganiserRole>())
-        .Keys
-        .Where(id => AccessPolicy.Can(actor, Operation.ResolveDispute, new ResourceRef(id)))
-        .ToList();
+    /// <summary>
+    /// Every organiser this actor may referee in.
+    ///
+    /// <b>It used to read only the actor's OWN organiser roles</b>, which meant
+    /// platform staff — whom [036](036-authorization.md) grants
+    /// <see cref="Operation.ResolveDispute"/> precisely so they can settle
+    /// <i>cross-organiser</i> disputes — were refused the page outright. The
+    /// policy had always answered correctly; the page never asked it about
+    /// anybody else's organiser.
+    ///
+    /// The candidate set is still reduced to concrete ids and then filtered by
+    /// the policy, so the widening is exactly what 036 sanctions and no wider:
+    /// an organiser's referee still sees only their own events.
+    ///
+    /// ponytail: a platform role loads every organiser id. Ceiling: one row per
+    /// organiser on the platform, which is a number that stays small for a long
+    /// time. Upgrade path: restrict the candidates to organisers that currently
+    /// HAVE a contested match — the same query the page runs next anyway.
+    /// </summary>
+    private async Task<List<Guid>> RefereeableOrganisersAsync(Actor actor, CancellationToken ct)
+    {
+        var mine = (actor.Organisers ?? new Dictionary<Guid, OrganiserRole>()).Keys.ToHashSet();
+
+        var candidates = actor.Platform is null
+            ? mine.ToList()
+            : await db.Organisers.AsNoTracking().Select(o => o.Id).ToListAsync(ct);
+
+        return [.. candidates
+            .Where(id => AccessPolicy.Can(actor, Operation.ResolveDispute, new ResourceRef(id)))];
+    }
 }

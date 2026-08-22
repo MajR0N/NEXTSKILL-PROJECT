@@ -322,6 +322,38 @@ h2, .h2 { font-size: 22px; letter-spacing: -.02em; font-weight: 600; margin: 0; 
 /* the bracket-reset match exists from generation, greyed until triggered (023) */
 .node--conditional { opacity: .4; border-style: dashed; }
 
+/* Mobile: round-by-round, because a tree is a desktop artifact (023).
+   Nobody on a phone wants the whole shape — they want one answer: who plays
+   next. So the SAME columns render, and all but the chosen one are hidden. No
+   second markup, no canvas, no JavaScript; the arrows are ordinary links, so
+   the view survives a page reload and a shared URL. */
+.bracket__rounds { display: none; }
+@media (max-width: 720px) {
+  .bracket { flex-direction: column; gap: var(--s4); }
+  .bracket__col { display: none; }
+  .bracket__col--shown { display: flex; min-width: 0; }
+  /* The connector stubs point at a column that is no longer beside it. */
+  .node::after { display: none; }
+  .bracket__rounds {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s3);
+    position: sticky; top: 0; z-index: 1; padding-block: var(--s3);
+    background: var(--bg);
+  }
+  .bracket__rounds b { text-align: center; }
+}
+
+/* panel navigation (021): panels get their own strip, the headbar stays public */
+.panelnav { display: flex; flex-wrap: wrap; gap: var(--s4); padding-block: var(--s4); border-bottom: 1px solid var(--line-soft); }
+.panelnav a { font-size: 13.5px; color: var(--text-dim); }
+.panelnav a[aria-current="page"] { color: var(--text); font-weight: 600; }
+
+/* follow-team route (023): a list, because a route is a sequence not a tree */
+.route__step { display: flex; align-items: baseline; gap: var(--s3); padding-block: 7px; }
+.route__step + .route__step { border-top: 1px solid var(--line-soft); }
+.route__round { flex: 0 0 9em; font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+.route__opponent { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.route__result { font-size: 13px; color: var(--text-dim); }
+
 /* ── 11. avatar — generated, so a new team never shows a placeholder ──── */
 .avatar {
   width: 36px; height: 36px; flex: 0 0 auto; border-radius: 11px;

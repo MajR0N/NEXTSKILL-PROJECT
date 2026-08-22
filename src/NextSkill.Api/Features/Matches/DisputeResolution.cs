@@ -52,6 +52,12 @@ public static class DisputeResolution
     /// The recomputation seam 025 promised, and the reason 050 made the ledger
     /// append-only in the first place.
     ///
+    /// <b>Public because it has a second caller.</b> An account merge moves one
+    /// person's <c>match_participants</c> onto the account that survives, which
+    /// changes who every affected result was about — and the honest way to
+    /// restate that is the same full replay a reversal already uses, rather
+    /// than a bespoke arithmetic that patches two players' numbers.
+    ///
     /// Every live row is superseded, every rating is dropped and every match is
     /// marked unrated; the sweeper then rebuilds the lot in <c>(EndedAt, Id)</c>
     /// order. Determinism is what makes that safe — the same inputs in the same
@@ -70,7 +76,7 @@ public static class DisputeResolution
     /// rating at season close — 051 §4 already gives seasons a closing timestamp
     /// — and replay only from the most recent snapshot.
     /// </summary>
-    private static async Task ReplayAsync(NextSkillDb db, DateTimeOffset now, CancellationToken ct)
+    public static async Task ReplayAsync(NextSkillDb db, DateTimeOffset now, CancellationToken ct)
     {
         // Superseded, never deleted: the old numbers stay readable, so a player
         // can still see what their rating was and what replaced it.
