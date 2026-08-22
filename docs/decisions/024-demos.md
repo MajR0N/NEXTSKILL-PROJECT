@@ -33,6 +33,39 @@
 | 16-team Bo3 tournament | ~30 maps ≈ **3 GB** |
 | Weekly cadence, no deletion | ~**156 GB/year**, growing |
 
+> ## Measured 2026-08-22 — the estimate above was low, and this is the confirmation it asked for
+>
+> The line *"~50–150 MB **(approximate — confirm on the first real upload)**"* has been confirmed
+> against **7 real CS2 GOTV demos** (Valve matchmaking, `de_mirage` and others, a Warsaw `srcds`
+> host), sitting on a local install:
+>
+> | | Measured | This document assumed |
+> | --- | --- | --- |
+> | One CS2 GOTV demo | **150–299 MB, mean 233 MB** | 50–150 MB |
+> | ~30-map Bo3 tournament | **~7 GB** | ~3 GB |
+> | Weekly cadence, one year | **~360 GB** | ~156 GB |
+>
+> **Roughly 2.5× the estimate.** And these are the raw `.dem`: CS2 demos are already
+> snappy-compressed internally, so zipping recovers little — the *zipped* figure this table quotes
+> is not meaningfully smaller than what was measured.
+>
+> **Caveat, stated so nobody over-reads it:** these are Valve matchmaking demos. A community
+> tournament match may be shorter, and `tv_snapshotrate` on our own servers is ours to set — the
+> same knob [CONTEXT §2.9](../../CONTEXT.md) flags for the fidelity question, pulling the other way.
+> **Higher fidelity means bigger files, and that trade is now quantified rather than assumed.**
+>
+> ### This settles the storage question rather than reopening it
+>
+> §"Storage" below still reads *"disk volume on the app host"* and *"object storage was rejected
+> for now"*. **[042](042-hosting.md) already superseded that** — *"024 chose local disk first; R2 is
+> the upgrade"* — but this document was never amended to say so, so read alone it gives the wrong
+> answer.
+>
+> **The measurement removes the doubt.** At 90-day retention the live set is **~37–75 GB**, not the
+> 15–30 GB [042](042-hosting.md) sized against — and [042](042-hosting.md)'s chosen VPS has a
+> **40 GB disk**. Local disk is not a fallback we are keeping in reserve; **it is arithmetically
+> dead**, and R2's zero-egress argument only gets stronger as the files get bigger.
+
 Small enough to ignore in year one, painful by year three. And the growth is one-directional.
 
 ## Decision: 90-day retention, with exceptions kept forever
@@ -61,6 +94,13 @@ commitment being silently broken. The deletion job is part of the feature, not a
 - deletes the file and the metadata row together, in that order
 
 ## Storage
+
+> ⚠ **Superseded by [042](042-hosting.md): demos live in Cloudflare R2, not on the app host.** 042
+> says so explicitly — *"024 chose local disk first; R2 is the upgrade"* — and the 2026-08-22
+> measurement above closes it: the live set at 90-day retention is **~37–75 GB against a 40 GB VPS
+> disk.** The paragraphs below are kept as the reasoning that produced the upgrade path, **not as
+> current policy.** Everything else in this section — authorised streaming endpoint, our own
+> filenames, separate backup schedule — still applies, against R2 instead of a local volume.
 
 **Disk volume on the app host**, outside the web root ([012](012-security.md)).
 

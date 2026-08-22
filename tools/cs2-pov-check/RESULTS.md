@@ -19,7 +19,7 @@ write.
 
 ## Half 1 — does `record` still freeze CS2? — **RUN 2026-08-22**
 
-> **Result: it works.** `record` produced a demo on a **dedicated server**; the client **froze for
+> **Result: it works.** `record` produced a demo on a **loopback-hosted server**; the client **froze for
 > 1–2 seconds and recovered**; recording stopped and the file saved.
 >
 > **The 2023 claim is overstated.** *"`record` will freeze your game most of the time"* described a
@@ -30,15 +30,27 @@ write.
 | Demo produced | **yes** |
 | Client froze | **1–2 s, then recovered** — a stutter, not a hang |
 | Stopped and saved | **yes** |
-| Environment | **dedicated server** — the one that matters, not a listen server |
+| Environment | **loopback host** — the demo header reads `loopback:1`, so a listen server or a locally-run `srcds`. **Not a remote server under load.** See below |
 
 ### Noted during the run
 
-`sv_cheats 1` was needed during an earlier **bot game on a local server**. Almost certainly the bot
-setup, not `record` — the dedicated-server run then succeeded, and a dedicated server runs
-`sv_cheats 0`. **Treated as answered by that**, but if anyone sees `record` refused on a
-`sv_cheats 0` server, reopen it: `record` requiring cheats would kill the CS2 appeal path outright,
-because `sv_cheats` cannot be on during a real match.
+**The demo header says `loopback:1`.** Inspected 2026-08-22 from `ns_test.dem` (2.6 MB, valid
+`PBDEMS2` magic, so structurally sound — not truncated). `loopback` means the client connected to a
+server **on the same machine**. That covers both a listen server *and* a locally-run dedicated
+`srcds`, so it does not contradict the result — but it does mean the run was **not** against a
+remote server with ten players and real network conditions.
+
+> **What still stands:** `record` works, produces a valid file, stalls 1–2 s and recovers. That was
+> the question, and it is answered.
+>
+> **What is not yet shown:** whether the stall is worse under load — ten players, real latency,
+> a remote host. **Worth one repeat on a real server**, because 1–2 s is already enough to have
+> moved the design, and a worse number would move it further.
+
+`sv_cheats 1` was needed during an earlier **bot game**. Almost certainly the bot setup rather than
+`record` — but note that a loopback host means `sv_cheats` *could* have been on for the recorded run
+too. **The clean test remains: `record` on a server you do not host.** If `record` ever needs
+cheats, the CS2 appeal path dies outright, because `sv_cheats` cannot be on during a real match.
 
 ### Still untested
 
@@ -116,7 +128,8 @@ conclusive, since `record` itself was not visible in the dump.
 
 | | Verdict | Evidence |
 | --- | --- | --- |
-| **`record` usable in CS2, 2026** | ☑ **yes** — 1–2 s stall, recovers, file saves | Run 2026-08-22, dedicated server |
+| **`record` usable in CS2, 2026** | ☑ **yes** — 1–2 s stall, recovers, file saves | Run 2026-08-22, **loopback host** — repeat on a remote server under load |
+| **`playdemo` opens the file** | ☑ **structurally valid** — `PBDEMS2` magic, 2.6 MB, header parses. Opening it in-game still untested | Header inspected 2026-08-22 |
 | **Server can force it** | ☐ not tested — **Phase 6** | Needs the CSSharp plugin |
 | **High-rate GOTV good enough?** | ☐ untested — **half 1b** | Would make the forcing question moot for CS2 |
 

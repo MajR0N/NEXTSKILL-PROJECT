@@ -352,7 +352,7 @@ move like a human's."*
 
 | Question | State |
 | --- | --- |
-| **Does CS2 `record` work at all?** | **Answered — yes.** Measured on a dedicated server, 2026-08-22. See below |
+| **Does CS2 `record` work at all?** | **Answered — yes.** Measured 2026-08-22 on a **loopback host** — repeat under load. See below |
 | Can a server *force* `record` on CS:GO / CS2? | **Open.** `FCVAR_SERVER_CAN_EXECUTE` gates server-forced client commands, and the CS2 cvar dump shows `_record` **without** that flag. SourceMod `ClientCommand` is the CS:GO mechanism, on a timer, not on connect. **Needs the Phase 6 plugin to test** |
 | If forcing is impossible, is *asking* enough? | A player told to record either does or does not. §6c treats a missing recording as **refusal, never clean**, so a voluntary route still yields a signal — weaker than an armed one |
 
@@ -388,6 +388,22 @@ middle of a live round. A 1–2 second freeze there:
 > **So the record command is issued at the next freezetime boundary, not at the moment the meter
 > crosses.** Round start is when nobody is shooting and a beat is already expected. The delay is at
 > most one round, and the monitoring phase runs for longer than that anyway.
+
+
+#### Measured demo sizes, while we were in there
+
+Seven real CS2 GOTV demos on a local install: **150–299 MB, mean 233 MB** — against
+[024](docs/decisions/024-demos.md)'s assumed 50–150 MB. **Roughly 2.5× low**, and 024 had asked for
+exactly this confirmation. The client POV test file was **2.6 MB** for a short recording.
+
+Two consequences, both recorded in [024](docs/decisions/024-demos.md):
+
+- **Local disk is arithmetically dead.** ~37–75 GB live at 90-day retention against
+  [042](docs/decisions/042-hosting.md)'s 40 GB VPS disk. 042 had already superseded 024 on this;
+  024 now says so too, instead of still reading *"object storage was rejected"*.
+- **The fidelity/disk trade is now quantified.** Raising `tv_snapshotrate` or enabling
+  `csgo_fatdemo` buys detail and costs megabytes — and we now know roughly what a megabyte of
+  match is worth.
 
 #### Consequence 2 — the freeze is a tell, and a felt one
 
