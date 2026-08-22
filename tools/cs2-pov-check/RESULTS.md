@@ -71,38 +71,64 @@ recording starts is itself scored.**
 
 ---
 
-## Half 1b — how good can GOTV be made? *(new, 2026-08-22)*
+## Half 1b — how good can GOTV be made? *(protocol, 2026-08-22)*
 
-`tv_record` is the **server-side** GOTV demo — a different artefact from client `record`, and the
-one behind [024](../../docs/decisions/024-demos.md). It needs **`tv_enable 1`**, and
-**`tv_record_immediate`** starts it without waiting for `tv_delay`.
+**Why this one is worth more than the others:** if a higher capture rate makes GOTV good enough for
+**aim** analysis, CS2 gains a forensic artefact **we hold ourselves** — no client cooperation,
+nothing for the accused to withhold — and **V15's forcing question stops mattering for CS2.**
 
-The reason it is not simply *the* answer for anti-cheat is fidelity: GOTV captures at
-**`tv_snapshotrate`**, with interpolated and network-quantised angles, which smooths away the
-per-tick view-angle behaviour that distinguishes an aimbot. **But `tv_snapshotrate` is a cvar.**
+> **Either way GOTV keeps its behavioural job.** It already answers wallhack and pre-aim, with
+> `spec_show_xray`. This test only asks whether it can *also* answer the aim question.
 
-> **If raising it toward the server tick closes enough of the gap, CS2 gains a forensic artefact we
-> hold ourselves** — no client cooperation, nothing for the accused to withhold, and V15's forcing
-> question stops mattering for CS2 entirely.
+### Setup
 
-| # | Test | Result |
-| --- | --- | --- |
-| 1 | Record a round at **default** `tv_snapshotrate`. Note the value and the file size | |
-| 2 | Record the same at **`tv_snapshotrate` = server tick**. Note the file size | |
-| 3 | Compare a known flick in both — does the higher rate show detail the default loses? | |
-| 3b | Record with **`csgo_fatdemo_enable true`** (output via `csgo_fatdemo_output`). Does a fat demo carry per-tick angles? | |
-| 4 | Extrapolate size: per match, per month, against [024](../../docs/decisions/024-demos.md)'s ~156 GB/year budget | |
+1. Copy [`ns_gotv_test.cfg`](ns_gotv_test.cfg) into `…/game/csgo/cfg/`
+2. Start a local server on a map you will reuse for all three runs
+3. In console: `exec ns_gotv_test`
+4. **Write down what `help tv_snapshotrate` prints** — the default is what run A measures, and it
+   is not documented anywhere reliable. The game is the authority
 
-**Verdict:** ☐ high-rate or fat GOTV is good enough for aim analysis ☐ still not good enough — the
-POV demo stays necessary for the aim question
+### The three runs
 
-> **Either way GOTV keeps its own job.** It answers **behaviour** — wallhack, pre-aim — which POV
-> is not needed for, and `spec_show_xray` makes that a visual check. This test only asks whether it
-> can *also* answer the aim question.
+**Same map, same bots, exactly 5 minutes each, and kill a few bots each run** so there is a real
+flick to compare. Equal duration is the whole reason the sizes mean anything.
 
-`ponytail:` this is two recordings and a look, not a study. Ceiling: eyeballing a flick is not a
-detector. Upgrade path: parse both demos and diff the angle series — worth it only once there is a
-detector to feed.
+| Run | Set this first | Then | File |
+| --- | --- | --- | --- |
+| **A** | *(leave `tv_snapshotrate` at default)* | `tv_record ns_gotv_a` → 5 min → `tv_stoprecord` | `ns_gotv_a.dem` |
+| **B** | `tv_snapshotrate 64` | `tv_record ns_gotv_b` → 5 min → `tv_stoprecord` | `ns_gotv_b.dem` |
+| **C** | `csgo_fatdemo_enable true` | `tv_record ns_gotv_c` → 5 min → `tv_stoprecord` | `ns_gotv_c.dem` + `.fatdem` |
+
+If `tv_snapshotrate 64` is refused or clamped, **note the value it actually took** — a ceiling is
+itself the answer.
+
+### Results
+
+| | Default rate (A) | Rate 64 (B) | Fat demo (C) |
+| --- | --- | --- | --- |
+| `tv_snapshotrate` reported | | | |
+| File size | | | |
+| MB per minute | | | |
+| Extra files produced | | | `.fatdem`? |
+
+Sizes and MB/minute: run [`./compare-sizes.sh`](compare-sizes.sh) (it reads the three files
+straight out of the CS2 directory and extrapolates to a full match).
+
+**Then:** watch the same flick in A and B with `demo_timescale 0.1`. Does the higher rate show
+crosshair movement the default smooths away?
+
+| | |
+| --- | --- |
+| **Is the aim visibly better resolved in B or C?** | ☐ yes ☐ no ☐ cannot tell |
+| **Cost multiplier vs A** | B: ___×  C: ___× |
+| **Against [024](../../docs/decisions/024-demos.md)'s measured 233 MB mean** | new estimate: ___ MB/match |
+
+### Verdict
+
+☐ **Good enough** — CS2 needs no client POV for aim; V15 forcing becomes irrelevant there
+☐ **Not good enough** — the client POV demo stays necessary for the aim question
+☐ **Good enough but too expensive** — record the multiplier; this becomes a per-tournament option
+  rather than a default
 
 ---
 

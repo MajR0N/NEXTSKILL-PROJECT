@@ -7,7 +7,7 @@ reading** — it needs a real server, a real client, or real matches.
 | Tool | Answers | Needs |
 | --- | --- | --- |
 | [`cs16-probe/`](cs16-probe/) | **V2b, V2c, V3, V4, V15 (1.6 half)** | A CS 1.6 server that admits **non-Steam clients**, and testers |
-| [`cs2-pov-check/`](cs2-pov-check/) | **V15 (CS2 half)** | A CS2 client. Half of it needs nothing else |
+| [`cs2-pov-check/`](cs2-pov-check/) | **V15 (CS2 half)** — plus `ns_gotv_test.cfg` and `compare-sizes.sh` for the GOTV fidelity/size test | A CS2 client. Half of it needs nothing else |
 | `NextSkill.Domain/Integrity/DetectionCalibration.cs` + `CalibrationChecks.cs` | **V14** | Runs today; the *inputs* need matches |
 
 ## Why the CS 1.6 items share one plugin
@@ -31,9 +31,11 @@ Reunion client**, so those tools are a probe that logs facts and a sheet a human
 
 ## Order
 
-1. **`cs2-pov-check/` half 1** — needs only a CS2 client. Five minutes, and it closes the half of
-   V15 that everything else was speculating about.
-2. **`cs16-probe/`** — one session closes four V-items and the rest of V15.
-3. **V14** — runs now; its inputs arrive with the first real matches, so the *instrumentation*
+1. ~~**`cs2-pov-check/` half 1**~~ — **done 2026-08-22.** `record` works; 1–2 s stall, not a hang.
+2. **`cs2-pov-check/` half 1b** — **the highest-value test left.** If a raised `tv_snapshotrate` or
+   a fat demo resolves aim well enough, CS2 needs no client POV for the aim question and V15's
+   forcing half becomes irrelevant there. `exec ns_gotv_test`, three runs, then `./compare-sizes.sh`.
+3. **`cs16-probe/`** — one session closes four V-items and the rest of V15.
+4. **V14** — runs now; its inputs arrive with the first real matches, so the *instrumentation*
    (Phase 6: log every flag including the ones that resolve silently) is the part that must not be
    forgotten. Miss it and V14 is unanswerable retroactively.
