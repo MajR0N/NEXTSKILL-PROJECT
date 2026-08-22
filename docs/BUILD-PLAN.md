@@ -882,11 +882,16 @@ Concretely, one at a time. **No shared abstraction until both exist** ([001](dec
     at the flag**, so its existence is never the player's choice and *"I was not recording"* is not
     a defence. He uploads on appeal, so **nothing is stored unless he appeals**. **An interrupted or
     stopped recording counts as refusal, never clean**
+  - ☐ **Issue `record` at freezetime, never mid-round** — **measured 2026-08-22: CS2 `record`
+    stalls the client 1–2 seconds** and recovers ([CONTEXT §2.9](../CONTEXT.md)). A stall mid-round
+    costs a duel, and **most flagged players are innocent**, so arming waits for the round
+    boundary. Costs at most one round of unrecorded play
   - ☐ **Per game** ([CONTEXT §2.9](../CONTEXT.md)) — **CS 1.6: proven** via AMXX `client_cmd`.
-    **CS:GO / CS2: open (V15).** **GOTV is not a substitute** — snapshot rate and interpolated,
-    quantised angles smooth away the per-tick view-angle behaviour an aimbot signal lives in, and
-    it is the *expensive* artefact ([024](decisions/024-demos.md) budgets ~156 GB/year) while a POV
-    demo costs us nothing until someone appeals
+    **CS2: `record` works, measured on a dedicated server.** Still open: whether the *server* can
+    force it (**V15**, rides along with this plugin). **GOTV is not a substitute** — snapshot rate
+    and interpolated, quantised angles smooth away the per-tick view-angle behaviour an aimbot
+    signal lives in, and it is the *expensive* artefact ([024](decisions/024-demos.md) budgets
+    ~156 GB/year) while a POV demo costs us nothing until someone appeals
   - ☐ **If forcing fails on CS2, ask instead** — a player told to record either does or does not,
     and a missing recording is already **refusal, never clean**. Weaker, not a dead end
   - ☐ **A GOTV-only verdict is labelled as such** — a referee must never record a decision as if it
@@ -945,7 +950,7 @@ Carried from CONTEXT §7. **Must be resolved before the code that depends on the
 | **V12** | ~~Is the wording and prominence sufficient?~~ **Researched** ([CONTEXT §2.10](../CONTEXT.md)): **Art. 7 pkt 11a u.p.n.p.r.** is black-listed with no size exemption; **Art. 6 ust. 4 pkt 8** requires the ranking parameters published in a dedicated, directly-reachable section; **DSA Arts. 26–27 do not bind us** at micro/small size (Art. 19, except 24(3)). Label changed to **`Sponsorowane`**. | [058](decisions/058-what-we-sell.md) §6 — **design may proceed.** Remaining: **counsel sign-off before the first paid placement is live**, and a DSA re-check if the enterprise ever exceeds small (<50 staff, ≤€10m) |
 | **V13** | ~~Lawful basis, retention and erasure reconciliation for a stored hardware identifier?~~ **Researched** ([CONTEXT §2.11](../CONTEXT.md)): **Art. 6(1)(f)** + **Recital 47**; defined retention under **Art. 5(1)(e)**; the ban tombstone survives erasure under **Art. 17(3)(e)** / **Art. 21(1)**. **Also surfaced: Art. 22 automated-decision safeguards and a probably-mandatory DPIA.** | [058](decisions/058-what-we-sell.md) §6c — **design unblocked.** Three documents must exist before shipping: **LIA, DPIA, privacy-notice wording**, all counsel-reviewed. Hashing is pseudonymisation, **not** an exit from GDPR |
 | **V14** | **Restated:** what precision do we require, what is prevalence in the flagged pool, and what is the false-positive rate on the auto-ban class? Coverage (the "65%") is the wrong quantity. | [058](decisions/058-what-we-sell.md) §6c — **blocks auto-banning and any published rate.** *Product:* at 2% prevalence and 99% specificity **a third of bans would be innocent** ([CONTEXT §2.12](../CONTEXT.md)); *legal:* **Art. 22**. The precision requirement is **decidable now** — effectively zero measured false positives on the auto-ban class. The measurements need matches **and negative labels logged from the first flag**  **Tool: `DetectionCalibration` + `CalibrationChecks` — runs today; only the inputs are missing** |
-| **V15** | **Can the server force client POV recording on CS:GO / CS2**, and does CS2 `record` still freeze the client in 2026? | [058](decisions/058-what-we-sell.md) §6c — **reopened 2026-08-22.** CS 1.6 proven and closed. **GOTV is not a substitute**: snapshot-rate interpolation smooths away the per-tick view-angle detail that distinguishes an aimbot ([CONTEXT §2.9](../CONTEXT.md)). **Answer by testing a live CS2 client** — the web recycles one 2023 post. If forcing is impossible, asking still yields a signal, since a missing recording is refusal  **Tools: [cs16-probe](../tools/cs16-probe/RESULTS.md)** and **[cs2-pov-check](../tools/cs2-pov-check/RESULTS.md)** |
+| **V15** | ~~Can the server trigger client POV recording?~~ **CS 1.6: field-proven. CS2 `record` works — measured 2026-08-22** (dedicated server; demo saved; 1–2s stall, not a hang). **Open: can a server *force* it on CS:GO/CS2?** | [058](decisions/058-what-we-sell.md) §6c — **no longer a blocker.** Forcing rides along with the Phase 6 plugin; if it fails, asking still yields a signal. **Forced a design change: arm recording at freezetime, not mid-round** ([CONTEXT §2.9](../CONTEXT.md)) |
 | — | Do **Unbounded** and **IBM Plex** actually cover Cyrillic? | [019](decisions/019-visual-identity.md) |
 
 ## Design note

@@ -17,40 +17,45 @@ write.
 
 ---
 
-## Half 1 — does `record` still freeze CS2? *(no server needed)*
+## Half 1 — does `record` still freeze CS2? — **RUN 2026-08-22**
 
-The claim that it freezes traces to **one Leetify post dated 8 Nov 2023**, describing an outage
-window that Valve closed the next day (CONTEXT §2.9). Reports continued to April 2024. **Nothing
-primary exists for 2026** — every current search result recycles that same post. So measure it.
+> **Result: it works.** `record` produced a demo on a **dedicated server**; the client **froze for
+> 1–2 seconds and recovered**; recording stopped and the file saved.
+>
+> **The 2023 claim is overstated.** *"`record` will freeze your game most of the time"* described a
+> hang. What happens is a **stall that resolves**. The feature is usable.
 
-Run each row on a live CS2 client. A casual/deathmatch server is fine; a full match is not needed.
+| Observation | |
+| --- | --- |
+| Demo produced | **yes** |
+| Client froze | **1–2 s, then recovered** — a stutter, not a hang |
+| Stopped and saved | **yes** |
+| Environment | **dedicated server** — the one that matters, not a listen server |
 
-| # | Action | Froze? | Recording indicator? | `.dem` written? | Playable with `playdemo`? |
-| --- | --- | --- | --- | --- | --- |
-| 1 | `record ns_test1` while **alive, mid-round** | ☐ | ☐ | ☐ | ☐ |
-| 2 | `record ns_test2` while **dead / spectating** | ☐ | ☐ | ☐ | ☐ |
-| 3 | `record ns_test3` **during warmup** | ☐ | ☐ | ☐ | ☐ |
-| 4 | `record ns_test4`, play a **full round**, then `stop` | ☐ | ☐ | ☐ | ☐ |
+### Noted during the run
 
-Row 2 matters more than it looks: the 2023–24 reports include a workaround of *starting the
-recording while spectating before spawning*. If only row 1 fails, the feature is usable with a
-constraint rather than broken.
+`sv_cheats 1` was needed during an earlier **bot game on a local server**. Almost certainly the bot
+setup, not `record` — the dedicated-server run then succeeded, and a dedicated server runs
+`sv_cheats 0`. **Treated as answered by that**, but if anyone sees `record` refused on a
+`sv_cheats 0` server, reopen it: `record` requiring cheats would kill the CS2 appeal path outright,
+because `sv_cheats` cannot be on during a real match.
 
-**Client / build tested:**
+### Still untested
 
-```
-CS2 version (Help → About, or `version` in console):
-Date tested:
-OS:
-```
+- ☐ **`playdemo` on the saved file** — a demo a referee cannot open is worth nothing. **Do this one**
+- ☐ Whether the 1–2 s stall is worse mid-round than at freezetime
+- ☐ CS2 build number at time of test *(record it — a Valve update can reverse this)*
 
-### Anything that felt wrong
+### What it changed in the design
 
-Stutter on start, frame drops while recording, file size, crash on `playdemo`:
+**1–2 seconds is not free.** [058](../../docs/decisions/058-what-we-sell.md) §6c armed recording at
+the instant the suspicion meter crossed, which can land mid-round. A stall there costs a duel, and
+**most flagged players are innocent** — the monitoring phase is meant to resolve quietly. So:
+**recording is now issued at the next freezetime, not on the flag.**
 
-```
-(free text)
-```
+The stall is also a **felt** tell, not just a visible one. That sharpens the evasion loop already
+recorded in §6c, and makes its countermeasure matter more: **a meter that collapses the instant
+recording starts is itself scored.**
 
 ---
 
@@ -76,8 +81,10 @@ conclusive, since `record` itself was not visible in the dump.
 
 | | Verdict | Evidence |
 | --- | --- | --- |
-| **`record` usable in CS2, 2026** | ☐ yes ☐ no ☐ only when spectating | |
-| **Server can force it** | ☐ yes ☐ blocked ☐ not tested (Phase 6) | |
+| **`record` usable in CS2, 2026** | ☑ **yes** — 1–2 s stall, recovers, file saves | Run 2026-08-22, dedicated server |
+| **Server can force it** | ☐ not tested — **Phase 6** | Needs the CSSharp plugin |
 
-**Then update CONTEXT §2.9**, which currently records the 2026 state as *unknown* on the honest
-grounds that no primary source exists. This sheet is how it stops being unknown.
+**CONTEXT §2.9 updated 2026-08-22.** It no longer records the CS2 state as unknown: the freeze
+claim survived two rounds of desk research and died in five minutes of testing. Which is the
+lesson worth keeping — **the web on this question is one blog post from November 2023 wearing
+different hats.**

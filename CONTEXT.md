@@ -345,13 +345,56 @@ move like a human's."*
 > GOTV remains what [024](docs/decisions/024-demos.md) says it is — the match record, and a fallback
 > when no POV exists — but it does not close the fidelity gap the appeal path depends on.
 
-**This reopens the question for CS:GO and CS2**, which the previous entry closed prematurely:
+**Where CS:GO and CS2 now stand:**
 
-| Open | Note |
+| Question | State |
 | --- | --- |
-| Can a server force `record` on CS:GO and CS2? | `FCVAR_SERVER_CAN_EXECUTE` gates server-forced client commands, and the CS2 cvar dump shows `_record` **without** that flag. SourceMod `ClientCommand` is the CS:GO mechanism, on a timer, not on connect |
-| Does CS2 `record` still freeze the client? | Reported Sept 2023 – Apr 2024. **No primary source either way for 2026** — every current hit recycles the 2023 post. **Must be tested on a live CS2 client, not researched** |
-| If forcing is impossible, is *asking* enough? | A player told to record before a match either does or does not. §6c already treats a missing recording as **refusal, never clean**, so a voluntary route still yields a usable signal — it is simply weaker than an armed one |
+| **Does CS2 `record` work at all?** | **Answered — yes.** Measured on a dedicated server, 2026-08-22. See below |
+| Can a server *force* `record` on CS:GO / CS2? | **Open.** `FCVAR_SERVER_CAN_EXECUTE` gates server-forced client commands, and the CS2 cvar dump shows `_record` **without** that flag. SourceMod `ClientCommand` is the CS:GO mechanism, on a timer, not on connect. **Needs the Phase 6 plugin to test** |
+| If forcing is impossible, is *asking* enough? | A player told to record either does or does not. §6c treats a missing recording as **refusal, never clean**, so a voluntary route still yields a signal — weaker than an armed one |
+
+**Measured 2026-08-22 — first-party, and it settles the freeze question.** Tested on a **dedicated
+server** with `tools/cs2-pov-check`:
+
+| Result | |
+| --- | --- |
+| `record` produced a demo | **Yes** |
+| Client froze | **1–2 seconds, then recovered.** A stutter, not a hang |
+| Recording stopped and saved | **Yes** |
+
+> **The 2023 claim is overstated for August 2026.** *"`record` will freeze your game most of the
+> time"* described a hang; what actually happens is a **1–2 second stall that resolves**. The
+> feature works.
+
+**But 1–2 seconds is not free**, and it changes a design detail rather than merely reassuring us —
+see the two consequences below.
+
+Still untested: `playdemo` on the resulting file (a demo a referee cannot open is worth nothing),
+and whether the stall is worse mid-round than during freezetime.
+
+#### Consequence 1 — arm recording at freezetime, never the instant the meter crosses
+
+[058](docs/decisions/058-what-we-sell.md) §6c arms the demo **at the flag**, which can land in the
+middle of a live round. A 1–2 second freeze there:
+
+- **disadvantages the player being monitored — who is very often innocent**, since most flags are
+  meant to resolve silently;
+- can lose a round, which turns a routine check into a legitimate complaint;
+- would make the monitoring phase itself unfair, which is the one thing it must not be.
+
+> **So the record command is issued at the next freezetime boundary, not at the moment the meter
+> crosses.** Round start is when nobody is shooting and a beat is already expected. The delay is at
+> most one round, and the monitoring phase runs for longer than that anyway.
+
+#### Consequence 2 — the freeze is a tell, and a felt one
+
+CONTEXT already notes the player can *see* the recording indicator. Now we know he can **feel** the
+moment it starts. That sharpens the evasion loop already recorded in §6c: a cheater who notices the
+stall knows precisely when he was flagged and can switch off for the duration.
+
+Arming at freezetime partly masks it — a beat at round start is ordinary — but does not remove it.
+**The countermeasure is unchanged and now matters more: a suspicion meter that collapses the instant
+recording starts is itself scored.**
 
 **CS 1.6 is unaffected and remains proven.**
 
@@ -365,7 +408,7 @@ follow-up, "Demos are back!")*,
 [`cs2pov` — POV from server demos](https://github.com/scharkonline/cs2pov),
 [CS2 ConVar dump](https://gist.github.com/SuGolYolLom/7637a0a427c41e9668fdc0ea2fe1a78a).
 
-_Checked 2026-08-22. The CS:GO/CS2 half was corrected twice the same day — first for a stale source, then for treating GOTV as a forensic substitute. **The remaining CS2 questions are answered by testing a live client, not by more searching.**_
+_Checked 2026-08-22. The CS:GO/CS2 half was corrected twice the same day — first for a stale source, then for treating GOTV as a forensic substitute — and then **measured**, which is what should have happened first. The freeze claim survived two rounds of research and died in five minutes of testing._
 
 
 ---
@@ -876,7 +919,7 @@ verified before code depends on it — per project instruction, test before ackn
 | **V12** | ~~Paid-placement disclosure wording and prominence?~~ **Researched at statute level ([§2.10](#210-paid-placement-disclosure-law--v12-researched-at-statute-level)).** Art. 7 pkt 11a (black-listed, no size exemption) + Art. 6 ust. 4 pkt 8 (publish ranking parameters, dedicated section); DSA Arts. 26–27 excluded at micro/small size. | [058](docs/decisions/058-what-we-sell.md) §6 | **Design unblocked; build to it.** Label changed `Promowane` → **`Sponsorowane`**, because UOKiK requires a label to convey *payment* — it rejects *"współpraca"* for the same gap. **Counsel confirmation before the first paid placement goes live**, and re-check the DSA exemption on crossing small-enterprise size |
 | **V13** | ~~Lawful basis, retention and erasure reconciliation for a stored hardware identifier?~~ **Researched ([§2.11](#211-hwid-gdpr-and-automated-bans--v13-researched)).** Art. 6(1)(f) + Recital 47; defined retention; ban tombstone survives erasure under Art. 17(3)(e) / Art. 21(1). | [058](docs/decisions/058-what-we-sell.md) §6c | **Design unblocked; three documents still owed — LIA, DPIA, privacy notice.** Two things the question did not ask and should have: **Art. 22 governs automated bans** (Garante fined Foodinho €5m), and a **DPIA is very likely mandatory** on WP248 scoring + monitoring. A hashed HWID is **still personal data** |
 | **V14** | **Restated ([§2.12](#212-v14--why-65-of-cases-is-the-wrong-number-and-what-to-measure-instead)):** required precision, prevalence in the flagged pool, false-positive rate on the auto-ban class. **Coverage — the "65%" — is the wrong quantity.** | [058](docs/decisions/058-what-we-sell.md) §6c | **Blocks auto-banning and any published rate.** At 2% prevalence and 99% specificity, **a third of bans are innocent people**; screening the pool first is what fixes it, which is what the suspicion meter is *for*. Legal reason too: **Art. 22**. **A fallen meter must still write a negative label**, or the false-positive rate has no denominator and this is unanswerable forever  **Tool: `DetectionCalibration` + `CalibrationChecks`, running today** — the arithmetic is settled, the inputs are not |
-| **V15** | **Can the server force a client POV recording on CS:GO and CS2**, and does CS2 `record` still freeze the client in 2026? | [058](docs/decisions/058-what-we-sell.md) §6c | **Reopened 2026-08-22.** CS 1.6 is proven and closed. **GOTV is not a substitute** — snapshot-rate interpolation removes the per-tick view-angle detail an aimbot signal lives in ([§2.9](#29-server-triggered-client-pov-demo-recording--per-game-and-the-answer-differs)). **Test on a live CS2 client; the web only recycles a 2023 post.** If forcing proves impossible, *asking* still yields a signal — a missing recording is refusal, never clean  **Tools: [cs16-probe](tools/cs16-probe/RESULTS.md)** (1.6) and **[cs2-pov-check](tools/cs2-pov-check/RESULTS.md)** (CS2 — half of it needs only a client) |
+| **V15** | ~~Can the server trigger client POV recording?~~ **CS 1.6: yes, field-proven. CS2 `record` works — measured 2026-08-22** on a dedicated server: demo produced, saved, client stalled 1–2s and recovered. **Still open: can a server *force* it on CS:GO/CS2?** — needs the Phase 6 plugin | [058](docs/decisions/058-what-we-sell.md) §6c | **No longer a blocker.** The freeze claim is dead; the forcing question rides along with Phase 6, and if it fails, *asking* still yields a signal. **Design change it forced: arm recording at freezetime, not the instant the meter crosses** — a 1–2s stall mid-round would penalise a player who is usually innocent |
 
 **V3 is the highest priority**, and this paragraph used to say V1 — which its own table above
 had already marked resolved on 2026-08-10. Corrected 2026-08-17.

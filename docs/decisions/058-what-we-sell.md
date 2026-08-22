@@ -495,7 +495,7 @@ client-side **scanner**. They are not the same kind of thing and they are not so
 
 1. **The server-side AC flags a player as suspicious** — or an admin does, by hand — and the
    **monitoring phase** begins.
-2. **Demo recording starts** at that moment, so the window under suspicion is the window on record.
+2. **Demo recording is armed — at the next freezetime, not the instant the meter crosses.** The window under suspicion is the window on record. **Measured 2026-08-22: CS2 `record` stalls the client 1–2 seconds** ([CONTEXT §2.9](../../CONTEXT.md)), so arming it mid-round would penalise a player who is usually innocent. Round start is when nobody is shooting.
 3. **The meter moves while monitoring runs.** It ends one of two ways:
    - **It falls** → suspicion resolved, monitoring stops, **the player is never told anything
      happened.** **This is the common case and it must be cheap.** It still writes a pseudonymous
@@ -639,18 +639,26 @@ of the same mechanism, not a dead end.
 | **What it proves** | Aim path and view movement, first-person. **The one artefact a cheater cannot produce a clean version of without actually playing clean** |
 | **If he cannot produce one** | The same decisive outcome as a refused scan. He appealed; the evidence he was asked for is the evidence he had |
 
-#### Recording starts at the flag, and two things follow from that
+#### Recording is armed at the flag — but issued at freezetime
 
-The demo is armed by **us**, at the moment suspicion begins — so *"I was not recording"* is never
-available as a defence, and we pay no storage for the matches nobody ever questions. Two
-consequences to build around rather than discover:
+The demo is armed by **us**, at the moment suspicion begins, so *"I was not recording"* is never
+available as a defence and we pay no storage for the matches nobody questions.
+
+> **The command goes out at the next freezetime, not the instant the meter crosses.**
+> **Measured 2026-08-22: CS2 `record` stalls the client for 1–2 seconds** and then recovers
+> ([CONTEXT §2.9](../../CONTEXT.md)). A stall mid-round would cost a duel — and most flags are
+> supposed to resolve as nothing, so the player it penalises is usually **innocent**. Round start is
+> when nobody is shooting and a beat is already expected. The cost is at most one round of
+> unrecorded play, against a monitoring phase that runs longer than that.
+
+Three consequences to build around rather than discover:
 
 **1. Whatever happened before the flag is not on the demo.** Accepted: a flag means the behaviour is
-*ongoing*, so the window under suspicion is the window that matters. If a class of cheating is
-found to be over before the meter reacts, the answer is a faster meter, not recording everything.
+*ongoing*, so the window under suspicion is the window that matters. If a class of cheating turns
+out to be over before the meter reacts, the answer is a faster meter, not recording everything.
 
 **2. The player can see the recording, and can stop it.** The engine shows it. This cuts both ways
-and both ways are useful:
+and both are useful:
 
 | Behaviour | What it means |
 | --- | --- |
@@ -658,9 +666,13 @@ and both ways are useful:
 | **He turns the cheat off** | The deterrent worked. A cheater not cheating is the outcome we wanted from the round |
 | **The meter collapses the instant recording starts** | **This is itself a signal.** Suspicion that evaporates precisely when observation begins is a pattern, and the AC should score it rather than congratulate itself |
 
-The third row is the one that keeps the loop from being played. Otherwise a cheater simply toggles
-off while monitored, waits for monitoring to end, and toggles back on — and each cycle looks like a
-false positive resolving cleanly.
+The third row is what keeps the loop from being played. Otherwise a cheater toggles off while
+monitored, waits for monitoring to end, and toggles back on — and each cycle looks like a false
+positive resolving cleanly.
+
+**3. He can now *feel* it too.** The 1–2 second stall means the start of recording is perceptible,
+not merely visible. Freezetime arming masks it — a beat at round start is ordinary — but does not
+remove it. **Row three of that table matters more because of this, not less.**
 
 #### What this fixes, and it is not small
 
@@ -759,7 +771,7 @@ it should have caught.
 | --- | --- | --- |
 | **V13** | ~~Lawful basis, retention, erasure reconciliation for HWID?~~ **Researched ([CONTEXT §2.11](../../CONTEXT.md)).** Basis: **Art. 6(1)(f)** + **Recital 47** (fraud prevention named explicitly). Retention: **Art. 5(1)(e)** — defined period, not indefinite. Erasure: survives under **Art. 17(3)(e)** / **Art. 21(1)**, minimum retained. **Also found: Art. 22 governs automated bans (Foodinho, €5m), and a DPIA is very likely mandatory.** | **Design unblocked — but three documents must actually be written before the anti-cheat ships: the LIA, the DPIA, and the privacy-notice wording.** Counsel review of all three. **A referee who cannot genuinely overrule the machine does not satisfy Art. 22** |
 | **V14** | **Restated ([CONTEXT §2.12](../../CONTEXT.md)): what *precision* do we need, what is prevalence in the flagged pool, and what is the false-positive rate on the auto-ban class?** Coverage — the "65%" — is the wrong quantity; only precision gates a ban, and precision depends on prevalence. | **Blocks auto-banning and any published rate, for two reasons.** *Product:* at 2% prevalence and 99% specificity, **a third of bans would be innocent** — a false ban here cannot be undone (as **V11**). *Legal:* **Art. 22** governs automated bans ([§2.11](#211-hwid-gdpr-and-automated-bans--v13-researched)). **Precision requirement is decidable now: effectively zero measured false positives on the auto-ban class.** The other two need matches — and need negative labels recorded from day one |
-| **V15** | **Can the server force client POV recording on CS:GO / CS2**, and does CS2 `record` still freeze in 2026? | **Reopened 2026-08-22.** CS 1.6 proven. **GOTV is not a forensic substitute** — snapshot rate and interpolated, quantised angles remove the per-tick detail an aimbot signal lives in ([CONTEXT §2.9](../../CONTEXT.md)). **Test a live client.** If forcing fails, asking still works: a missing recording is refusal, never clean |
+| **V15** | ~~Can the server trigger client POV recording?~~ **CS 1.6: field-proven. CS2 `record` works — measured 2026-08-22** (dedicated server, demo saved, 1–2s stall not a hang). **Open: can a server *force* it on CS:GO/CS2?** | **No longer a blocker.** The freeze claim is dead. Forcing rides along with Phase 6; if it fails, *asking* still yields a signal. **Forced a design change — see §6c: recording is armed at freezetime, never mid-round** |
 
 ## 7. Sequencing
 
@@ -905,6 +917,10 @@ seeing rather than discovering:
     trajectory, signals fired, outcome). Without that negative label the false-positive rate has no
     denominator and **V14 can never be answered**, so the system could never be shown safe enough
     to auto-ban. **Most flags must end here** ([CONTEXT §2.12](../../CONTEXT.md)).
+22a. **Recording is issued at freezetime, never mid-round** — a flag raised during live play arms
+    the demo but the command waits for the round boundary. **CS2 `record` stalls the client 1–2
+    seconds** (measured), and most flagged players are innocent (§6c,
+    [CONTEXT §2.9](../../CONTEXT.md)).
 23. **An interrupted or stopped recording is refusal, never clean** — the same rule as a tampered
     scan report.
 24. **An appeal without a demo is heard, not dismissed** — the appeal is accepted, the absence is
