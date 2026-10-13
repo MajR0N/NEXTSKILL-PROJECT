@@ -75,7 +75,8 @@ Disband team, revoke token, cancel tournament, override a result — confirm, an
 
 ### Accessibility floor
 
-- Visible keyboard focus, using `--t`
+- Visible keyboard focus, using a dedicated high-contrast semantic focus token from
+  [044](044-visual-direction.md), never a side-colour token
 - Colour never carries meaning alone — form dots and movement arrows use **shape too**
   ([019](019-visual-identity.md))
 - Contrast meets WCAG AA

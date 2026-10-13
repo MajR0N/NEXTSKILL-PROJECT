@@ -4,7 +4,7 @@
 **Date:** 2026-08-10
 
 Closes a gap: [021](021-site-structure.md) settled *which pages exist* and
-[019](019-visual-identity.md) settled *how things look*. Neither settled **how a page is
+[044](044-visual-direction.md) settles *how things look*. Neither settled **how a page is
 composed**.
 
 ---
@@ -16,7 +16,7 @@ layout work finite.
 
 | # | Archetype | Pages | Width | Shape |
 | --- | --- | --- | --- | --- |
-| **1** | **Index / list** | ranking, tournaments, matches, LFT, news, teams | default | Header → filters → rows → pagination |
+| **1** | **Index / list** | ranking, tournaments, matches, LFT, news, teams | comparison or default | Header → filters → rows → pagination |
 | **2** | **Detail** | match, team, player, tournament, news post | default | Header → primary content → meta rail |
 | **3** | **Wide canvas** | **bracket** | wide | Full-bleed, horizontal scroll, own rules |
 | **4** | **Focused task** | lobby, veto, login, register, confirm flows | narrow | Single purpose, nothing else on screen |
@@ -29,13 +29,15 @@ layout work finite.
 ```
 narrow    560px    focused task — one thing to do, nothing to scan past
 default  1080px    index + detail — the workhorse
+compare  1200px    comparison-heavy public lists with deliberate columns
 wide      full     bracket only, min 20px gutters
 panel     240px sidebar + fluid content, capped 1440px
 ```
 
-**Why 1080 and not wider:** a ranking row has six columns; beyond ~1080px the eye has to
-travel too far between team name and rating, and the row stops reading as one unit. Wider is
-not more generous, it is harder to scan.
+**Why comparison pages may reach 1200:** servers, tournaments, recruitment, scrims, player
+directories, and rankings carry enough decision facts to need deliberate columns. The extra width
+is not permission to spread facts arbitrarily; column placement must keep the row readable as one
+unit. Detail pages and focused prose remain at 1080px or narrower.
 
 **Why 560 for tasks:** a login form or a lobby has one job. Anything wider invites putting
 something else next to it, which is exactly what a focused task must not have.
@@ -79,10 +81,13 @@ adding them is not free.
 | Mode | Row height | Where |
 | --- | --- | --- |
 | **Comfortable** | 48px rows, 12–16px padding | Public pages — read occasionally, on any device |
-| **Dense** | 36px rows, 8–10px padding | Panels — worked in daily, information over comfort ([015](015-admin-panel.md)) |
+| **Dense** | 40px minimum rows, 8–10px padding | Panels — compact but not cramped ([015](015-admin-panel.md)) |
 
 Same components, one modifier class. **Not a second design system** — an organiser scanning
 80 matches has different needs from a player checking one ranking.
+
+Interactive targets remain at least 44px on touch layouts, and rows expand when critical content
+wraps. There is no user-facing density toggle.
 
 ## Component inventory
 

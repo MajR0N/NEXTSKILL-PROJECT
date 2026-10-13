@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>044 — monochrome prototype matrix</title>
+
+<!-- The REAL stylesheet. If this file looks right and the product does not,
+     the difference is markup, not tokens. That is the whole point of loading
+     the shipped CSS rather than a copy: there is no second design system to
+     drift. -->
+<link rel="stylesheet" href="../../src/NextSkill.Api/wwwroot/css/nextskill.css">
+
+<style>
+/* ── harness chrome ONLY ─────────────────────────────────────────────────
+   Deliberately unlike the product: dashed hairlines and a monospace micro
+   label, so nothing here can be mistaken for a shipped component. Nothing in
+   this block may be copied into nextskill.css. */
+.proto-bar {
+  position: sticky; top: 0; z-index: 50; background: #000;
+  border-bottom: 1px dashed #4a4640; padding: 10px var(--s5);
+  display: flex; gap: var(--s4); align-items: baseline; flex-wrap: wrap;
+  font-family: var(--font-mono); font-size: 11px; color: #8A8378;
+}
+.proto-bar b { color: #F6F2EA; font-weight: 600; letter-spacing: .04em; }
+.proto-bar a { color: #8A8378; text-decoration: none; }
+.proto-bar a:hover { color: #F6F2EA; }
+.proto-screen { border-top: 1px dashed #4a4640; padding-block: var(--s7) var(--s9); }
+.proto-meta {
+  max-width: var(--w-compare); margin-inline: auto; padding-inline: var(--s5);
+  margin-bottom: var(--s6); font-family: var(--font-mono); font-size: 11.5px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--s5); align-items: start;
+}
+@media (max-width: 880px) { .proto-meta { grid-template-columns: 1fr; } }
+.proto-meta h2 {
+  font-family: var(--font); font-size: 15px; color: #F6F2EA; margin: 0 0 var(--s2);
+  letter-spacing: -.01em;
+}
+.proto-meta .k { color: #6f6a62; display: block; margin-bottom: var(--s1); }
+.proto-meta ol { margin: 0; padding-left: 1.4em; color: #8A8378; line-height: 1.7; }
+.proto-meta ol b { color: #C9C3B7; font-weight: 500; }
+.proto-stress { color: #C9C3B7; margin: 0; line-height: 1.7; }
+</style>
+</head>
+<body>
+
+<nav class="proto-bar">
+  <b>044 PROTOTYPE MATRIX</b>
+  <span>neutral graphite + pure red · stress cases · real nextskill.css</span>
+  <span style="flex:1"></span>
+  <a href="#s1">1 rankings</a>
+  <a href="#s2">2 lft</a>
+  <a href="#s3">3 bracket</a>
+  <a href="#s4">4 veto</a>
+  <a href="#s5">5 queue</a>
+  <a href="#s6">6 match</a>
+  <a href="#s7">7 empty</a>
+</nav>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     1 — INDEX ARCHETYPE · global rankings, stress case
+     044: "provisional, tied, and stale source data".
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="proto-screen" id="s1">
+  <div class="proto-meta">
+    <div>
+      <h2>1 · Rankings — provisional, tied, stale</h2>
+      <span class="k">ARCHETYPE 1 (index) · WIDTH compare 1200</span>
+      <p class="proto-stress">
+        Two teams tied on 1584. Two provisional entries that must not read as
+        ranked. One source last updated 6 days ago. Names at the length Polish
+        actually produces, plus one Cyrillic roster.
+      </p>
+    </div>
+    <div>
+      <span class="k">TASK TEST (044 §composition acceptance)</span>
+      <ol>
+        <li><b>5s:</b> state that this ranks teams, and that some entries are not yet ranked</li>
+        <li><b>10s:</b> locate „Ostrowiec Świętokrzyski Cybersport”</li>
+        <li>Answer <b>„is 2. above 3. by skill or by tiebreak?”</b> without opening anything</li>
+        <li>No podium, crown, medal or top-three card exists</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="wrap-compare">
+    <div class="row" style="justify-content:space-between;align-items:flex-end">
+      <div>
+        <h1 class="h1" style="font-size:30px">Ranking drużyn</h1>
+        <p class="lede">Glicko-2. Ranking pokazuje niepewność, bo ukrywanie jej to kłamstwo o danych.</p>
+      </div>
+      <a class="btn" href="#s1">Zasady rankingu</a>
+    </div>
+
+    <div class="row" style="margin-top:var(--s5);gap:var(--s2)">
+      <a class="chip chip--on" href="#s1">CS2</a>
+      <a class="chip" href="#s1">CS 1.6</a>
+      <span style="width:var(--s4)"></span>
+      <a class="chip" href="#s1">Wszystkie regiony</a>
+      <a class="chip" href="#s1">Sezon 3</a>
+      <a class="chip" href="#s1">Ukryj nierozstrzygnięte</a>
+    </div>
+
+    <div class="table-scroll" style="margin-top:var(--s5)">
+      <table class="table table--stack">
+        <thead>
+          <tr>
+            <th style="width:52px">#</th>
+            <th>Drużyna</th>
+            <th class="r">Rating</th>
+            <th class="r">Mecze</th>
+            <th class="r">Forma</th>
+            <th class="r">Zmiana</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="num">1</td>
+            <td>
+              <div class="team">
+                <span class="avatar avatar--1">NW</span>
+                <span style="min-width:0">
+                  <b class="team__name">Niepokonani Wrocław</b>
+                </span>
+              </div>
+            </td>
+            <td class="r">
+              <b class="rating">1731</b> <span class="rating__rd">± 41</span>
+            </td>
+            <td class="r num">148</td>
+            <td class="r"><div class="form-strip"><b class="w">W</b><b class="w">W</b><b class="w">W</b><b class="l">P</b><b class="w">W</b></div></td>
+            <td class="r"><span class="move move--same">— 0</span></td>
+          </tr>
+
+          <!-- TIE: identical rating, resolved by a named tiebreak, stated in the
+               row. 044 forbids colour-only meaning; it equally forbids an
+               unexplained ordering. -->
+          <tr>
+            <td class="num">2</td>
+            <td>
+              <div class="team">
+                <span class="avatar avatar--3">WK</span>
+                <span style="min-width:0">
+                  <b class="team__name">Wisła Kraków Esports</b>
+                </span>
+              </div>
+            </td>
+            <td class="r">
+              <b class="rating">1584</b> <span class="rating__rd">± 38</span>
+            </td>
+            <td class="r num">203</td>
+            <td class="r"><div class="form-strip"><b class="w">W</b><b class="l">P</b><b class="w">W</b><b class="w">W</b><b class="l">P</b></div></td>
+            <td class="r"><span class="move move--up">▲ 1</span></td>
+          </tr>
+          <tr>
+            <td class="num">3</td>
+            <td>
+              <div class="team">
+                <span class="avatar avatar--2">ŚG</span>
+                <span style="min-width:0">
+                  <b class="team__name">Śląsk Gaming</b>
+                </span>
+              </div>
+            </td>
+            <td class="r">
+              <b class="rating">1584</b> <span class="rating__rd">± 52</span>
+            </td>
+            <td class="r num">91</td>
+            <td class="r"><div class="form-strip"><b class="l">P</b><b class="w">W</b><b class="w">W</b><b class="w">W</b><b class="w">W</b></div></td>
+            <td class="r"><span class="move move--down">▼ 1</span></td>
+          </tr>
+
+          <!-- Longest realistic Polish name. Must ellipsis without pushing the
+               decision columns out of alignment. -->
+          <tr>
+            <td class="num">4</td>
+            <td>
+              <div class="team">
+                <span class="avatar avatar--4">OŚ</span>
+                <span style="min-width:0">
+                  <b class="team__name">Ostrowiec Świętokrzyski Cybersport</b>
+                </span>
+              </div>
+            </td>
+            <td class="r">
+              <b class="rating">1502</b> <span class="rating__rd">± 44</span>
+            </td>
+            <td class="r num">67</td>
+            <td class="r"><div class="form-strip"><b class="w">W</b><b class="l">P</b><b class="l">P</b><b class="w">W</b><b class="l">P</b></div></td>
+            <td class="r"><span class="move move--up">▲ 3</span></td>
+          </tr>
+
+          <!-- Cyrillic identity + a stale source. Freshness is a decision fact,
+               so it sits in the row, not in a tooltip (019). -->
+          <tr>
+            <td class="num">5</td>
+            <td>
+              <div class="team">
+                <span class="avatar avatar--5">ГЛ</span>
+                <span style="min-width:0">
+                  <b class="team__name">Гродно Легион</b>
+                </span>
+              </div>
+            </td>
+            <td class="r">
+              <b class="rating">1477</b> <span class="rating__rd">± 63</span>
+            </td>
+            <td class="r num">54</td>
+            <td class="r"><div class="form-strip"><b class="l">P</b><b class="l">P</b><b class="w">W</b><b class="l">P</b><b class="w">W</b></div></td>
+            <td class="r"><span class="move move--same">— 0</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 044: "Provisional entries remain separate and explained." Separate
+         table, not a greyed row inside the ranked one — a reader scanning
+         positions must never have to check whether row 6 counts. -->
+    <div style="margin-top:var(--s7)">
+      <p class="label" style="margin-bottom:var(--s3)">Nierozstrzygnięte — poza rankingiem</p>
+      <p class="dim" style="font-size:13px;margin:0 0 var(--s4);max-width:58ch">
+        Poniżej 20 meczów rating jest zbyt niepewny, by ustawić drużynę w kolejności.
+        Te drużyny nie mają pozycji i nie wchodzą do rankingu powyżej.
+      </p>
+      <div class="table-scroll">
+        <table class="table table--stack">
+          <thead>
+            <tr>
+              <th style="width:52px">—</th>
+              <th>Drużyna</th>
+              <th class="r">Rating</th>
+              <th class="r">Mecze</th>
+              <th class="r">Do rankingu</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="dim">—</td>
+              <td>
+                <div class="team">
+                  <span class="avatar avatar--2">AK</span>
+                  <span style="min-width:0">
+                    <b class="team__name">AGH Kraków Akademia</b>
+                  </span>
+                </div>
+              </td>
+              <td class="r">
+                <b class="rating dim">1493</b> <span class="rating__rd">± 187</span>
+              </td>
+              <td class="r num">7</td>
+              <td class="r num dim">13 meczów</td>
+            </tr>
+            <tr>
+              <td class="dim">—</td>
+              <td>
+                <div class="team">
+                  <span class="avatar avatar--4">ŻS</span>
+                  <span style="min-width:0">
+                    <b class="team__name">Żółte Smoki</b>
+                  </span>
+                </div>
+              </td>
+              <td class="r">
+                <b class="rating dim">1500</b> <span class="rating__rd">± 350</span>
+              </td>
+              <td class="r num">0</td>
+              <td class="r num dim">20 meczów</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     2 — INDEX ARCHETYPE · LFT, stress case
+     044: "Long multilingual content and 100+ rows", "never mixed in one list".
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="proto-screen" id="s2">
+  <div class="proto-meta">
+    <div>
+      <h2>2 · LFT — długie treści, dwa języki, przeciążony wiersz</h2>
+      <span class="k">ARCHETYPE 1 (index) · WIDTH compare 1200</span>
+      <p class="proto-stress">
+        A 300-character description at its two-line excerpt limit, a German
+        string ~30% longer than the Polish, availability that must be compared
+        as real overlap across time zones, and a row that already carries
+        seven decision facts before anyone asks for an eighth.
+      </p>
+    </div>
+    <div>
+      <span class="k">TASK TEST</span>
+      <ol>
+        <li><b>5s:</b> state that these are players seeking teams, not teams seeking players</li>
+        <li><b>10s:</b> find a rifler available on weekday evenings in CET</li>
+        <li>Rating must <b>not</b> buy prominence — order is freshness</li>
+        <li>Approaching begins within <b>two</b> navigation actions</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="wrap-compare">
+    <!-- 044: two explicit, stable-URL views. Tabs, not a filter chip, because
+         these are two different questions and must never merge into one list. -->
+    <nav class="tabs" aria-label="Rekrutacja">
+      <a href="#s2" aria-current="page">Szukam drużyny (LFT)</a>
+      <a href="#s2">Szukam gracza (LFP)</a>
+    </nav>
+
+    <div class="row" style="margin-top:var(--s5);gap:var(--s2)">
+      <input class="input" style="max-width:240px" placeholder="Szukaj nicku lub roli" aria-label="Szukaj">
+      <a class="chip chip--on" href="#s2">Rifler</a>
+      <a class="chip" href="#s2">Wieczory w tygodniu</a>
+      <a class="btn btn--ghost" href="#s2">Więcej filtrów</a>
+      <span style="flex:1"></span>
+      <span class="dim" style="font-size:12.5px">Sortowanie: najświeższe · 118 ogłoszeń</span>
+    </div>
+
+    <div class="stack" style="margin-top:var(--s5);gap:0">
+      <!-- Row grammar (044): identity → decision facts → state → one action. -->
+      <article class="card" style="border-radius:0;border-bottom:none">
+        <div class="row" style="justify-content:space-between;align-items:flex-start;gap:var(--s5)">
+          <div class="team" style="align-items:flex-start">
+            <span class="avatar avatar--1">KN</span>
+            <div style="min-width:0">
+              <b class="team__name" style="font-size:15px">kubaN</b>
+              <div class="team__meta" style="margin-top:2px">
+                <span>Rifler / entry</span><span>·</span><span>PL, CET</span><span>·</span><span>18 lat</span>
+              </div>
+              <p class="dim" style="font-size:13px;margin:var(--s3) 0 0;max-width:62ch;
+                        display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
+                Szukam poważnej drużyny na sezon 3. Gram od 2019, ostatnio w Żółtych Smokach jako entry.
+                Mogę grać codziennie po 18:00, w weekendy cały dzień. Preferuję drużynę z trenerem i
+                stałym składem — nie interesują mnie mixy ani granie „na próbę” bez planu na ligę.
+              </p>
+            </div>
+          </div>
+          <div style="text-align:right;flex:0 0 auto">
+            <b class="rating">1612</b>
+            <span class="rating__rd">± 46 · 84 mecze</span>
+            <div class="confidence" style="margin-top:var(--s1)"><i style="right:23%"></i></div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:var(--s4);justify-content:space-between">
+          <div class="row" style="gap:var(--s2)">
+            <span class="pill"><b>Pn–Pt</b> 18:00–23:00</span>
+            <span class="pill"><b>Sb–Nd</b> 12:00–23:00</span>
+            <span class="pill pill--ok"><span class="pill__dot"></span>Steam zweryfikowany</span>
+            <span class="pill">Dodano 2 godz. temu</span>
+          </div>
+          <a class="btn btn--primary" href="#s2">Zaproponuj kontakt</a>
+        </div>
+      </article>
+
+      <!-- German, ~30% longer than the Polish equivalent. Nothing may clip. -->
+      <article class="card" style="border-radius:0;border-bottom:none">
+        <div class="row" style="justify-content:space-between;align-items:flex-start;gap:var(--s5)">
+          <div class="team" style="align-items:flex-start">
+            <span class="avatar avatar--3">SB</span>
+            <div style="min-width:0">
+              <b class="team__name" style="font-size:15px">Sebastian „schnitzel” Brandtner</b>
+              <div class="team__meta" style="margin-top:2px">
+                <span>Unterstützungsspieler / AWP</span><span>·</span><span>DE, CET</span><span>·</span><span>23 lat</span>
+              </div>
+              <p class="dim" style="font-size:13px;margin:var(--s3) 0 0;max-width:62ch;
+                        display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
+                Ich suche eine deutschsprachige oder englischsprachige Mannschaft für die kommende
+                Wettbewerbssaison. Verfügbarkeitsüberschneidung ist mir wichtiger als die Mannschaftsbewertung.
+              </p>
+            </div>
+          </div>
+          <div style="text-align:right;flex:0 0 auto">
+            <b class="rating">1548</b>
+            <span class="rating__rd">± 39 · 210 meczów</span>
+            <div class="confidence" style="margin-top:var(--s1)"><i style="right:20%"></i></div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:var(--s4);justify-content:space-between">
+          <div class="row" style="gap:var(--s2)">
+            <span class="pill"><b>Pn–Czw</b> 19:00–22:30</span>
+            <span class="pill pill--ok"><span class="pill__dot"></span>Pokrycie 3,5 godz./dzień</span>
+            <span class="pill">Dodano wczoraj</span>
+          </div>
+          <a class="btn btn--primary" href="#s2">Zaproponuj kontakt</a>
+        </div>
+      </article>
+
+      <!-- Zero overlap must be stated, not left for the reader to compute. -->
+      <article class="card" style="border-radius:0">
+        <div class="row" style="justify-content:space-between;align-items:flex-start;gap:var(--s5)">
+          <div class="team" style="align-items:flex-start">
+            <span class="avatar avatar--5">МР</span>
+            <div style="min-width:0">
+              <b class="team__name" style="font-size:15px">мрówka</b>
+              <div class="team__meta" style="margin-top:2px">
+                <span>IGL</span><span>·</span><span>KZ, UTC+6</span><span>·</span><span>26 lat</span>
+              </div>
+            </div>
+          </div>
+          <div style="text-align:right;flex:0 0 auto">
+            <b class="rating">1690</b>
+            <span class="rating__rd">± 35 · 402 mecze</span>
+            <div class="confidence" style="margin-top:var(--s1)"><i style="right:17%"></i></div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:var(--s4);justify-content:space-between">
+          <div class="row" style="gap:var(--s2)">
+            <span class="pill"><b>Pn–Nd</b> 14:00–19:00 UTC+6</span>
+            <span class="pill"><b>Brak pokrycia</b> z Twoim składem</span>
+            <span class="pill">Dodano 4 dni temu</span>
+          </div>
+          <a class="btn" href="#s2">Zaproponuj kontakt</a>
+        </div>
+      </article>
+    </div>
+
+    <div class="pager">
+      <a class="btn btn--ghost" href="#s2">Poprzednie</a>
+      <a class="btn btn--ghost" href="#s2">Następne 25</a>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     3 — WIDE CANVAS · double-elimination bracket, 128 teams
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="proto-screen" id="s3">
+  <div class="proto-meta">
+    <div>
+      <h2>3 · Drabinka — 128 drużyn, podwójna eliminacja</h2>
+      <span class="k">ARCHETYPE 3 (wide canvas) · full bleed</span>
+      <p class="proto-stress">
+        The size 044 names as the stress case. Round 1 alone is 64 nodes. This
+        is the screen that decides whether a tree is the right artefact at all,
+        or whether „Find team” is the actual interface and the tree is scenery.
+      </p>
+    </div>
+    <div>
+      <span class="k">TASK TEST</span>
+      <ol>
+        <li>Find a team, its <b>completed route</b>, current match, and next match</li>
+        <li>Round labels stay readable while scrolled to round 5</li>
+        <li>The page body <b>never</b> scrolls sideways — only the canvas does</li>
+        <li>A node never shows server, veto, rating or internal IDs</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="wrap-wide">
+    <div class="row" style="justify-content:space-between;align-items:flex-end;margin-bottom:var(--s5)">
+      <div>
+        <p class="eyebrow">Puchar Polski CS2 · <b>Sezon 3</b></p>
+        <h1 class="h1" style="font-size:26px">Drabinka główna</h1>
+      </div>
+      <div class="row" style="gap:var(--s2)">
+        <input class="input" style="max-width:220px" placeholder="Znajdź drużynę" aria-label="Znajdź drużynę">
+        <a class="btn" href="#s3">Reset widoku</a>
+      </div>
+    </div>
+
+    <!-- 044: "A persistent Find team control jumps to and highlights the team's
+         completed route." The route is a SEQUENCE, so it renders as a list —
+         not as a highlighted path through a tree nobody can hold in their head. -->
+    <div class="card" style="margin-bottom:var(--s5)">
+      <div class="row" style="justify-content:space-between">
+        <div class="team">
+          <span class="avatar avatar--1">NW</span>
+          <span><b class="team__name">Niepokonani Wrocław</b>
+            <span class="team__meta"><span class="team__tag">NPW</span><span>rozstawienie 3</span></span></span>
+        </div>
+        <span class="pill pill--live"><span class="pill__dot"></span>Gra teraz — runda 5</span>
+      </div>
+      <div style="margin-top:var(--s4)">
+        <div class="route__step"><span class="route__round">Runda 1</span><span class="route__opponent">wolny los</span><span class="route__result">—</span></div>
+        <div class="route__step"><span class="route__round">Runda 2</span><span class="route__opponent">Żółte Smoki</span><span class="route__result">2 : 0</span></div>
+        <div class="route__step"><span class="route__round">Runda 3</span><span class="route__opponent">Ostrowiec Świętokrzyski Cybersport</span><span class="route__result">2 : 1</span></div>
+        <div class="route__step"><span class="route__round">Runda 4</span><span class="route__opponent">Pruszków Team</span><span class="route__result">2 : 0</span></div>
+        <div class="route__step"><span class="route__round">Runda 5 — teraz</span><span class="route__opponent">Śląsk Gaming</span><span class="route__result">1 : 1, Nuke</span></div>
+        <div class="route__step"><span class="route__round">Runda 6</span><span class="route__opponent dim">Zwycięzca M118</span><span class="route__result">—</span></div>
+      </div>
+    </div>
+
+    <nav class="bracket__rounds" aria-label="Rundy">
+      <a class="btn btn--ghost" href="#s3">◀ Runda 4</a>
+      <b>Runda 5 — ćwierćfinał</b>
+      <a class="btn btn--ghost" href="#s3">Runda 6 ▶</a>
+    </nav>
+
+    <div class="table-scroll" style="padding-block:var(--s4)">
+      <div class="bracket" id="bracket"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     4 — FOCUSED TASK · veto, mid-veto with the timer running
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="proto-screen" id="s4">
+  <div class="proto-meta">
+    <div>
+      <h2>4 · Veto — trwa, 12 sekund do końca tury</h2>
+      <span class="k">ARCHETYPE 4 (focused task) · WIDTH mid 900</span>
+      <p class="proto-stress">
+        The moment with the least tolerance for a design mistake: a timer is
+        running and a captain must identify whose turn it is, what is legal,
+        and act. Banned maps are in the record below, not crossed out in the
+        choice grid — 044 moved them there.
+      </p>
+    </div>
+    <div>
+      <span class="k">TASK TEST</span>
+      <ol>
+        <li><b>5s:</b> whose turn, what action, how long left</li>
+        <li>Every legal choice visible <b>without scrolling sideways</b></li>
+        <li>A spectator opening this URL sees no controls at all</li>
+        <li>Timer state survives a page reload (it is server-held, not JS)</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="wrap-mid">
+    <!-- Hierarchy per 044: current turn → responsible team → required action → timer. -->
+    <div class="card" style="text-align:center">
+      <p class="label" style="margin-bottom:var(--s2)">Tura 4 z 7 · BO3</p>
+      <h1 class="h1" style="font-size:30px;margin:0">Twoja kolej — zbanuj mapę</h1>
+      <p class="lede" style="margin-inline:auto;text-align:center">
+        Niepokonani Wrocław banują. Jeśli czas minie, mapa zostanie wybrana losowo z pozostałych.
+      </p>
+      <div class="row" style="justify-content:center;margin-top:var(--s4)">
+        <span class="pill pill--live"><span class="pill__dot"></span>12 s do końca tury</span>
+      </div>
+    </div>
+
+    <!-- 044: "Legal choices form a uniform map grid." Grid, not a strip. -->
+    <div style="margin-top:var(--s6)">
+      <p class="label">Dostępne mapy — 4</p>
+      <div class="veto">
+        <div class="veto__tile">
+          <div class="veto__map"></div>
+          <div class="veto__name">Mirage</div>
+          <span class="veto__who">wybierz, aby zbanować</span>
+        </div>
+        <div class="veto__tile">
+          <div class="veto__map"></div>
+          <div class="veto__name">Inferno</div>
+          <span class="veto__who">wybierz, aby zbanować</span>
+        </div>
+        <div class="veto__tile">
+          <div class="veto__map"></div>
+          <div class="veto__name">Ancient</div>
+          <span class="veto__who">wybierz, aby zbanować</span>
+        </div>
+        <div class="veto__tile">
+          <div class="veto__map"></div>
+          <div class="veto__name">Anubis</div>
+          <span class="veto__who">wybierz, aby zbanować</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- The record: chronological, and it is where banned maps live now. -->
+    <div style="margin-top:var(--s6)">
+      <p class="label">Przebieg</p>
+      <div class="rail">
+        <div><span>1 · Śląsk Gaming zbanował</span><span>Dust II</span></div>
+        <div><span>2 · Niepokonani Wrocław zbanowali</span><span>Train</span></div>
+        <div><span>3 · Śląsk Gaming zbanował</span><span>Nuke</span></div>
+        <div><span class="dim">4 · Niepokonani Wrocław banują</span><span class="dim">trwa…</span></div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:var(--s5);justify-content:space-between">
+      <span class="dim" style="font-size:12.5px">Sędzia może przerwać veto i rozstrzygnąć ręcznie.</span>
+      <a class="btn btn--ghost" href="#s4">Zgłoś problem</a>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     5 — PANEL · organiser operations queue, ~50 mixed items
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="proto-screen" id="s5">
+  <div class="proto-meta">
+    <div>
+      <h2>5 · Kolejka operacyjna — 47 pozycji, tryb gęsty</h2>
+      <span class="k">ARCHETYPE 5 (panel) · WIDTH panel 1440 · rows 40px</span>
+      <p class="proto-stress">
+        044 is explicit that this is a queue and not a dashboard: no cards, no
+        vanity charts. Ordered by consequence and deadline, each item naming
+        the object, the problem in plain language, who is waiting, and one
+        action.
+      </p>
+    </div>
+    <div>
+      <span class="k">TASK TEST</span>
+      <ol>
+        <li><b>5s:</b> find the highest-consequence item without reading all 47</li>
+        <li>Every row exposes exactly <b>one</b> primary action</li>
+        <li>Rows stay ≥40px and readable at 40 rows</li>
+        <li>Returning from a case restores filter, sort and scroll position</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="wrap" style="max-width:var(--w-panel)">
+    <nav class="panelnav" aria-label="Panel organizatora">
+      <a href="#s5" aria-current="page">Kolejka</a>
+      <a href="#s5">Turnieje</a>
+      <a href="#s5">Serwery</a>
+      <a href="#s5">Spory</a>
+      <a href="#s5">Zespół</a>
+    </nav>
+
+    <div class="row" style="margin-top:var(--s5);justify-content:space-between">
+      <div class="row" style="gap:var(--s2)">
+        <a class="chip chip--on" href="#s5">Wymaga decyzji · 6</a>
+        <a class="chip" href="#s5">Czeka na innych · 29</a>
+        <a class="chip" href="#s5">Wszystko · 47</a>
+      </div>
+      <span class="dim" style="font-size:12.5px">Kolejność: konsekwencja, potem termin</span>
+    </div>
+
+    <div class="table-scroll" style="margin-top:var(--s4)">
+      <table class="table table--dense table--stack">
+        <thead>
+          <tr>
+            <th style="width:150px">Obiekt</th>
+            <th>Problem</th>
+            <th style="width:150px">Kto czeka</th>
+            <th style="width:120px">Termin</th>
+            <th style="width:150px" class="r">Działanie</th>
+          </tr>
+        </thead>
+        <tbody id="queue"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     6 — DETAIL · match, disputed
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="proto-screen" id="s6">
+  <div class="proto-meta">
+    <div>
+      <h2>6 · Mecz — wynik zakwestionowany</h2>
+      <span class="k">ARCHETYPE 2 (detail) · WIDTH default 1080 · rail 280</span>
+      <p class="proto-stress">
+        The state where evidence and claim must stay visibly separate: what the
+        plugin reported, what a captain asserts, and what has actually been
+        decided are three different kinds of fact and must never blur.
+      </p>
+    </div>
+    <div>
+      <span class="k">TASK TEST</span>
+      <ol>
+        <li><b>5s:</b> state that the result is contested and not yet rated</li>
+        <li>Tell <b>evidence</b> apart from <b>claim</b> without reading carefully</li>
+        <li>The rail carries facts only — no actions live there</li>
+        <li>A spectator sees the outcome and what happens next; no admin controls</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div>
+        <p class="eyebrow">Puchar Polski CS2 · <b>Runda 4</b></p>
+        <h1 class="h1" style="font-size:28px">Niepokonani Wrocław — Pruszków Team</h1>
+        <div class="row" style="margin-top:var(--s3);gap:var(--s2)">
+          <span class="pill pill--warn">Wynik zakwestionowany</span>
+          <span class="pill">Rating wstrzymany</span>
+          <span class="pill">Zgłoszono 18:42</span>
+        </div>
+      </div>
+      <a class="btn" href="#s6">Regulamin sporów</a>
+    </div>
+
+    <div class="detail-grid" style="margin-top:var(--s6)">
+      <div class="stack">
+        <div class="match match--done">
+          <div class="match__side">
+            <span class="avatar avatar--1">NW</span>
+            <b class="team__name">Niepokonani Wrocław</b>
+          </div>
+          <div class="match__score"><span class="hi">2</span><span class="sep">:</span><span class="lo">1</span></div>
+          <div class="match__side match__side--right">
+            <span class="avatar avatar--4">PT</span>
+            <b class="team__name">Pruszków Team</b>
+          </div>
+          <div class="match__foot">
+            <span class="pill">Mirage 13:9</span>
+            <span class="pill">Nuke 7:13</span>
+            <span class="pill">Ancient 13:11</span>
+          </div>
+        </div>
+
+        <!-- EVIDENCE: machine-reported, provenance named. -->
+        <div>
+          <p class="label">Dowody — zgłoszone przez serwer</p>
+          <div class="rail">
+            <div><span>Źródło</span><span>Wtyczka NEXTSKILL 1.4.2, podpis zgodny</span></div>
+            <div><span>Sekwencja zdarzeń</span><span>Kompletna, bez luk</span></div>
+            <div><span>Skład potwierdzony</span><span>10 z 10 graczy powiązanych</span></div>
+            <div><span>Ostatnie zdarzenie</span><span>map_end · 18:39:07</span></div>
+          </div>
+        </div>
+
+        <!-- CLAIM: human assertion. Visually separate, and labelled as a claim. -->
+        <div>
+          <p class="label">Zgłoszenie kapitana — twierdzenie, nie dowód</p>
+          <div class="card">
+            <div class="row" style="justify-content:space-between">
+              <div class="team">
+                <span class="avatar avatar--sm avatar--4">PT</span>
+                <span><b class="team__name">Zbyszko</b> <span class="dim" style="font-size:12px">kapitan, Pruszków Team</span></span>
+              </div>
+              <span class="dim" style="font-size:12px">18:42</span>
+            </div>
+            <p style="font-size:13.5px;margin:var(--s3) 0 0;color:var(--text-mid)">
+              Na Ancient w 21. rundzie serwer się zawiesił na ok. 40 sekund i runda została
+              rozstrzygnięta po przywróceniu. Prosimy o powtórzenie mapy.
+            </p>
+          </div>
+        </div>
+
+        <div class="alert" role="status">
+          Rating nie zostanie naliczony, dopóki sędzia nie rozstrzygnie sporu. Obie drużyny
+          zachowują dotychczasowy rating.
+        </div>
+      </div>
+
+      <!-- Rail: facts, never actions (041). -->
+      <aside class="rail">
+        <div><span>Turniej</span><span>Puchar Polski CS2</span></div>
+        <div><span>Organizator</span><span>Polska Liga Esportowa</span></div>
+        <div><span>Format</span><span>BO3</span></div>
+        <div><span>Serwer</span><span>waw-03</span></div>
+        <div><span>Rozpoczęto</span><span>17:00</span></div>
+        <div><span>Zakończono</span><span>18:39</span></div>
+        <div><span>Rating</span><span>Wpływa — wstrzymany</span></div>
+        <div><span>Demo</span><span>3 pliki</span></div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     7 — EMPTY STATES · the three kinds 044 says must not be confused
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="proto-screen" id="s7">
+  <div class="proto-meta">
+    <div>
+      <h2>7 · Puste stany — trzy różne, nie jeden</h2>
+      <span class="k">every archetype · day one</span>
+      <p class="proto-stress">
+        044 distinguishes nothing-exists-yet, filters-returned-nothing, and
+        nothing-needs-attention. Collapsing them into one „brak wyników” is the
+        bug: on launch day the first must read as <em>early</em>, never as
+        <em>abandoned</em>, and the third is good news.
+      </p>
+    </div>
+    <div>
+      <span class="k">TASK TEST</span>
+      <ol>
+        <li>A first-time visitor on day one does not conclude the site is dead</li>
+        <li>A filtered-to-zero user can <b>undo</b> the filter from here</li>
+        <li>„Nothing needs attention” reads as success, not as failure</li>
+        <li>No mascot, no illustration, no confetti; one action at most</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="wrap-compare">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:var(--s5)">
+      <div class="empty">
+        <div class="empty__icon" aria-hidden="true">+</div>
+        <h4>Sezon 3 zaczyna się 1 września</h4>
+        <p>Rejestracja jest otwarta. Pierwsze mecze pojawią się tutaj, gdy tylko drabinka ruszy.</p>
+        <a class="btn btn--primary" href="#s7">Zgłoś drużynę</a>
+      </div>
+
+      <div class="empty">
+        <div class="empty__icon" aria-hidden="true">≠</div>
+        <h4>Żaden gracz nie pasuje do tych filtrów</h4>
+        <p>Szukasz AWP-era dostępnego w weekendy w regionie BY. Najbliżej: 6 graczy bez filtra regionu.</p>
+        <a class="btn" href="#s7">Usuń filtr regionu</a>
+      </div>
+
+      <div class="empty">
+        <div class="empty__icon" aria-hidden="true">✓</div>
+        <h4>Nic nie czeka na decyzję</h4>
+        <p>Wszystkie 47 pozycji z tego turnieju są rozstrzygnięte. Historia jest w archiwum.</p>
+        <a class="btn btn--ghost" href="#s7">Otwórz archiwum</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ponytail: PROTOTYPE-ONLY generation. Nothing here ships — 018 makes the real
+   bracket server-rendered, and a JS-generated one would be invisible to the
+   crawlers that link unfurling depends on. Hand-writing 127 nodes to answer a
+   composition question is not a better use of anyone's afternoon.
+   Ceiling: no seeding logic, no real routing. Upgrade path: none — delete this
+   file once the real pages are seeded with stress data. */
+
+const TEAMS = [
+  'Niepokonani Wrocław','Wisła Kraków Esports','Śląsk Gaming','Ostrowiec Świętokrzyski Cybersport',
+  'Гродно Легион','Żółte Smoki','Pruszków Team','AGH Kraków Akademia','Lublin United',
+  'Bałtyk Gdynia','Karpaty Rzeszów','Toruń Copernicus','Płock Vipers','Zagłębie Sosnowiec',
+  'Podhale Nowy Targ','Suwałki Frost'
+];
+
+// 128 teams = 7 winners' rounds. Rendering the first four is already 5 000px of
+// column; that IS the finding, so we render four and label the rest.
+const ROUNDS = [
+  { name: 'Runda 1', matches: 64 },
+  { name: 'Runda 2', matches: 32 },
+  { name: 'Runda 3', matches: 16 },
+  { name: 'Runda 4', matches: 8 },
+  { name: 'Ćwierćfinał', matches: 4 },
+];
+
+const bracket = document.getElementById('bracket');
+ROUNDS.forEach((round, ri) => {
+  const col = document.createElement('div');
+  col.className = 'bracket__col';
+  for (let m = 0; m < round.matches; m++) {
+    const id = `M${ri * 100 + m + 1}`;
+    const a = TEAMS[(ri * 7 + m * 3) % TEAMS.length];
+    const b = TEAMS[(ri * 5 + m * 11 + 1) % TEAMS.length];
+    const live = ri === 4 && m === 1;
+    const decided = ri < 3 || (ri === 3 && m < 4);
+    const sa = decided ? (m % 3 === 0 ? 1 : 2) : '';
+    const sb = decided ? (m % 3 === 0 ? 2 : 0) : '';
+    const aWon = decided && sa > sb;
+
+    const node = document.createElement('div');
+    node.className = 'node' + (live ? ' node--live' : '');
+    node.innerHTML = `
+      <div class="node__head"><span>${id}</span><span>${live ? 'na żywo' : decided ? 'zakończony' : 'oczekuje'}</span></div>
+      <div class="node__slot ${decided ? (aWon ? 'node__slot--won' : 'node__slot--lost') : ''}">
+        <span class="node__seed">${(m * 2 + 1)}</span>
+        <span class="node__team">${ri === 0 || decided ? a : 'Zwycięzca M' + ((ri - 1) * 100 + m * 2 + 1)}</span>
+        <span class="node__score">${sa}</span>
+      </div>
+      <div class="node__slot ${decided ? (aWon ? 'node__slot--lost' : 'node__slot--won') : ''}">
+        <span class="node__seed">${(m * 2 + 2)}</span>
+        <span class="node__team">${ri === 0 || decided ? b : 'Zwycięzca M' + ((ri - 1) * 100 + m * 2 + 2)}</span>
+        <span class="node__score">${sb}</span>
+      </div>`;
+    col.appendChild(node);
+  }
+  const label = document.createElement('div');
+  label.className = 'label';
+  label.style.cssText = 'position:sticky;top:44px;background:var(--ground);padding-block:6px;z-index:2';
+  label.textContent = `${round.name} — ${round.matches} meczów`;
+  col.prepend(label);
+  bracket.appendChild(col);
+});
+
+/* Organiser queue: 47 rows, ordered by consequence then deadline. */
+const ITEMS = [
+  ['Spór', 'NPW — PT, runda 4', 'Kapitan kwestionuje wynik po zawieszeniu serwera', 'Obie drużyny', 'za 2 godz.', 'Rozstrzygnij', 1],
+  ['Spór', 'ŚG — ŻS, runda 3', 'Niekompletny skład w zgłoszeniu wyniku', 'Śląsk Gaming', 'za 5 godz.', 'Rozstrzygnij', 1],
+  ['Check-in', 'Puchar Polski, runda 5', '3 z 8 drużyn nie potwierdziły obecności', '3 drużyny', 'za 40 min', 'Przedłuż lub oddaj walkower', 1],
+  ['Serwer', 'waw-03', 'Brak sygnału od 11 minut, mecz w toku', 'Mecz M401', 'teraz', 'Przenieś mecz', 1],
+  ['Zgłoszenie', 'Ogłoszenie LFT #2214', 'Zgłoszone jako spam przez 4 użytkowników', 'Moderacja', 'za 1 dzień', 'Przejrzyj', 1],
+  ['Walkower', 'AGH — Lublin United', 'Drużyna nie stawiła się w oknie startowym', 'AGH Kraków', 'za 3 godz.', 'Zatwierdź walkower', 1],
+];
+const FILLER = [
+  ['Wynik', 'potwierdzony automatycznie, brak sprzeciwu', 'nikt', 'zamknięte'],
+  ['Rejestracja', 'drużyna zgłoszona, oczekuje na losowanie', 'organizator', 'za 4 dni'],
+  ['Serwer', 'heartbeat prawidłowy', 'nikt', '—'],
+  ['Veto', 'zakończone, mapy ustalone', 'nikt', 'zamknięte'],
+];
+const q = document.getElementById('queue');
+ITEMS.forEach(([kind, obj, problem, waiting, due, action]) => {
+  q.insertAdjacentHTML('beforeend', `
+    <tr>
+      <td data-label="Obiekt"><b>${obj}</b> <span class="dim" style="font-size:11.5px">${kind}</span></td>
+      <td data-label="Problem">${problem}</td>
+      <td data-label="Kto czeka" class="dim">${waiting}</td>
+      <td data-label="Termin"><span class="pill pill--warn">${due}</span></td>
+      <td data-label="Działanie" class="r"><a class="btn" href="#s5" style="padding:5px 12px;font-size:12.5px;min-height:0">${action}</a></td>
+    </tr>`);
+});
+for (let i = 0; i < 41; i++) {
+  const [kind, problem, waiting, due] = FILLER[i % FILLER.length];
+  q.insertAdjacentHTML('beforeend', `
+    <tr>
+      <td data-label="Obiekt"><b class="dim">${TEAMS[i % TEAMS.length]}</b> <span class="dim" style="font-size:11.5px">${kind}</span></td>
+      <td data-label="Problem" class="dim">${problem}</td>
+      <td data-label="Kto czeka" class="dim">${waiting}</td>
+      <td data-label="Termin" class="dim">${due}</td>
+      <td data-label="Działanie" class="r"><a class="btn btn--ghost" href="#s5" style="padding:5px 12px;font-size:12.5px;min-height:0">Otwórz</a></td>
+    </tr>`);
+}
+</script>
+</body>
+</html>

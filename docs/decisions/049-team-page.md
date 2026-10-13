@@ -96,8 +96,8 @@ advertising and must remain possible on its own.
 
 Captain-managed square team logos are wanted, with the generated monogram as a permanent
 fallback. Phase 4 continues to use monograms. Upload format, cropping, storage, validation,
-moderation and final presentation wait for [044](044-visual-direction.md), so the open visual
-direction is not quietly decided by one page slice.
+moderation and final presentation wait for [044](044-visual-direction.md)'s prototype and
+production-asset work, so one page slice does not quietly invent a separate treatment.
 
 ## Fixed boundaries
 

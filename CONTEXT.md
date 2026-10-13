@@ -26,7 +26,7 @@ plugin pipeline, the tournament and bracket flow, and the whole authentication s
 | Plugin API — HMAC-signed ingest, sequencing, reconciliation, integrity gates | [009](docs/decisions/009-api-contract.md), [035](docs/decisions/035-match-result-integrity.md) |
 | Organiser servers — tenant-authorised `host:port` registration, one-time HMAC secret, write-only health view, and verification by the first valid signed heartbeat | [007](docs/decisions/007-server-hosting-model.md), [048](docs/decisions/048-organiser-server-configuration.md), [051](docs/decisions/051-phase-4-remainder.md) |
 | Match lobby and web veto — captain readiness, durable legal turns, lazy 30-second expiry, BO1/BO3/BO5 map-and-side output, and plugin config from the frozen result | [028](docs/decisions/028-veto-and-lobby.md), [051](docs/decisions/051-phase-4-remainder.md) |
-| **Match results → ratings** — a reported `map_end` stores the winner and advances the bracket; lineups declare themselves at `match_loaded`; a `player_bound` event carrying **both** factors promotes `Declared` → `Bound`; an append-only ledger and a background sweeper settle teams (Glicko-2) and players (OpenSkill) in `(EndedAt, Id)` order. Captains confirm or dispute; `organiser.trusted` skips the wait but never the integrity gate | [050](docs/decisions/050-match-results-and-ratings.md), [025](docs/decisions/025-rating-system.md), [035](docs/decisions/035-match-result-integrity.md) |
+| **Match results → ratings** — a reported `map_end` stores the winner and advances the bracket; lineups declare themselves at `match_loaded`; a `player_bound` event carrying **both** factors promotes `Declared` → `Bound`; an append-only ledger and a background sweeper settle eligible teams (Glicko-2) and players (OpenSkill) in `(EndedAt, Id)` order. Eligibility now requires a locked **Rating affected** event and complete trusted participant/result provenance. Captains confirm or dispute; `organiser.trusted` skips the wait but never integrity or eligibility gates | [050](docs/decisions/050-match-results-and-ratings.md), [025](docs/decisions/025-rating-system.md), [035](docs/decisions/035-match-result-integrity.md) |
 | **Referee decisions** — `/org/disputes` dismisses a captain's claim or reverses a result, and a reversal supersedes the ledger and replays every rating from history | [036](docs/decisions/036-authorization.md), [050](docs/decisions/050-match-results-and-ratings.md) |
 | **Audit log** — append-only *enforced by PostgreSQL*, recording actor, resource, reason and **outcome**, so a **denied** privileged attempt leaves a row even though it changed nothing | [012](docs/decisions/012-security.md), [036](docs/decisions/036-authorization.md), [051](docs/decisions/051-phase-4-remainder.md) |
 | **Home page** — live matches, announcements, upcoming events, recent results and the CS2 top five, each with a designed empty state | [043](docs/decisions/043-page-contents.md), [020](docs/decisions/020-motion-and-ux.md) |
@@ -48,7 +48,8 @@ plugin pipeline, the tournament and bracket flow, and the whole authentication s
    designed framework fallback. Existing page-specific copy remains hardcoded until each page is
    touched, and no en/ru/de translation catalog exists yet.
 2. **The product ships monochrome on purpose** until [044](docs/decisions/044-visual-direction.md)
-   closes. Colour is an open question, not an oversight.
+   closes. The direction is decided; monochrome now validates composition before exact neutral
+   and red tokens are selected.
 3. **Phase 4 is nearly complete, and what remains is named.** Match completion, ratings, the
    referee's desk, both panels, the LFT board with availability and moderation, the home page,
    notifications, search, seasons, news with an editor, and competitive history all run end to end.
@@ -1506,6 +1507,50 @@ is what surfaced the identity problem in [010](docs/decisions/010-identity-bindi
 > `.git` (corrupted objects, `index.lock` held mid-operation) no longer applies. The directory
 > name is cosmetic; renaming it is optional and would only break existing shell history.
 
+### Running it locally *(verified 2026-08-23)*
+
+| Item | Value |
+| --- | --- |
+| .NET SDK | 10.0.302 |
+| PostgreSQL | running on `127.0.0.1:5432`, database `nextskill`, user `nextskill` / `dev` |
+| Node | v24.16.0 |
+| Browser automation | `@playwright/test` + Chromium headless shell, installed at repo root |
+
+```bash
+dotnet build src/NextSkill.Api          # ~17s, 0 errors
+dotnet run   --project src/NextSkill.Api --no-build
+#   https://localhost:7039   ← use this one
+#   http://localhost:5083    ← diagnostics only, login CANNOT work here
+```
+
+**HTTPS is not a preference here.** The session cookie is marked `Secure` ([011](docs/decisions/011-accounts-and-login.md)),
+so a browser will refuse to send it back over plain http and every authenticated test fails in
+a way that looks like broken auth rather than a wrong URL. `launchSettings.json` puts the https
+profile first for this reason.
+
+✅ **The dev certificate is trusted on this machine** (`dotnet dev-certs https --trust`, run
+2026-08-23). Verified strictly — headless Chromium loads `https://localhost:7039/pl` and returns
+200 **without** `ignoreHTTPSErrors`. So Playwright needs no TLS opt-out here, and a test that
+suddenly requires one is reporting a real problem rather than a local-setup quirk:
+
+```js
+await browser.newContext();      // no ignoreHTTPSErrors needed, and don't add it back
+```
+
+Two ways this comes undone, both worth recognising rather than re-diagnosing: the certificate
+**expires 2027-07-29**, and a fresh machine or a `dotnet dev-certs https --clean` starts untrusted
+again. The re-run is interactive — it opens a Windows certificate-store dialog — so it cannot be
+done by an agent and must be run by hand.
+
+**Use `localhost`, never `127.0.0.1`.** The certificate is `CN=localhost` with no SAN for an IP
+address, so the loopback IP fails with `ERR_CERT_COMMON_NAME_INVALID` — a *worse* error than an
+untrusted issuer, because it is a name mismatch rather than an unknown authority.
+
+**Static design work does not need the server at all.** `docs/design/044-prototype.html` loads the
+real `nextskill.css` over `file://`, so composition can be judged and screenshotted without a
+database. `python docs/design/check-prototype.py` asserts the prototype only uses components the
+stylesheet actually defines — a typo would otherwise render unstyled and get judged as a design.
+
 ---
 
 ## 5. Decision agenda
@@ -1548,9 +1593,9 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | --- | --- | --- |
 | [018](docs/decisions/018-frontend-architecture.md) | Frontend architecture & i18n | **decided** — Razor Pages + TS islands; **4 locales** (pl primary, en/ru/de) with locale in the URL; neutral Polish `UiText.resx` and the localised shared shell are built; page copy retrofits when touched; no Node runtime |
 | [043](docs/decisions/043-page-contents.md) | **Page contents** | **decided** — home leads with activity + announcements; in-app inbox + email; trigram search; state-driven tournament page; **NEXTSKILL as first-party organiser** |
-| [041](docs/decisions/041-layout-system.md) | **Layout system** | **decided** — five page archetypes, three content widths, 4px spacing scale, two breakpoints, 18 components |
-| [019](docs/decisions/019-visual-identity.md) | Visual identity | **split** — the *behavioural* rules hold (colour never carries meaning alone, uncertainty shown, spacing is information). The **palette is reopened**: CT/T colours were picked in one pass and never argued against |
-| [044](docs/decisions/044-visual-direction.md) | **Visual direction** | 🔴 **OPEN — needs grilling.** Palette, type stack, named style, light theme, OG card. **The product ships monochrome until it closes**, so there is no provisional colour to unpick later |
+| [041](docs/decisions/041-layout-system.md) | **Layout system** | **decided** — five page archetypes, purpose-based content widths, 4px spacing scale, two breakpoints, 18 components; dense rows revised to a 40px desktop minimum |
+| [019](docs/decisions/019-visual-identity.md) | Visual identity | **decided behavioural rules** — colour never alone, uncertainty and provenance visible, spacing and alignment carry information; appearance is owned by 044 |
+| [044](docs/decisions/044-visual-direction.md) | **Visual direction** | 🟡 **DIRECTION DECIDED; validation pending.** Quiet Competitive Utility: dark only, Inter, black/red/white/gray roles, composition measured on hard screens, wordmark + simple NXS. Exact tokens and production logo assets follow monochrome prototypes |
 | [020](docs/decisions/020-motion-and-ux.md) | Motion & UX behaviour | **decided** — motion marks state change only; progressive enhancement is a hard rule; empty states are a designed surface |
 | [021](docs/decisions/021-site-structure.md) | Site structure, features & navigation | **decided** — four surfaces mirroring the role model; **+LFT board, news/CMS, seasons**; headbar public, sidebar panels |
 | [022](docs/decisions/022-tournament-formats.md) | Tournament formats | **decided** — all five at launch, built as **two engines** (elimination + round-robin) composed into five formats. Team sizes are **1v1, 2v2, 5v5** ([045](docs/decisions/045-teams-and-rosters.md)) |
@@ -1558,7 +1603,7 @@ Each item becomes a file in `docs/decisions/` once resolved. Status values:
 | [047](docs/decisions/047-two-factor.md) | **Two-factor & password reset** | **decided** — reset links single-use and 5 minutes; TOTP (any authenticator) preferred, SMS offered but named as weaker; recovery codes issued with the factor; messaging seam fails closed; token-bucket rate limiting |
 | [048](docs/decisions/048-organiser-server-configuration.md) | **Organiser server & plugin config** | 🔴 **OPEN** — BYO servers, a plugin *list*, per-tournament config. Also a **sales position**, cross-linked to the strategy |
 | [049](docs/decisions/049-team-page.md) | **Team page competitive history & recruitment** | **decided** — one shareable game context; integrity-aware history and record; accessible rating trend; trusted authoritative trophies; intentional expiring openings with private applications; monograms remain until 044 closes |
-| [050](docs/decisions/050-match-results-and-ratings.md) | **How a result becomes a rating** | **decided** — the join nothing had: `MatchParticipant` with `Declared`/`Bound` provenance, lineup frozen at check-in, an **append-only rating ledger** whose unique index *is* the sweeper's idempotency, and one rule for both human actions — **judgement holds the reversible thing (the rating), never the irreversible one (the bracket)**. `organiser.trusted` finally means something. Bind in, demos out |
+| [050](docs/decisions/050-match-results-and-ratings.md) | **How a result becomes a rating** | 🟡 **partially reopened** — ledger, timing, and reversible-rating rule stand; 044 adds two eligibility gates: the event is locked as **Rating affected** and complete trusted participant/result provenance exists. Captain declarations alone no longer rate |
 | [051](docs/decisions/051-phase-4-remainder.md) | **Phase 4 remainder** | **decided** — veto before matches (server-rendered, SSE is Phase 5); **we never dial a game server**, which deletes 040's top risk; localisation habit now with Polish as the *neutral* resource; seasons frozen by timestamp not snapshot; recruitment is three objects because an invite costs a roster place and interest does not; search SQL corrected (`unaccent` is not `IMMUTABLE`); audit log exists because a **denied** attempt has no row; `DisableHtml()` alone does not stop `javascript:` links |
 | [052](docs/decisions/052-cheating-and-rating-integrity.md) | **Cheating & rating integrity** | **decided** — **zero-install and kernel anti-cheat are the same decision seen from two ends**, recorded as a deliberate trade. Defend the *record*, not the machine: the team-based scheduled format is the first defence, Steam ban checks and demos are the cheap signals, and [050](docs/decisions/050-match-results-and-ratings.md)'s ledger already makes reversal a recompute. No fork (AGPL contagion, public detections, [003](docs/decisions/003-build-basis.md)). **Three tiers: none by default, an optional user-mode client an organiser may require per event, and a kernel driver reserved behind four hard preconditions** — whether the client ran is recorded *on the match* as evidence, never as an automatic verdict. **The labelled corpus is the moat, not the detector**, so demo retention and referee verdicts are load-bearing from day one |
 | [053](docs/decisions/053-rewards-and-prize-pools.md) | **Rewards & prize pools** | **decided** — Valve removed progression from community servers; rewards are how we give it back. **Earned, never drawn**: no chance mechanics, because a deterministic reward *is* another verifiable fact on the record while a random one imports a permanent regulatory question. Three tiers — status (free, already built), **community-funded stackable attributed pools** (a feature, not a cost), deterministic perks. We never hold anyone's prize money |

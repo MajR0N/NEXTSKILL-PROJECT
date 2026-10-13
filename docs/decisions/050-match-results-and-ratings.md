@@ -1,13 +1,15 @@
 # 050 — How a result becomes a rating
 
-**Status:** decided
-**Date:** 2026-08-11
+**Status:** PARTIALLY REOPENED — the result ledger and timing stand; rating eligibility was
+amended by [044](044-visual-direction.md) on 2026-08-23
+**Date:** 2026-08-11; eligibility amended 2026-08-23
 **Relates to:** [007](007-server-hosting-model.md) (challenge window, BYO servers),
 [010](010-identity-binding.md) / [011](011-accounts-and-login.md) (identity binding),
 [023](023-bracket.md) (advancement), [025](025-rating-system.md) (ratings),
 [029](029-profile-login-footer.md) (no fabricated history),
 [034](034-test-strategy.md) (simulator), [035](035-match-result-integrity.md) (integrity),
 [036](036-authorization.md) (who may decide), [045](045-teams-and-rosters.md) (fieldable roster),
+[044](044-visual-direction.md) (rated/unrated event contract),
 [046](046-tournament-lifecycle.md) (check-in), [049](049-team-page.md) (rating trend, trophies)
 
 ---
@@ -44,10 +46,15 @@ New table, one row per `(match, account)`.
 check-in. **`Bound`** replaces it when a `player_bound` event proves both factors — the
 persistent `setinfo` token *and* the per-match code ([011](011-accounts-and-login.md)).
 
-**Both count toward a player rating.** The alternative — rate only what the plugin proved —
-was rejected because [005](005-cs16-plugin.md) gives CS 1.6 no binding guarantee on non-Steam
-clients (**V3**, still unverified), and CS 1.6 is the moat. A bind-only rule would have
-quietly meant *no player ratings in the game the product is differentiated by*.
+**A `Declared` row records history but does not, by itself, qualify a player or match for global
+rating.** Rating now has two gates: the tournament or scrim was locked as **Rating affected**, and
+complete participant/result/provenance data arrived through the NEXTSKILL plugin or an approved
+owner-authorised integration. A missing bind or incomplete trusted feed leaves the rating pending
+or produces an explicit audited unrated outcome; it never silently falls back to captain claims.
+
+This accepts that an environment which cannot produce the required technical evidence does not
+contribute to global NEXTSKILL rating. It may still keep the result and declared participant
+history. Per-server metrics remain separate from global rating under [044](044-visual-direction.md).
 
 > **This does not reopen [029](029-profile-login-footer.md).** That decision refused to
 > infer an old match's participants from *current* team membership, and it was right: a
@@ -79,9 +86,9 @@ One lineup per tournament, copied into each match as it loads.
   participants.
 
 **What was given up:** a team that substitutes someone in for the semifinal has a `Declared`
-list that is wrong for that match until a `player_bound` event corrects it. That failure is
-visible, attributed to a named captain, and self-correcting. A per-match lineup editor was
-rejected as speculative — no organiser has asked for one.
+list that is wrong for that match until trusted evidence corrects it. The history may show that
+attributed claim, but the match cannot affect global rating while the rated participant set is
+incomplete. A per-match lineup editor remains rejected as speculative.
 
 ## 3. Rating changes are an append-only ledger
 
@@ -115,7 +122,7 @@ distinct endings.
 | Ending | Trigger | Effect |
 | --- | --- | --- |
 | **Result received** | `map_end` reconciles ([035](035-match-result-integrity.md)) | `WinnerTeamId` set, bracket advances if `confirmed` |
-| **Result final** | challenge window closes, or both captains confirm | rating applied, ledger rows written |
+| **Result final** | challenge window closes, or both captains confirm | ledger rows written only when the event label and trusted-data gates both pass; otherwise pending or explicitly unrated |
 
 A `BackgroundService` sweeps matches where `EndedAt + window < now AND RatedAt IS NULL`,
 in **`(EndedAt, Id)` order** — Glicko-2 is rating-period based, so out-of-order application
@@ -139,6 +146,9 @@ when both captains agree. Neither confirming is not a stall — the window expir
 result is deemed accepted. **A trusted organiser skips the wait entirely**, which is what
 `organiser.trusted` has been reserved for since the first migration. Forfeits and byes bypass
 confirmation, because a team that did not show up cannot click a button.
+
+Trust accelerates result finality only. It never bypasses the locked event label or complete
+trusted-data gates in §1.
 
 Shape: two nullable timestamps on `Match`. There are exactly two teams; a table for a
 two-valued fact is scaffolding that never pays rent.
@@ -192,9 +202,12 @@ Per the project's engineering principles, in `tests/NextSkill.Checks`:
    recomputation after a reversal trustworthy.
 3. **A `disputed` match is never rated**, and its ledger row carries the reason.
 4. **A captain dispute after advancement** → rating held, bracket unchanged.
-5. **Both captains confirm** → rating applies before the window would have closed.
-6. **A trusted organiser's result** rates without confirmation — but a `suspect` one from
-   the same organiser still does not.
+5. **Both captains confirm** → an eligible rated match applies before the window would have closed.
+6. **A trusted organiser's eligible result** rates without confirmation — but a `suspect` one
+   from the same organiser still does not; organiser trust never bypasses eligibility.
 7. **`player_bound` upgrades a `Declared` row to `Bound`** in the simulator, end to end,
    without creating a second participant row.
 8. **A forfeited match** settles without waiting for a confirmation that can never arrive.
+9. A **Rating not affected** event never writes rating ledger rows, even with a complete feed.
+10. A **Rating affected** event with missing trusted participant or result evidence stays pending
+    or closes explicitly unrated; it never rates from `Declared` rows alone.

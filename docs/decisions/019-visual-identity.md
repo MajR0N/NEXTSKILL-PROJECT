@@ -1,319 +1,59 @@
-# 019 — Visual identity
+# 019 - Visual identity: behavioural rules
 
-**Status:** **split.** The *behavioural* rules below are decided and hold. Everything about
-**appearance** — palette, type, style — is **reopened** and moved to
-[044](044-visual-direction.md), which is where the real grilling happens. The site currently
-ships **monochrome** for that reason.
-**Date:** 2026-08-10 · reopened 2026-08-11
-**Lens applied:** frontend-design
-
-> **What survived and what did not.** This document was written while the conversation was
-> about *whether colour carries meaning*, and it answered that well: colour never alone,
-> uncertainty shown openly, spacing as information, form strips carrying letters as well as
-> hue. Those rules stand and the monochrome build is passing them. But the specific hues —
-> CT blue, T gold — were chosen in one pass and never argued against, and the whole layout
-> system was then built on tokens nobody interrogated. Read the palette here as *the first
-> guess*, not the decision.
+**Status:** DECIDED - appearance moved to [044](044-visual-direction.md)
+**Date:** 2026-08-10; appearance superseded 2026-08-23
+**Relates to:** [020](020-motion-and-ux.md), [025](025-rating-system.md),
+[041](041-layout-system.md), [044](044-visual-direction.md)
 
 ---
 
-## Constraints that decide more than taste does
+## Scope
 
-| Constraint | Source | Effect |
-| --- | --- | --- |
-| Font must cover **Latin Extended + Cyrillic** | 4 locales ([018](018-frontend-architecture.md)) | Disqualifies most display/"gaming" faces outright |
-| Layouts tolerate **~30% longer strings** | German | Favours condensed or width-variable type; no fixed-width labels |
-| Must not look like FACEIT | Competitive positioning | **FACEIT is dark + saturated orange (#FF5500).** That combination is taken |
-| Server-rendered, progressive | [018](018-frontend-architecture.md) | Design must work before JS loads |
-| Link previews matter | [018](018-frontend-architecture.md) | Open Graph images are a **design surface**, not an afterthought |
+This decision owns the behavioural rules that survive every palette and style. Decision
+[044](044-visual-direction.md) owns theme, palette roles, typography, geometry, imagery,
+composition, and the logo system.
 
-## Four directions
+The earlier CT-blue/T-gold palette, Unbounded/IBM Plex type recommendation, Server Browser visual
+direction, card-versus-row prescription, and signature veto strip are superseded. They must not be
+used as implementation guidance.
 
-A palette only makes sense inside a design *language*. Four genuinely different ones,
-each with its own palette, personality and risk.
+## Behavioural rules
 
----
+### Meaning is redundant
 
-### A. Server Browser — functional, dense, insider
+Colour is never the only carrier of state, side, outcome, urgency, or validity. Pair it with text,
+position, weight, iconography where useful, or another stable structural signal. The interface
+must remain understandable in monochrome.
 
-The tool the scene runs on. Cues from the CS server browser and the TAB scoreboard: rows,
-hairlines, monospace data, no ornament. Colour taken from the maps, not the genre.
+### Uncertainty and provenance stay visible
 
-```
---ground #121110  --surface #1C1A17  --line #34302B  --text #EDE7DC
---t #E0B44A (T gold, primary)   --ct #6E9FD4 (CT blue)   --live #D9483B
+NEXTSKILL does not present uncertain data as fact. Rating deviation, provisional state, source,
+freshness, reported-versus-verified counts, and integrity status appear wherever they affect a
+decision. Hiding uncertainty to make a screen look cleaner is not permitted.
 
-│  1  ▌ Pukawka Five      1847 ±32   24-6   CS2 │
-│  2  ▌ Nokaut            1802 ±41   19-8   CS2 │
-```
+### Spacing and alignment are information
 
-**Says:** we are the infrastructure. Built by people who run servers.
-**Risk:** can read as plain if the typography isn't disciplined.
+Shared alignment joins related facts; spacing separates groups and indicates hierarchy. A larger
+gap must reflect a larger conceptual boundary. Arbitrary gaps and decorative misalignment weaken
+the information model.
 
----
+### State precedes ornament
 
-### B. Match Report — editorial, authoritative, archival
+Every component needs its relevant default, hover, focus, selected, disabled, loading, empty,
+error, and live states before decorative treatment. A quiet interface is still fully designed.
 
-The scene's **record of results**. Light, generous, strong typographic hierarchy. Results
-presented the way a serious sports desk presents them. Deliberately *not* cream + serif +
-terracotta — cool paper and ink, with a single Polish red.
+### Domain colour remains domain colour
 
-```
---paper #F2F3F5  --ink #16181D  --rule #C9CDD4  --dim #6B7280
---accent #D4213D (Polish red)   --ct #2F6FB5   --t #B98A1F
+CT/T colour may be used when side identity is genuinely part of the content, such as a match or
+veto. It is not a platform-wide accent and must still have a non-colour label or structural cue.
 
-  PUKAWKA FIVE          13
-  NOKAUT                11        de_dust2 · 24 rounds
-  ─────────────────────────────────────────────────────
-```
+### Data remains readable without motion or JavaScript
 
-**Says:** this is the official record. Trustworthy, permanent, quotable.
-**Risk:** light mode is unusual for a CS audience; may feel corporate.
+Motion may explain a state change but never create the only evidence that it happened. Core
+content, state, and navigation remain available in server-rendered markup under the progressive
+enhancement rule in [018](018-frontend-architecture.md).
 
----
+## Consequence
 
-### C. Poster School — scene-owned, graphic, loud
-
-Draws on the **Polish Poster School** — a genuinely world-famous design tradition, and
-native to the primary audience rather than borrowed from esports. High contrast, heavy
-condensed type, hard geometric blocks, asymmetry, one screaming accent.
-
-```
---ink #0D0D0D  --paper #EDE9E0  --accent #FF3B1F  --ct #1B4FD8  --t #F2C230
-
-  ┏━━━━━━━━━━━━━━━┓
-  ┃  PUKAWKA  13  ┃  ◤ de_dust2
-  ┗━━━━━━━━━━━━━━━┛
-     NOKAUT    11
-```
-
-**Says:** this belongs to the scene, not to a corporation. Has attitude.
-**Risk:** the boldest option. Loud designs age faster and are harder to keep
-consistent across 40 pages.
-
----
-
-### D. Tactical HUD — game-native, technical
-
-Reads like the game's own interface: bracket corners on panels, amber readouts, radar-style
-framing, sharp edges everywhere.
-
-```
---ground #0B0F0C  --panel #131A15  --line #2A3A2E  --text #D6E2D8
---accent #FFB000 (HUD amber)   --ct #4FA8FF   --live #FF3B30
-
-  ┌─ MATCH 04 ──────────────────┐
-  │ PUKAWKA FIVE      13        │
-  │ NOKAUT            11        │
-  └─────────────────────────────┘
-```
-
-**Says:** built by players, for players. Immersive.
-**Risk:** closest to generic "gamer UI"; amber sits near FACEIT's orange; hardest to keep
-legible across four languages.
-
----
-
-## Recommended: A, with one borrowed idea from C
-
-**A (Server Browser)** as the base — it suits a content-dense platform across four
-languages, ages well, and stays legible. **Borrow C's confidence for the display face and
-the veto strip**, so the product has one loud, memorable gesture inside an otherwise
-disciplined system.
-
-That is the "spend your boldness in one place" principle: quiet system, one strong signature.
-
----
-
-## The idea behind A: take the palette from the game, not from the genre
-
-Esports platforms all look like each other — dark grey, one hot accent, card grids, glow.
-NEXTSKILL's audience doesn't live in "esports". They live in **de_dust2, cs_assault, and a
-server browser**.
-
-So the palette comes from the maps and the HUD, not from the category.
-
-### Side colours as information, not decoration
-
-Every CS player reads **CT blue** and **T tan/gold** instantly, without a legend. NEXTSKILL
-uses them as its two structural colours:
-
-- team identity in brackets and match pages
-- **who banned which map** in the veto
-- score attribution on the scoreboard
-
-This encodes something true about the content — the thing the design skill asks structural
-devices to do — rather than decorating with arbitrary brand colours.
-
-## Colour system
-
-```
---ground        #121110   warm near-black. Not pure black; the inside of a map at night
---surface       #1C1A17   panels, rows
---surface-up    #262320   raised: active row, open dropdown
---line          #34302B   hairlines. The primary structural device
---text          #EDE7DC   warm off-white
---text-dim      #9A9285   labels, metadata, secondary
-
---t             #E0B44A   T-side gold — PRIMARY accent
---ct            #6E9FD4   CT-side blue — SECONDARY accent
---live          #D9483B   C4 red. Live matches and destructive actions ONLY
-```
-
-**Why gold and not orange:** `#E0B44A` is a desaturated gold — dust2 sand, T-side kit — not
-FACEIT's saturated `#FF5500`. Close enough to feel like Counter-Strike, far enough to never
-be mistaken for the incumbent.
-
-**`--live` is rationed.** If red appears anywhere except a live match or a destructive
-action, it stops meaning anything.
-
-## Typography
-
-Three roles. Cyrillic coverage is a **hard requirement**, so this is a short list.
-
-| Role | Face | Why |
-| --- | --- | --- |
-| **Display** | **Unbounded**, used sparingly — wordmark, page titles only | Geometric, wide, genuinely distinctive. Has Cyrillic. This is the one bold spend |
-| **Body / UI** | **IBM Plex Sans** (Condensed for dense tables) | Full Cyrillic + Latin Extended. Engineered, slightly technical — suits a server-browser feel. Condensed absorbs German |
-| **Data** | **IBM Plex Mono**, **tabular figures** | Scores, ratings, ping, seeds, match IDs, timestamps. Numbers must align in columns — proportional figures make a scoreboard unreadable |
-
-> ⚠️ **Verify Cyrillic coverage before committing** — add to the verification backlog. A
-> display face that silently falls back for Russian would be discovered by a Russian user,
-> not by us.
-
-**Tabular figures are not a detail.** A scoreboard, a bracket and a leaderboard are columns
-of numbers. Proportional digits make `11` narrower than `13`, and the column visibly wobbles.
-
-## Layout: rows, not cards
-
-The dominant esports-dashboard look is card grids with shadows and glow. NEXTSKILL goes the
-other way, taking its cue from the **server browser and the TAB scoreboard**: dense,
-information-first rows separated by hairlines.
-
-```
-┌──────────────────────────────────────────────────────────┐
-│ RANKING                                    pl  en  ru  de│
-├──────────────────────────────────────────────────────────┤
-│  1   ▌ Pukawka Five          1847 ±32    24-6    CS2     │   ▌ = side colour
-│  2   ▌ Nokaut                1802 ±41    19-8    CS2     │
-│  3   ▌ Stara Szkoła          1776 ±55    31-14   1.6     │   mono numerals,
-│  4   ▌ Wataha                1740 ±38    17-11   1.6     │   tabular, aligned
-└──────────────────────────────────────────────────────────┘
-     ↑         ↑                  ↑    ↑
-   rank    team name          rating  RD shown openly (025)
-```
-
-**Rating deviation is displayed, not hidden.** `1847 ±32` tells the truth: how good, and how
-sure we are ([025](025-rating-system.md)). Most platforms hide uncertainty; showing it is
-honest and explains why a returning team's rating moves fast.
-
-Hairlines carry the structure. No shadows, no glow, no gradient fills.
-
-## Signature: the veto strip
-
-The one thing NEXTSKILL is remembered by.
-
-Map veto is *the* ritual of competitive CS. Rendered as a single horizontal strip that reads
-as one artifact — the whole veto history at a glance:
-
-```
- ban      ban      pick     ban      ban      pick     decider
-┌──────┐┌──────┐┌──────┐┌──────┐┌──────┐┌──────┐┌──────┐
-│ ░░░░ ││ ░░░░ ││dust2 ││ ░░░░ ││ ░░░░ ││train ││ nuke │
-│ ▚▚▚▚ ││ ▚▚▚▚ ││      ││ ▚▚▚▚ ││ ▚▚▚▚ ││      ││      │
-└──────┘└──────┘└──────┘└──────┘└──────┘└──────┘└──────┘
-   ▌CT     ▌T      ▌CT     ▌T      ▌CT     ▌T      auto
-```
-
-- Banned maps are **struck through in the banning team's side colour** — you can read who
-  removed what without a legend
-- Picked maps stay lit
-- The strip is **the same component live and historical** — during veto it fills in real time
-  ([039](039-public-api.md) SSE); afterwards it's the permanent record on the match page
-
-One component, two jobs, and it's the most screenshot-and-paste-into-Discord moment in the
-product — which matters given links are the growth mechanism ([018](018-frontend-architecture.md)).
-
-## Motion budget: small and functional
-
-| Allowed | Not allowed |
-| --- | --- |
-| Veto strike-through as a ban lands | Page-load animation sequences |
-| Score flip on round end | Scroll-triggered reveals |
-| Row highlight on live update | Parallax, ambient motion, glow pulses |
-| Focus and hover states | Anything decorative |
-
-Motion marks **state change** — something happened in a real match. Decorative motion would
-dilute the only signal worth having. `prefers-reduced-motion` respected throughout.
-
-## Open Graph images are a design surface
-
-Since growth runs through links pasted into Discord and forums
-([018](018-frontend-architecture.md)), preview cards are rendered server-side per page:
-
-| Page | Card shows |
-| --- | --- |
-| Match | Both teams, side colours, score, map |
-| Tournament | Name, format, team count, dates |
-| Profile | Nickname, rating ±RD, game |
-
-Generated from the same tokens as the site — one identity, not two.
-
-## Quality floor (not negotiable)
-
-- Responsive to mobile — **brackets on a phone are the hard case** ([023](023))
-- Visible keyboard focus, using `--t`
-- Contrast: `--text` on `--ground` and both side colours on `--surface` meet WCAG AA
-- Works with JavaScript disabled for all content pages
-- `prefers-reduced-motion` honoured
-
-## Decision
-
-**Direction A (Server Browser / Utilitarian) as the system**, with **Tenebrism reserved for
-finals** and **Rebus pictograms** for iconography.
-
-Chosen from a comparison of ten styles (from a list of fifty) filtered against the real
-constraints: Cyrillic coverage, German at +30%, ~80% data-dense pages, and not reading as a
-FACEIT clone.
-
-| Layer | Style | Where |
-| --- | --- | --- |
-| System | **Utilitarian (38)** | Rankings, brackets, profiles, admin — everything read and compared |
-| Moments | **Tenebrism (30)** | Finals, champion pages. Same palette, light removed — no second design system |
-| Icons | **Rebus (47)** | Pictograms. Chosen functionally: **an icon needs no translation** across four locales |
-
-### Refinements from review
-
-| Feedback | Resolution |
-| --- | --- |
-| Headings felt basic | **Layered display treatment** — first word outlined (`-webkit-text-stroke`), second filled with a metallic gold gradient, large with tight negative tracking |
-| Font visibility | Text raised to `#F4EFE6`; added a mid tone `#C3BAAB` so there are **three** readable levels, not two |
-| Movement arrows | Green/red **plus shape** (▲▼) — colour alone fails ~8% of players |
-| Sections cramped | 64px rhythm with soft dividers |
-| Ranking too thin | Avatars, team tag, city, **confidence bar** visualising ±RD, last-5 form, record, win %, game |
-| Veto too plain | Numbered steps (order carries real information), generated minimap glyphs, banning team named |
-| Matches too retro | Rounded surfaces, gradient accent edge, proportional type with tabular numerals, status pills |
-| Final not distinctive | **Two angled fields meeting on a lit seam**, VS in a hex plate. A literal lightning bolt was tried and rejected as clip-art |
-
-### Avatars
-
-Generated gradient monogram tiles, not uploads — so a brand-new team looks finished on day
-one instead of showing a grey placeholder.
-
-### Built reference
-
-Working mockup: ranking, match list, veto, final, and the four-language stress test.
-Rebuild rather than reuse — it is HTML prototype, not production Razor.
-
-### Still untested
-
-Deliberately not prototyped yet, pending the rest of the grilling:
-
-- **Double-elimination bracket** — the hardest layout in the product, and the one most likely
-  to break on a phone
-- **Admin panel** — dense forms and tables, a different rhythm from public pages
-- **Empty states** — new user, no team, no rating. Designs look good with data and fall apart
-  without it
-
-These three are worth prototyping because they can surprise us. Login, register, footer,
-profile and list pages are solved patterns and will be built directly in Razor.
+The product remains monochrome until 044's prototype and measured-token exit criteria pass. This
+is a deliberate audit of these rules, not an undecided visual identity.

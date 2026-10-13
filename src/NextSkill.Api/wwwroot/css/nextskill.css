@@ -1,7 +1,11 @@
 /* ============================================================================
    NEXTSKILL design system
-   Implements decisions 019 (visual identity) and 041 (layout system).
-   Read those before changing anything here.
+   Implements 044 (visual direction: Quiet Competitive Utility), 041 (layout
+   system) and 019 (behavioural rules). Read those before changing anything.
+
+   044 is the authority on theme, geometry, type, density and imagery. 019 now
+   owns only the rules that survive every palette. Where this file and 044
+   disagree, 044 wins and this file is the bug.
 
    CURRENTLY MONOCHROME ON PURPOSE (decision 044). The palette is an open
    question; shipping a provisional colour scheme would mean unpicking it from
@@ -11,6 +15,9 @@
    Rules that are load-bearing, not stylistic:
    - --live is RATIONED: live matches and destructive actions only. If red
      appears anywhere else it stops meaning anything.
+   - NO decorative gradients, glows, bevels or fake depth (044). Shadows are
+     for menus and dialogs only. Separation is done by thin neutral borders.
+   - Ordinary lists never scroll horizontally (044). Only the bracket may.
    - Colour never carries meaning alone; form dots and movement arrows also
      use shape, because colour alone fails ~8% of players.
    - Every gap comes from the spacing scale. An off-scale value is a bug:
@@ -19,56 +26,98 @@
 
 /* ── tokens ───────────────────────────────────────────────────────────── */
 :root {
-  /* surfaces — warm near-black, not pure black (019) */
-  --ground:      #0E0D0C;
-  --surface:     #171512;
-  --surface-2:   #1F1C18;
-  --surface-3:   #282420;
-  --line:        rgba(255, 244, 222, .09);
-  --line-soft:   rgba(255, 244, 222, .055);
+  /* surfaces — NEUTRAL GRAPHITE (044, decided 2026-08-23). Saturation 0 is the
+     point, not an accident: it makes red the only hue anywhere in the product,
+     which is what 044's rationing rule is actually buying. A warm ramp put the
+     mid-greys in a different warm family from a hue-0 red and read unresolved.
+     Every value is luminance-matched to the monochrome ramp it replaces, so the
+     measured contrast did not move when the cast did. */
+  --ground:      #0D0D0D;
+  --surface:     #151515;
+  --surface-2:   #1C1C1C;
+  --surface-3:   #252525;
+  --line:        rgba(255, 255, 255, .09);
+  --line-soft:   rgba(255, 255, 255, .055);
+  /* CONTROL borders are not decoration. WCAG 2.2 SC 1.4.11 wants 3:1 for
+     anything needed to identify a component, and a .btn fill measures 1.14:1
+     against the page - so the border is the ONLY thing saying "this is a
+     button", and at .09 alpha it was 1.26:1. Measured, not assumed:
+     docs/design/check-contrast.py fails the build if this slips. */
+  --line-ctl:    #6C675F;
 
   /* text — three levels, not two */
-  --text:        #F6F2EA;
-  --text-mid:    #B7AFA2;
-  --text-dim:    #8A8378;
+  --text:        #F2F2F2;
+  --text-mid:    #B0B0B0;
+  --text-dim:    #848484;
 
-  /* ── MONOCHROME MODE — deliberate, temporary (decision 044) ───────────
-     The palette is NOT decided. Rather than ship colours we would have to
-     unpick later, every hue token below is a warm GREY, separated by
-     LIGHTNESS only. Token names are unchanged, so 044 restores colour by
-     editing these nine lines and nothing else.
+  /* ── ROUTINE vs SIGNAL ───────────────────────────────────────────────
+     044: "Red is not the colour of every link or routine primary button.
+     Routine actions use neutral black/white contrast." So the accent that
+     draws primary buttons, focus rings, tabs and current-page markers is
+     NEUTRAL, and red is reserved for four states and nothing else. */
+  --accent:      #F2F2F2;
+  --on-accent:   #0D0D0D;
 
-     This is also a free audit of 019's rule that colour never carries
-     meaning alone: anything that becomes ambiguous here was leaning on hue,
-     and that is a bug to fix now rather than a palette to hide it with.  */
+  /* THE signal. Rationed to: live, urgent, error, destructive.
+     hue 0, saturation 100% — the purest red that still clears WCAG AA as text.
+     TWO lightnesses because no single one clears both gates: #FF2929 is 4.55:1
+     on --surface-2 as text but only 4.00:1 under white, and #E00000 is the
+     reverse. Deliberately far from FACEIT's #FF5500 (hue 20), which 019 bans.
+     The 4.55:1 margin is 1.1%. docs/design/check-contrast.py is therefore
+     LOAD-BEARING: lighten --surface-2 and it fails rather than shipping. */
+  --red:         #FF2929;
+  --red-solid:   #E00000;
+  --on-red:      #FFFFFF;
 
-  /* side "colours" carry information: team identity, who banned which map */
-  --t:           #EFE9DC;   /* was T-side gold  — primary accent   */
-  --ct:          #9C978C;   /* was CT-side blue — secondary accent */
-  --on-accent:   #0E0D0C;
-  --glow:        239, 233, 220;
+  /* Side identity — veto and match ONLY. 044: CT/T colour "may appear only
+     where side identity has real domain meaning, and never become platform
+     brand accents". Kept as two lightness steps rather than real CT-blue and
+     T-gold, so red stays the only hue; 044 permits colour here but does not
+     require it, and the attribution already carries a name as well. */
+  --t:           #F2F2F2;
+  --ct:          #9A9A9A;
 
-  /* semantic — form strips carry W/L letters and movement carries ▲▼—,
-     so these stay legible with the hue removed. That is the point. */
-  --win:         #E4DFD2;
-  --loss:        #8F897E;
-  --live:        #FFFFFF;   /* RATIONED — brightest thing on the page */
+  /* Outcome — neutral ON PURPOSE. A lost match is not an error. Colouring it
+     red would put red in every other ranking row and destroy the rationing. */
+  --win:         #E0E0E0;
+  --loss:        #8C8C8C;
 
   /* spacing scale (041) — 4px base. No values outside this set. */
   --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
   --s5: 24px; --s6: 32px; --s7: 48px; --s8: 64px; --s9: 96px;
 
-  /* radii */
-  --r-sm: 8px; --r: 12px; --r-lg: 16px; --r-full: 999px;
+  /* radii (044) - controls 6, independent panels/menus/dialogs 8, and tables,
+     lists and page sections square. Nothing ordinary exceeds 8px. */
+  --r-ctl:  6px;
+  --r:      8px;
+  --r-full: 999px;
 
   /* content widths (041) */
-  --w-narrow: 560px;   /* focused task  */
-  --w-mid:    900px;   /* lobby: two squads + veto */
-  --w-def:   1120px;   /* index + detail */
-  --w-panel: 1440px;
+  --w-narrow:  560px;   /* focused task: login, confirm, veto */
+  --w-mid:     900px;   /* lobby: two squads + veto. See note below. */
+  --w-def:    1080px;   /* index + detail - the workhorse */
+  --w-compare:1200px;   /* comparison-heavy lists: servers, rankings, LFT */
+  --w-panel:  1440px;
 
-  /* type */
-  --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+  /* OPEN CONFLICT, deliberately not resolved in silence: 041's archetype table
+     files the lobby under "focused task, 560px", but the lobby shows two
+     five-player squads and a veto grid side by side, which 560 cannot hold.
+     --w-mid keeps today's behaviour until 041 is amended one way or the other. */
+
+  /* density (041/044) - rows are a contract, not an emergent side effect of
+     padding. Public 48, panel 40, and every touch target at least 44. */
+  --row:       48px;
+  --row-dense: 40px;
+  --touch:     44px;
+
+  /* type (044) - Inter Variable is the single family: UI, body and headings.
+     ponytail: no @font-face yet. Self-hosting needs the Latin-Extended and
+     Cyrillic subsets built and weighed against Phase 5d's page-weight budget,
+     and a webfont is the single biggest cost on Polish mobile. Until those
+     files exist the stack falls through to the system UI face, which is
+     metrically close enough that the composition tests stay valid.
+     Upgrade path: subset, self-host, re-run the 5d weight budget. */
+  --font: Inter, "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, Consolas, "SF Mono", monospace;
 }
 
@@ -89,7 +138,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* Focus is always visible. Accessibility sits with security in CONTEXT §3:
    never simplified away. */
-:focus-visible { outline: 2px solid var(--t); outline-offset: 3px; border-radius: 4px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
 
 /* Numbers must align in columns. Proportional digits make 11 narrower than
    13 and the column visibly wobbles (019). */
@@ -103,25 +152,31 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .wrap        { max-width: var(--w-def);    margin-inline: auto; padding-inline: var(--s5); }
 .wrap-narrow { max-width: var(--w-narrow); margin-inline: auto; padding-inline: var(--s5); }
 .wrap-mid    { max-width: var(--w-mid);    margin-inline: auto; padding-inline: var(--s5); }
+.wrap-compare{ max-width: var(--w-compare);margin-inline: auto; padding-inline: var(--s5); }
 .wrap-wide   { padding-inline: var(--s5); }   /* bracket: full bleed */
 
-.section { padding-block: var(--s7) var(--s8); }
+/* 044: page sections are square. A radius here would imply the section is an
+   independent object, and it is not - it is a band of one continuous page. */
+.section { padding-block: var(--s7) var(--s8); border-radius: 0; }
 .section + .section { border-top: 1px solid var(--line-soft); }
 
 /* detail archetype: content + meta rail. Rail carries facts, never actions. */
-.detail-grid { display: grid; grid-template-columns: 1fr 300px; gap: var(--s6); }
+.detail-grid { display: grid; grid-template-columns: 1fr 280px; gap: var(--s6); }
 @media (max-width: 880px) { .detail-grid { grid-template-columns: 1fr; } }
 
 /* panel archetype: persistent sidebar ≥1024px, drawer below */
-.panel-grid { display: grid; grid-template-columns: 238px 1fr; min-height: 100vh; }
+.panel-grid { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
 @media (max-width: 1024px) { .panel-grid { grid-template-columns: 1fr; } }
 
 /* ── typography ───────────────────────────────────────────────────────── */
+/* 044 REMOVED decorative eyebrows. This class survives for the two cases that
+   carry real information - tournament stage and organiser scope - and must not
+   come back as a label above every H1. */
 .eyebrow {
   font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
   color: var(--text-dim); font-weight: 600; margin: 0;
 }
-.eyebrow b { color: var(--t); font-weight: 600; }
+.eyebrow b { color: var(--accent); font-weight: 600; }
 
 h1, .h1 {
   font-size: clamp(30px, 4.4vw, 44px); letter-spacing: -.035em; line-height: 1.04;
@@ -139,36 +194,44 @@ h2, .h2 { font-size: 22px; letter-spacing: -.02em; font-weight: 600; margin: 0; 
 /* ── 1. buttons ───────────────────────────────────────────────────────── */
 .btn {
   display: inline-flex; align-items: center; gap: var(--s2);
-  padding: 10px 18px; border: 1px solid var(--line); background: var(--surface-2);
-  color: var(--text); border-radius: 10px; font-size: 13.5px; font-weight: 500;
-  cursor: pointer; text-decoration: none;
+  padding: 10px 18px; border: 1px solid var(--line-ctl); background: var(--surface-2);
+  color: var(--text); border-radius: var(--r-ctl); font-size: 13.5px; font-weight: 500;
+  cursor: pointer; text-decoration: none; min-height: 38px;
   transition: background .15s, border-color .15s;
 }
+/* A finger is not a mouse pointer: 44px is the floor wherever one is used (044). */
+@media (pointer: coarse) { .btn { min-height: var(--touch); } }
 .btn:hover { background: var(--surface-3); }
 .btn--primary {
-  background: var(--t); color: var(--on-accent); border-color: transparent;
-  font-weight: 600; box-shadow: 0 4px 18px rgba(var(--glow), .22);
+  background: var(--accent); color: var(--on-accent); border-color: transparent;
+  font-weight: 600;
 }
 .btn--primary:hover { filter: brightness(1.07); }
 .btn--ghost { background: transparent; }
 /* destructive actions confirm, and are audited (020, 036) */
 .btn--danger {
-  color: var(--loss); background: transparent;
-  border-color: color-mix(in srgb, var(--loss) 40%, transparent);
+  color: var(--red); background: transparent;
+  border-color: color-mix(in srgb, var(--red) 45%, transparent);
 }
+/* The ONLY filled red in the product: the confirm step of a destructive action
+   (020 requires destructive actions to confirm). White on --red-solid measures
+   5.04:1; white on --red would be 4.00:1 and fail, which is the whole reason
+   the palette carries two lightnesses of one hue. */
+.btn--danger--confirm { background: var(--red-solid); color: var(--on-red); border-color: transparent; font-weight: 600; }
 
 /* ── 2. form fields ───────────────────────────────────────────────────── */
 .field { display: flex; flex-direction: column; gap: var(--s2); margin-bottom: var(--s4); }
 .field > label { font-size: 13px; color: var(--text-mid); font-weight: 500; }
 .input {
-  padding: 10px 13px; background: var(--surface-2); border: 1px solid var(--line);
-  border-radius: 10px; font-size: 14px; width: 100%;
+  padding: 10px 13px; background: var(--surface-2); border: 1px solid var(--line-ctl);
+  border-radius: var(--r-ctl); font-size: 14px; width: 100%; min-height: 38px;
 }
-.input:focus { border-color: color-mix(in srgb, var(--t) 55%, transparent); }
+@media (pointer: coarse) { .input { min-height: var(--touch); } }
+.input:focus { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
 .field__hint { font-size: 12px; color: var(--text-dim); }
 /* errors say how to fix it, never just "invalid" (020) */
-.field__error { font-size: 12.5px; color: var(--loss); }
-.input[aria-invalid="true"] { border-color: color-mix(in srgb, var(--loss) 60%, transparent); }
+.field__error { font-size: 12.5px; color: var(--red); }
+.input[aria-invalid="true"] { border-color: var(--red); }
 
 /* filter chips — state lives in the URL, so a filtered view is shareable (041) */
 .chip {
@@ -178,26 +241,63 @@ h2, .h2 { font-size: 22px; letter-spacing: -.02em; font-weight: 600; margin: 0; 
   color: var(--text-mid); text-decoration: none; cursor: pointer;
 }
 .chip:hover { color: var(--text); }
-.chip--on { background: var(--t); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+.chip--on { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
 
 /* ── 3. table ─────────────────────────────────────────────────────────── */
-.table-scroll { overflow-x: auto; margin-inline: -6px; }
-.table { width: 100%; border-collapse: separate; border-spacing: 0 6px; min-width: 680px; }
+/* 044: a table is for COMPARISON, so it is square and its rows are separated by
+   a hairline, not floated apart as rounded tiles. The old treatment read as a
+   card mosaic - every row an independent object - which is the opposite of what
+   a ranking is saying. Row height is a token, so 48/40 is a contract rather
+   than whatever the padding happened to add up to. */
+.table-scroll { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; min-width: 680px; }
 .table th {
   text-align: left; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
   color: var(--text-dim); font-weight: 600; padding: 0 var(--s4) var(--s2); white-space: nowrap;
+  border-bottom: 1px solid var(--line);
 }
 .table th.r, .table td.r { text-align: right; }
-.table tbody tr { background: var(--surface); }
-.table tbody tr:hover { background: var(--surface-2); }
-.table td {
-  padding: var(--s4); font-size: 14px;
-  border-block: 1px solid var(--line-soft);
+.table tbody tr { border-bottom: 1px solid var(--line-soft); }
+.table tbody tr:hover { background: var(--surface); }
+/* 11px, not 16: a 26px list avatar plus 2x11 is exactly --row. The height
+   token is a floor, so a text-only row still lands on 48 and the column stays
+   even. Decided 2026-08-23 after the prototype measured 81px against 044's 48. */
+.table td { padding: 11px var(--s4); height: var(--row); font-size: 14px; }
+
+/* 044: "Lists use small consistent images; detail pages may use larger ones."
+   Stating it as a rule beats remembering .avatar--sm at every call site, and it
+   is what makes the 48px row arithmetic hold by construction rather than by
+   discipline. */
+.table .avatar { width: 26px; height: 26px; font-size: 10.5px; border-radius: var(--r-ctl); }
+/* dense mode for panels (041) - same components, one modifier */
+.table--dense td { padding: 9px var(--s4); height: var(--row-dense); font-size: 13.5px; }
+
+/* 044: "On mobile this becomes top-to-bottom rather than a squeezed desktop
+   table." Measured at 360px, the organiser queue pushed its ACTION column off
+   the right edge behind a scrollbar - the one thing a queue row exists for.
+   Each cell carries its own label via data-label, so the header row can go
+   away without the values becoming anonymous. */
+@media (max-width: 720px) {
+  .table--stack { min-width: 0; }
+  .table--stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .table--stack tbody tr {
+    display: block; padding-block: var(--s3);
+    border-bottom: 1px solid var(--line);
+  }
+  .table--stack td {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: var(--s4); height: auto; padding: 5px var(--s4); text-align: left;
+  }
+  .table--stack td.r { text-align: left; }
+  .table--stack td::before {
+    content: attr(data-label); flex: 0 0 auto;
+    font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--text-dim); font-weight: 600;
+  }
+  /* The identity line leads and needs no label repeating what it plainly is. */
+  .table--stack td:first-child::before { display: none; }
+  .table--stack td:first-child { font-size: 14.5px; padding-top: 0; }
 }
-.table td:first-child { border-left: 1px solid var(--line-soft); border-radius: var(--r) 0 0 var(--r); }
-.table td:last-child  { border-right: 1px solid var(--line-soft); border-radius: 0 var(--r) var(--r) 0; }
-/* dense mode for panels (041) — same components, one modifier */
-.table--dense td { padding: 11px var(--s4); font-size: 13.5px; }
 
 /* ── 4. team cell — used in ~8 places, built once ─────────────────────── */
 .team { display: flex; align-items: center; gap: var(--s3); min-width: 0; }
@@ -206,10 +306,13 @@ h2, .h2 { font-size: 22px; letter-spacing: -.02em; font-weight: 600; margin: 0; 
   overflow: hidden; text-overflow: ellipsis; display: block;
 }
 .team__meta { font-size: 11.5px; color: var(--text-dim); display: flex; gap: var(--s2); }
-.team__tag { color: var(--t); font-weight: 600; }
+.team__tag { color: var(--accent); font-weight: 600; }
 
 /* ── 5. rating cell — value + RD + confidence (025) ───────────────────── */
-.rating { font-size: 16px; font-weight: 600; display: block; }
+/* NOT display:block. The flattened row (decided 2026-08-23) sets the rating and
+   its deviation on ONE line; a block here silently wrapped "± 41" onto a second
+   line and put the row back to 69px. */
+.rating { font-size: 16px; font-weight: 600; }
 .rating__rd { font-size: 11px; color: var(--text-dim); }
 /* The bar makes uncertainty visible. Most platforms hide it; showing it is
    honest and pre-empts "why did my rating jump?" */
@@ -217,7 +320,7 @@ h2, .h2 { font-size: 22px; letter-spacing: -.02em; font-weight: 600; margin: 0; 
   width: 54px; height: 4px; background: var(--surface-3); border-radius: var(--r-full);
   margin: var(--s1) 0 0 auto; position: relative; overflow: hidden;
 }
-.confidence > i { position: absolute; inset: 0; background: var(--t); border-radius: inherit; }
+.confidence > i { position: absolute; inset: 0; background: var(--accent); border-radius: inherit; }
 .confidence--wide > i { background: var(--text-dim); }   /* provisional */
 
 /* ── 6. form strip — colour AND letter ────────────────────────────────── */
@@ -243,8 +346,8 @@ h2, .h2 { font-size: 22px; letter-spacing: -.02em; font-weight: 600; margin: 0; 
 }
 .pill b { color: var(--text); font-weight: 600; }
 .pill--ok       { color: var(--win);  background: color-mix(in srgb, var(--win) 11%, transparent);  border-color: transparent; }
-.pill--warn     { color: var(--t);    background: color-mix(in srgb, var(--t) 12%, transparent);    border-color: transparent; }
-.pill--live     { color: var(--live); background: color-mix(in srgb, var(--live) 12%, transparent); border-color: transparent; }
+.pill--warn     { color: var(--red);  background: color-mix(in srgb, var(--red) 13%, transparent);  border-color: transparent; }
+.pill--live     { color: var(--red);  background: color-mix(in srgb, var(--red) 13%, transparent);  border-color: transparent; }
 .pill__dot      { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 @media (prefers-reduced-motion: no-preference) {
   .pill--live .pill__dot { animation: ns-pulse 1.7s ease-in-out infinite; }
@@ -254,14 +357,14 @@ h2, .h2 { font-size: 22px; letter-spacing: -.02em; font-weight: 600; margin: 0; 
 /* ── 8. match card — compact, but the left edge shouts ────────────────── */
 .match {
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--s4);
-  background: linear-gradient(180deg, var(--surface), var(--ground));
+  background: var(--surface);
   border: 1px solid var(--line-soft); border-radius: var(--r); padding: var(--s4) var(--s5);
   position: relative; overflow: hidden;
 }
 .match::before { content: ""; position: absolute; inset-block: 0; left: 0; width: 2px; background: var(--line); }
-.match--done::before { background: linear-gradient(180deg, var(--t), transparent); }
-.match--live::before { background: linear-gradient(180deg, var(--live), transparent); }
-.match--live { background: linear-gradient(110deg, color-mix(in srgb, var(--live) 9%, transparent), var(--ground) 46%); }
+.match--done::before { background: var(--accent); }
+.match--live::before { background: var(--red); }
+.match--live { background: color-mix(in srgb, var(--red) 7%, var(--surface)); }
 .match__side { display: flex; align-items: center; gap: var(--s3); min-width: 0; }
 .match__side--right { flex-direction: row-reverse; text-align: right; }
 .match__score { font-size: 23px; font-weight: 700; letter-spacing: -.01em; display: flex; gap: 6px; align-items: baseline; }
@@ -271,9 +374,11 @@ h2, .h2 { font-size: 22px; letter-spacing: -.02em; font-weight: 600; margin: 0; 
 .match__foot { grid-column: 1 / -1; display: flex; gap: var(--s2); flex-wrap: wrap; margin-top: var(--s3); }
 
 /* ── 9. veto tile + strip (028) ───────────────────────────────────────── */
-.veto { display: flex; gap: var(--s2); overflow-x: auto; padding-bottom: var(--s2); }
+/* 044: "legal choices form a uniform map grid". A scrolling strip hid choices
+   off-screen at exactly the moment a captain has a timer running. */
+.veto { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: var(--s2); }
 .veto__tile {
-  flex: 1 0 auto; min-width: 112px; background: var(--surface);
+  background: var(--surface);
   border: 1px solid var(--line-soft); border-radius: var(--r);
   text-align: center; position: relative; overflow: hidden; padding-bottom: var(--s3);
 }
@@ -283,21 +388,28 @@ h2, .h2 { font-size: 22px; letter-spacing: -.02em; font-weight: 600; margin: 0; 
 .veto__who { font-size: 10px; color: var(--text-dim); margin-top: var(--s1); display: block; }
 .veto__who b { display: block; font-weight: 600; }
 /* banned maps struck through in the BANNING TEAM'S colour — no legend needed */
+/* 044 moves unavailable maps into the chronological record rather than leaving
+   a crossed-out field in the live grid. These rules style THAT record; they are
+   not licence to keep banned tiles in the choice grid. */
 .veto__tile--banned { opacity: .42; }
 .veto__tile--banned .veto__name { text-decoration: line-through; text-decoration-thickness: 2px; }
 .veto__tile--by-a .veto__name { text-decoration-color: var(--t); }
 .veto__tile--by-a .veto__who b { color: var(--t); }
 .veto__tile--by-b .veto__name { text-decoration-color: var(--ct); }
 .veto__tile--by-b .veto__who b { color: var(--ct); }
-.veto__tile--pick { border-color: color-mix(in srgb, var(--t) 55%, transparent); }
-.veto__tile--pick .veto__name { color: var(--t); }
-.veto__tile--decider { border-color: color-mix(in srgb, var(--ct) 50%, transparent); }
-.veto__tile--decider .veto__name { color: var(--ct); }
+.veto__tile--pick { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.veto__tile--pick .veto__name { color: var(--accent); }
+.veto__tile--decider { border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+.veto__tile--decider .veto__name { color: var(--accent); }
 
 /* ── 10. bracket node (023) ───────────────────────────────────────────── */
 .bracket { display: flex; gap: 52px; min-width: min-content; }
 .bracket__col { display: flex; flex-direction: column; justify-content: space-around; min-width: 230px; gap: var(--s3); }
-.node { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r); overflow: hidden; position: relative; }
+/* flex-shrink:0 is load-bearing, not tidiness: a bracket column is a flex
+   column, and 64 first-round nodes under ANY height constraint silently
+   squash into unreadable 10px hairlines instead of overflowing. Found by
+   screenshotting the 128-team stress case (044). */
+.node { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r); overflow: hidden; position: relative; flex: 0 0 auto; }
 .node::after { content: ""; position: absolute; right: -52px; top: 50%; width: 52px; height: 1px; background: var(--line-soft); }
 .bracket__col:last-child .node::after { display: none; }
 .node__head {
@@ -310,15 +422,15 @@ h2, .h2 { font-size: 22px; letter-spacing: -.02em; font-weight: 600; margin: 0; 
 .node__seed { font-size: 10px; color: var(--text-dim); width: 14px; flex: 0 0 auto; font-weight: 600; }
 .node__team { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
 .node__score { font-weight: 700; min-width: 20px; text-align: right; }
-.node__slot--won { background: linear-gradient(90deg, color-mix(in srgb, var(--t) 9%, transparent), transparent 60%); }
+.node__slot--won { background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .node__slot--won .node__team { font-weight: 600; }
-.node__slot--won .node__score { color: var(--t); }
+.node__slot--won .node__score { color: var(--accent); }
 .node__slot--lost .node__team, .node__slot--lost .node__score { color: var(--text-dim); }
 .node__slot--tbd .node__team { color: var(--text-dim); font-style: italic; font-weight: 400; }
-.node--live { border-color: color-mix(in srgb, var(--live) 55%, transparent); }
-.node--live .node__head { background: color-mix(in srgb, var(--live) 14%, transparent); color: var(--live); }
-.node--final { border-color: color-mix(in srgb, var(--t) 55%, transparent); }
-.node--final .node__head { background: color-mix(in srgb, var(--t) 13%, transparent); color: var(--t); }
+.node--live { border-color: color-mix(in srgb, var(--red) 55%, transparent); }
+.node--live .node__head { background: color-mix(in srgb, var(--red) 14%, transparent); color: var(--red); }
+.node--final { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.node--final .node__head { background: color-mix(in srgb, var(--accent) 13%, transparent); color: var(--accent); }
 /* the bracket-reset match exists from generation, greyed until triggered (023) */
 .node--conditional { opacity: .4; border-style: dashed; }
 
@@ -337,7 +449,8 @@ h2, .h2 { font-size: 22px; letter-spacing: -.02em; font-weight: 600; margin: 0; 
   .bracket__rounds {
     display: flex; align-items: center; justify-content: space-between; gap: var(--s3);
     position: sticky; top: 0; z-index: 1; padding-block: var(--s3);
-    background: var(--bg);
+    background: var(--ground);   /* was a --bg token that never existed,
+                                    so nodes scrolled under the sticky switcher */
   }
   .bracket__rounds b { text-align: center; }
 }
@@ -356,12 +469,11 @@ h2, .h2 { font-size: 22px; letter-spacing: -.02em; font-weight: 600; margin: 0; 
 
 /* ── 11. avatar — generated, so a new team never shows a placeholder ──── */
 .avatar {
-  width: 36px; height: 36px; flex: 0 0 auto; border-radius: 11px;
+  width: 36px; height: 36px; flex: 0 0 auto; border-radius: var(--r);
   display: grid; place-items: center; font-weight: 700; font-size: 13px;
   color: var(--on-accent); letter-spacing: -.02em;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28);
 }
-.avatar--sm { width: 26px; height: 26px; font-size: 10.5px; border-radius: var(--r-sm); }
+.avatar--sm { width: 26px; height: 26px; font-size: 10.5px; border-radius: var(--r-ctl); }
 
 /* Generated palettes, picked from the team tag so a team looks the same on
    every page. No uploads means a brand-new team never shows a placeholder.
@@ -369,19 +481,25 @@ h2, .h2 { font-size: 22px; letter-spacing: -.02em; font-weight: 600; margin: 0; 
    Monochrome (044): five distinct LIGHTNESS steps, not five hues. All stay
    light enough for --on-accent text, so the monogram carries the identity and
    the shade only reinforces it. Restoring colour means restoring five hues
-   here — the step count and contrast floor stay as they are. */
-.avatar--1 { background: linear-gradient(145deg, #F4EFE4, #B9B3A7); }
-.avatar--2 { background: linear-gradient(145deg, #D8D2C6, #9B958A); }
-.avatar--3 { background: linear-gradient(145deg, #C2BCB0, #857F75); }
-.avatar--4 { background: linear-gradient(145deg, #ABA59A, #6F6A61); }
-.avatar--5 { background: linear-gradient(145deg, #E6E0D4, #A8A296); }
-.avatar--lg { width: 56px; height: 56px; font-size: 20px; border-radius: var(--r-lg); }
+   here - the step count and contrast floor stay as they are.
+
+   Flat, not gradient: 044 rejects fake depth, and a 145deg gradient on a 26px
+   avatar is invisible anyway. It was costing five paint steps to say nothing. */
+.avatar--1 { background: #E8E8E8; }
+.avatar--2 { background: #C8C8C8; }
+.avatar--3 { background: #ABABAB; }
+.avatar--4 { background: #8C8C8C; }
+.avatar--5 { background: #D8D8D8; }
+.avatar--lg { width: 56px; height: 56px; font-size: 20px; border-radius: var(--r); }
 
 /* ── 12. headbar + sidebar (021) ──────────────────────────────────────── */
 .headbar { display: flex; align-items: center; gap: var(--s5); padding-block: var(--s4); flex-wrap: wrap; }
 .headbar__spacer { flex: 1; }
 .brand { font-size: 18px; font-weight: 700; letter-spacing: -.03em; text-decoration: none; color: var(--text); }
-.brand b { color: var(--t); }
+/* The drawn wordmark carries red as one structural cut (044). Until that
+   vector asset exists, the text fallback stays neutral: half a wordmark in
+   red is far past the 10-15%% 044 allows. */
+.brand b { color: var(--accent); }
 .headbar a:not(.brand) { font-size: 13.5px; color: var(--text-mid); text-decoration: none; }
 .headbar a:not(.brand):hover { color: var(--text); }
 
@@ -389,7 +507,7 @@ h2, .h2 { font-size: 22px; letter-spacing: -.02em; font-weight: 600; margin: 0; 
 .sidebar h5 { font-size: 10px; letter-spacing: .11em; text-transform: uppercase; color: var(--text-dim); margin: var(--s5) var(--s5) var(--s2); font-weight: 600; }
 .sidebar a { display: block; padding: 9px var(--s5); font-size: 13.5px; color: var(--text-mid); text-decoration: none; }
 .sidebar a:hover { color: var(--text); background: var(--surface-2); }
-.sidebar a[aria-current="page"] { color: var(--text); background: var(--surface-2); box-shadow: inset 2px 0 0 var(--t); }
+.sidebar a[aria-current="page"] { color: var(--text); background: var(--surface-2); box-shadow: inset 2px 0 0 var(--accent); }
 
 /* locale switcher — stays visible on mobile, never buried (018) */
 .locale { display: flex; gap: 2px; background: var(--surface); border-radius: var(--r-full); padding: 3px; }
@@ -398,30 +516,30 @@ h2, .h2 { font-size: 22px; letter-spacing: -.02em; font-weight: 600; margin: 0; 
 
 /* ── 13. empty state — never a blank panel (020) ─────────────────────── */
 .empty {
-  background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r-lg);
+  background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r);
   padding: var(--s7) var(--s5); text-align: center;
 }
 .empty__icon {
-  width: 52px; height: 52px; border-radius: var(--r-lg); background: var(--surface-2);
+  width: 52px; height: 52px; border-radius: var(--r); background: var(--surface-2);
   margin: 0 auto var(--s4); display: grid; place-items: center; font-size: 22px; color: var(--text-dim);
 }
 .empty h4 { margin: 0; font-size: 19px; letter-spacing: -.02em; font-weight: 600; }
 .empty p { color: var(--text-dim); font-size: 13.5px; margin: var(--s2) auto var(--s5); max-width: 42ch; }
 
 /* ── 14/15. dialog + alert ───────────────────────────────────────────── */
-.card { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r-lg); padding: var(--s5); }
-.alert { border-radius: var(--r); padding: var(--s3) var(--s4); font-size: 13.5px; border: 1px solid var(--line); }
-.alert--error { color: var(--loss); border-color: color-mix(in srgb, var(--loss) 40%, transparent); background: color-mix(in srgb, var(--loss) 8%, transparent); }
+.card { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r); padding: var(--s5); }
+.alert { border-radius: var(--r-ctl); padding: var(--s3) var(--s4); font-size: 13.5px; border: 1px solid var(--line); }
+.alert--error { color: var(--red); border-color: color-mix(in srgb, var(--red) 45%, transparent); background: color-mix(in srgb, var(--red) 9%, transparent); }
 .alert--ok    { color: var(--win);  border-color: color-mix(in srgb, var(--win) 40%, transparent);  background: color-mix(in srgb, var(--win) 8%, transparent); }
 
 /* ── 16/17. pagination + tabs ────────────────────────────────────────── */
 .pager { display: flex; gap: var(--s2); justify-content: center; margin-top: var(--s6); }
 .tabs { display: flex; gap: var(--s1); border-bottom: 1px solid var(--line-soft); }
 .tabs a { padding: var(--s3) var(--s4); font-size: 13.5px; color: var(--text-dim); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
-.tabs a[aria-current="page"] { color: var(--text); border-bottom-color: var(--t); }
+.tabs a[aria-current="page"] { color: var(--text); border-bottom-color: var(--accent); }
 
 /* ── meta rail (detail archetype) ────────────────────────────────────── */
-.rail { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r-lg); overflow: hidden; }
+.rail { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r); overflow: hidden; }
 .rail > div { padding: 13px var(--s4); display: flex; justify-content: space-between; gap: var(--s3); font-size: 13px; }
 .rail > div + div { border-top: 1px solid var(--line-soft); }
 .rail span:first-child { color: var(--text-dim); }

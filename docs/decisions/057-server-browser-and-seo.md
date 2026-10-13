@@ -441,6 +441,29 @@ that has been careful to the point of not storing an IP column.
 
 ---
 
+## 7a. Per-server player leaderboards are a third, separate ranking object
+
+A server may publish its own player leaderboard when the NEXTSKILL plugin or an approved
+owner-authorised integration supplies complete data. This **adds to** the product; it does not
+replace or feed either the global per-game NEXTSKILL player rating ([025](025-rating-system.md))
+or the monthly server vote ranking in §4.
+
+- A server leaderboard names its metric, period, source, and last update.
+- The metric may be a common plugin metric or the server's own clearly named XP, points, wins, or
+  mode score. It must never be labelled **NEXTSKILL Rating**.
+- Different servers' metrics are not merged or compared.
+- Insufficient data produces no leaderboard, not an inferred or partial one.
+- The full table lives on server detail. A player profile may link to notable placements with
+  their source; search never blends these results into global rating.
+- Data travels outbound from owner infrastructure through the versioned NEXTSKILL event contract
+  or an optional signed periodic export for non-live data. NEXTSKILL does not request database
+  credentials, SSH, RCON, or arbitrary endpoint polling.
+
+The exact event/export schema and publication-consent behaviour remain implementation follow-ups;
+the separation between these three ranking objects does not.
+
+---
+
 ## 8. Sequencing
 
 **Built after [Phase 5](../BUILD-PLAN.md#phase-5--frontend-make-it-look-like-something)**, so
@@ -451,10 +474,10 @@ typography and a designed Open Graph card rather than in monochrome.
 search rankings mature on a clock that cannot be shortened — every month the listing is not
 live is authority that does not accrue. That is accepted.
 
-**The dependency to watch:** Phase 5 is blocked on
-[044](044-visual-direction.md), which is **open and not yet grilled**. Until 044 closes,
-"after Phase 5" has no date. If 044 stays open, this decision should be revisited rather than
-allowed to drift — the sequencing was chosen for a finished look, not for delay.
+**The dependency to watch:** [044](044-visual-direction.md) is grilled and its direction is
+decided. Phase 5 still owes monochrome prototype validation, measured colour tokens, and
+production logo assets. If that validation drifts, this sequencing should be revisited rather
+than allowed to delay search authority — it was chosen for a finished look, not for delay.
 
 ---
 
@@ -489,6 +512,8 @@ Per the project's engineering principles, in `tests/NextSkill.Checks`:
 14. **A confidence tier is never an ordering input.** It is displayed and filterable, exactly as
     verification is — otherwise the honesty claim becomes a ranking mechanic and §5's boundary
     leaks through a side door.
+15. A per-server player leaderboard names its metric, source, period, and update time; it cannot
+    alter global player rating, server vote rank, or another server's leaderboard.
 
 ---
 

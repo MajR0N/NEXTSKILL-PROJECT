@@ -222,12 +222,11 @@ Built before any UI, because they are pure functions and they hide the silent bu
 >    Resolved in [051](decisions/051-phase-4-remainder.md) §2: the plugin dials us, which
 >    **deletes** [040](decisions/040-threat-model.md)'s top risk instead of defending against it.
 
-> ### ⚠ The palette is reopened — build monochrome until [044](decisions/044-visual-direction.md) closes
+> ### ⚠ The direction is decided — validate in monochrome before selecting final tokens
 >
-> [019](decisions/019-visual-identity.md) chose CT blue and T gold in a single pass, while
-> the discussion was really about *whether colour carries meaning*. Its behavioural rules
-> hold; its hues were never argued against, and the whole layout system was then built on
-> tokens nobody interrogated.
+> [044](decisions/044-visual-direction.md) now defines **Quiet Competitive Utility**: dark-only,
+> Inter, black/red/white/gray roles, quiet UI, and aggressive identity concentrated in the
+> wordmark. Exact token values remain deliberately open until the hard-screen prototypes pass.
 >
 > **Every Phase 4 slice ships in warm greys.** Colour spreads — a page built on a
 > provisional palette is a page to revisit — so the cost of deciding late is one token block
@@ -658,11 +657,11 @@ endpoint, request, handler and validator together.
 
 ## Phase 5 — Frontend: make it look like something
 
-> ### ⚠ Blocked on grilling — [044](decisions/044-visual-direction.md) must close first
+> ### Direction grilled — [044](decisions/044-visual-direction.md) now needs prototype validation
 >
-> This phase cannot start from "make it prettier". It starts from a decided palette, a
-> decided type stack and a named style, none of which exist yet — see
-> [044](decisions/044-visual-direction.md) for the twenty questions on the table.
+> This phase does not start from "make it prettier". It starts from the composition contracts,
+> monochrome stress cases, and measurable task criteria in 044. Exact colour values come only
+> after those screens work without colour.
 
 **Why this is its own phase and not a slice.** Phase 4 builds pages one at a time, and every
 one of them ships in monochrome with whatever markup the feature needed. That is the right
@@ -677,27 +676,137 @@ needs live updates, the bracket needs panning on a phone, and the whole site has
 working with JavaScript disabled — that is a build step, a budget and a progressive-enhancement
 rule, not a detail of any one feature.
 
-**Lenses:** `grilling` (**first — [044](decisions/044-visual-direction.md) is open**) ·
-`frontend-design` · `ui-ux-pro-max:design-system` · `ui-ux-pro-max:ui-styling` ·
+**Lenses:** `frontend-design` · `ui-ux-pro-max:design-system` · `ui-ux-pro-max:ui-styling` ·
 `typescript-pro` (the islands) · `javascript-pro` · `dotnet-core-expert` (asset pipeline,
 `MapStaticAssets`, tag helpers) · `playwright-expert` (visual and keyboard checks) ·
 `monitoring-expert` (page-weight budget)
 
-### 5a — Close the visual direction
+### 5a — Validate and close the visual direction
 
-- ☐ Grill and close [044](decisions/044-visual-direction.md): palette, type, named style, light theme yes/no
-- ☐ Replace the monochrome token block in `nextskill.css` — **one edit, by construction**
-- ☐ Re-audit the components that leaned on hue once it returns, veto attribution first
-- ☐ Contrast **measured**, not assumed, including `--text-dim` on `--surface`
-- ☐ Logo/wordmark, and the favicon that is currently a placeholder
+- ☑ Grill [044](decisions/044-visual-direction.md): Quiet Competitive Utility, dark only,
+  Inter, restrained black/red/white/gray roles, and the wordmark + NXS logo family
+- ☑ **Reconcile `nextskill.css` with 044** — *done 2026-08-23, and it was not on this list.*
+  The stylesheet was written for 019/041 and **predates the 044 grill**, so it violated six
+  foundation rules outside the token block: eight decorative `linear-gradient`s and a glow
+  `box-shadow` (044 rejects fake depth), 8/12/16px radii against 044's 6/8/square, `Segoe UI`
+  against Inter, 1120px against 041's 1080/1200, no row-height contract, and a horizontally
+  scrolling veto strip. 26 edits, each asserting it matched exactly once, plus a standing
+  assertion that no banned construct returns.
+- ◐ Prototype the typical and stress cases in 044 in monochrome and run its task tests
+  - ☑ `docs/design/044-prototype.html` — **five of 041's five archetypes** under 044's stress
+    data (tied/provisional/stale rankings, long multilingual LFT, 128-team bracket, mid-veto
+    with the timer running, 47-item organiser queue, disputed match, three empty states).
+    Loads the **real** stylesheet over `file://`, so there is no second design system to drift.
+  - ☑ `docs/design/check-prototype.py` — asserts the prototype uses only components the
+    stylesheet defines and only on-scale spacing. 90 classes, all defined. Enforces 041's rule
+    that a missing component is a decision, not an improvisation.
+  - ☑ Measured criteria run under Playwright at 1440px and 360px
+  - ☐ **Human task tests not run** — 044 requires ≥3 domain-literate first-time testers, incl.
+    a player/captain and an organiser. Nothing here substitutes for that.
 
-### 5b — The three screens that can still surprise us
+> #### What the stress cases actually found (2026-08-23)
+>
+> 1. **The 48px public row is not achievable with the row grammar as designed.** Measured 81px.
+>    A ranking row stacks avatar + name + tag/meta against rating + RD + confidence bar; that is
+>    three stacked facts by design, not a wrapped string. Either the grammar loses a fact or 044's
+>    number is wrong. **It is a decision, not a padding tweak.**
+> 2. **Dense mode is not dense.** Panel rows measured 82px against a 40px floor — the queue's
+>    two-line object cell defeats the modifier. `.table--dense` currently changes padding on a
+>    row whose height is set by its content.
+> 3. **The organiser queue fails on mobile.** At 360px the action column is pushed off-screen
+>    behind a horizontal scroll, so the one thing a queue row exists for is invisible. 044 says
+>    mobile rows go top-to-bottom and retain their action; the dense table does neither.
+> 4. **A 128-team bracket is 7 871px tall.** The tree is not the interface at that size — the
+>    "Find team" route list answers the question in six lines. 044's instinct is confirmed by
+>    measurement: build the route first and treat the tree as the secondary view.
+> 5. **Fixed a real bug found only by the stress case** — `.node` had no `flex-shrink: 0`, so
+>    under any height constraint 64 first-round nodes silently collapsed into 10px hairlines
+>    instead of overflowing.
+> 6. **Remove the confidence bar from the ranking row.** It renders as a 54px rule directly
+>    under the rating and reads as a text underline, not as uncertainty — while `± 41` beside it
+>    already says the same thing in words. One accessory too many.
+>
+> **Resolved the same day.** 1 and 6: the row **holds 48px and flattens** — the meta line goes
+> (tag and region live on the team page), `± RD` sits inline beside the rating, and the
+> confidence bar is removed. Measured 49px = 48 + hairline. Two rules make the arithmetic hold
+> by construction rather than by discipline: `.table .avatar` is 26px (044 already said lists
+> use small images), and `.rating` is no longer `display:block` — that block was silently
+> wrapping `± 41` onto a second line. 3: `.table--stack` gives the dense table 044's
+> top-to-bottom mobile rows, each cell labelled from `data-label`; the action is back on screen
+> at 360px. 4 stands as a **design instruction for 5b**: build the route list first, tree second.
+> 2 is now content-driven wrapping (61px) rather than a broken modifier, which 044 permits.
+>
+> Still open: the LFT card keeps its confidence bar — it sits under a two-part string with room
+> around it and does not read as an underline there. Consistency question, not an oversight.
 
-Named in [041](decisions/041-layout-system.md) as the ones a design system does not settle.
+- ☑ **Replace the monochrome token block** — done 2026-08-23, and it *was* one edit by
+  construction, but only because the reconciliation pass had already moved geometry, type,
+  density and depth out of the token block first. **Neutral graphite + pure red:**
+
+  | | |
+  | --- | --- |
+  | Ramp | `#0D0D0D` / `#151515` / `#1C1C1C` / `#252525`, saturation **0** |
+  | Text | `#F2F2F2` / `#B0B0B0` / `#848484` |
+  | Routine accent | `#F2F2F2` — 044: routine actions are neutral, never red |
+  | Signal | `--red #FF2929` (text) + `--red-solid #E00000` (fill), hue 0, **saturation 100** |
+  | Side identity | `--t #F2F2F2` / `--ct #9A9A9A`, veto and match only |
+
+  Saturation 0 is the point: it leaves **red as the only hue in the product**, which is what
+  044's rationing rule is buying. The ramp is luminance-matched to the monochrome one it
+  replaces, so the measured contrast did not move when the cast did. **Two** reds because no
+  single lightness clears both gates — `#FF2929` is 4.55:1 as text but 4.00:1 under white;
+  `#E00000` is the reverse. `#FF0000` fails *both* and is the one red that cannot be used.
+- ☑ **Re-audit the components that leaned on hue, veto attribution first** — the monochrome
+  phase was hiding two conflations, exactly as 019 predicted it would expose:
+  - `--t` was doing **routine accent** *and* **T-side identity** under one name. 044 forbids
+    that outright ("never become platform brand accents"). Split into `--accent` and `--t`.
+  - `--loss` was doing **lost a match** *and* **something went wrong**. Colouring the first red
+    would put red in every other ranking row and destroy the rationing. Errors and destructive
+    actions now take `--red`; a lost match stays neutral.
+  - The veto **decider** tile was painted with `--ct`, but a decider is not a side.
+- ☑ **Contrast measured, not assumed** — `docs/design/check-contrast.py`, reading tokens
+  straight out of the shipped stylesheet so it cannot drift. **21 pairs, all WCAG 2.2 AA.**
+  It found a genuine defect on the way: a `.btn` fill is 1.14:1 against the page, so its border
+  is the only thing identifying the control, and that border was 1.26:1 against SC 1.4.11's
+  3:1. Added `--line-ctl #686868`. The tightest surviving pair is `--red` on `--surface-2` at
+  4.55:1 — a 1.1% margin, which makes this script **load-bearing** rather than advisory.
+- ◐ **Wordmark and NXS as production vectors** — `docs/design/logo.py` generates them
+  deterministically (044's requirement), with lean, stem weight, compression, terminal cut and
+  red mode as named dials rather than 600 hand-typed numbers. Straight edges only, so the marks
+  stay crisp at favicon sizes. Mono and inverse variants exist for both.
+  **Lean 12°, cap width 54/100, stem 13, near-ligatured tracking, blade terminals.**
+
+  > **The reference image changes the answer, and 044 does not agree with itself.**
+  > A first pass drawn from 044's *prose* came out upright-ish, evenly spaced and square-cut.
+  > `docs/design/044-logo-family-reference.png` shows something else: a steeper lean, letters
+  > nearly touching, arms and stems cut to blades, and red as a small shard rather than a
+  > coloured letter. The redraw follows the image on lean, tracking and terminals.
+  >
+  > On **red it cannot follow both.** 044's text says "roughly 10–15%… as one structural cut";
+  > the reference image measures ~3%. Hitting 10–15% in practice requires a whole letter
+  > (measured: 11.9%), which is not what the reference shows (measured: 2.7%). Both are
+  > generated — `wordmark.svg` (shard) and `wordmark-red-letter.svg` (letter) — and the
+  > generator prints the share, so this is a visible choice rather than a silent one.
+  > **044 needs amending either way.**
+  - ☐ **Open: the favicon.** 044 assigns that job to NXS, but three compressed leaning letters
+    inside 16px is an unreadable smudge — measured, not guessed. A lone X is crisp, and is not
+    a new pictorial emblem (044 forbids one) since it is the wordmark's own focal letter. But a
+    **red** X is the universal close/delete/error glyph, which is a meaning collision for a
+    results platform, so an ink variant exists. Needs a decision.
+  - ☐ Not yet wired into `_Layout.cshtml`, which still draws the brand as text.
+
+### 5b — The hard screens that can still surprise us
+
+Named in [044](decisions/044-visual-direction.md) as the acceptance suite a design system does
+not settle by itself.
 
 - ☐ **Double-elimination bracket** — wide canvas, horizontal scroll, the losers' bracket legible at 16+ teams
 - ☐ **Organiser panel** — dense mode, sidebar, tables that stay readable at 40 rows
 - ☐ **Empty states everywhere** — day one has no matches, and looking *early* beats looking *abandoned* ([020](decisions/020-motion-and-ux.md))
+- ☐ **Match, veto and organiser case states** — scheduled/live/disputed/completed, mid-veto,
+  timeout, high-consequence decisions, and queue return-state preservation
+- ☐ **Public discovery lists** — scrims, LFT, LFP, tournament finder, servers, player
+  directory, global rankings, and per-server rankings under typical and stress data
 
 ### 5c — TypeScript islands ([018](decisions/018-frontend-architecture.md))
 
@@ -722,9 +831,9 @@ Named in [041](decisions/041-layout-system.md) as the ones a design system does 
 launches with a decided palette and a designed OG card rather than in monochrome.
 
 > ⚠ **The cost, recorded:** the CS2/CS:GO half needs no plugin and could ship today, and
-> search rankings mature on a clock that cannot be shortened. **This phase is blocked on
-> Phase 5, which is blocked on [044](decisions/044-visual-direction.md) — still open.** Until
-> 044 closes this has no date; if it stays open, revisit rather than let it drift.
+> search rankings mature on a clock that cannot be shortened. **This phase still waits on
+> Phase 5's prototype validation and production tokens, not on another visual-direction
+> interview.** If validation drifts, revisit the sequencing rather than let search authority drift.
 
 **Lenses:** `seo-audit` · `site-architecture` · `programmatic-seo` · `dotnet-core-expert` ·
 `secure-code-guardian` (a listing is a new public write surface) · `postgres-pro` (time series)
@@ -1025,6 +1134,6 @@ consistency cannot be added a page at a time — it needs all the pages to exist
 be judged.
 
 [041](decisions/041-layout-system.md) set the layout system and it has held up.
-[019](decisions/019-visual-identity.md) set the palette in a single pass and it has not been
-argued with, which is why it is reopened as
-[044](decisions/044-visual-direction.md) and why the product ships grey until then.
+[019](decisions/019-visual-identity.md) now retains only behavioural rules. The appearance
+direction is decided in [044](decisions/044-visual-direction.md); the product stays gray until
+044's monochrome prototype and measured-token exit criteria pass.

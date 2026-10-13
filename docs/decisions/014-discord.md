@@ -56,9 +56,9 @@ arrives here disguised as a convenience feature.
 
 ## Presentation
 
-The intended semantic colour treatment remains part of the visual-direction decision. While
-[044](044-visual-direction.md) is reopened, embeds deliberately carry no colour rather than
-spreading provisional palette choices into an external surface.
+The visual direction is decided in [044](044-visual-direction.md), but exact token values remain
+behind monochrome prototype validation. Embeds deliberately carry no provisional colour until
+those measured tokens are selected.
 
 Posts always link back, and the linked page carries its own Open Graph card
 ([018](018-frontend-architecture.md)) — the post and the unfurl reinforce each other.

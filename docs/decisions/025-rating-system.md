@@ -103,14 +103,17 @@ required in the first migration ([001](001-game-scope.md), [008](008-database.md
 
 | Situation | Rated? |
 | --- | --- |
-| Normal completed match | ✅ |
+| Normal completed match in an event locked as **Rating affected**, with complete trusted participant/result provenance | ✅ ([050](050-match-results-and-ratings.md)) |
+| Event locked as **Rating not affected** | ❌ **Never**, even if a complete feed exists |
+| Rated event with incomplete trusted participant or result data | ⏸ Pending or explicitly audited unrated; never inferred from captain declarations |
 | **Bye** (non-power-of-two bracket) | ❌ **Never** — a free win must not inflate a rating ([022](022-tournament-formats.md)) |
 | Match with integrity `disputed` or `suspect` | ❌ **Not until `confirmed`** ([035](035-match-result-integrity.md)) |
 | Forfeit / no-show | ⚠️ Configurable per tournament; default **not rated** — it measures attendance, not skill |
 | Match still inside the challenge window | ❌ Rating applies only after the window closes ([007](007-server-hosting-model.md)) |
 
-That last row matters: **ratings must not settle before results do.** Applying a rating
-change that later has to be reversed is far worse than applying it a few hours late.
+These gates matter: **ratings must not settle before results do, and a label cannot substitute
+for evidence.** Applying a rating change that later has to be reversed is far worse than applying
+it a few hours late.
 
 ### Anti-farming
 

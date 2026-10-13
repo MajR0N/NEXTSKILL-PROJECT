@@ -588,8 +588,9 @@ cups  →  weekly league  →  continuous ladder  →  queue (only if the tripwi
 > ### ⚠ The listing does not have a stage, and that is a scheduling problem
 >
 > [057](decisions/057-server-browser-and-seo.md) sequences the server browser **after Phase 5**,
-> which is blocked on [044](decisions/044-visual-direction.md) — open and ungrilled. So the second
-> growth loop currently has no date.
+> whose direction is now decided in [044](decisions/044-visual-direction.md). Phase 5 still owes
+> monochrome prototype validation, measured tokens, and production brand assets, so the second
+> growth loop still has no date.
 >
 > That matters more here than in the build plan, because **search compounds on a clock that cannot
 > be shortened.** Every month unlisted is authority that never accrues, and unlike a feature it
