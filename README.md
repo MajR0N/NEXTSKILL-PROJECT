@@ -81,7 +81,7 @@ plugins), not on unwritten code.
 
 ## Engineering decisions worth looking at
 
-**Written decisions, not tribal knowledge.** There are **57 decision records** in
+**Written decisions, not tribal knowledge.** There are **52 decision records** in
 [`docs/decisions/`](docs/decisions). Each states the context, the options, the choice and what
 would reverse it. Several are deliberately *reopened* when new evidence arrived — the history of
 being wrong, and correcting it in writing, is part of the record.
@@ -136,7 +136,7 @@ src/
 tests/NextSkill.Checks/ 364 checks (needs a local PostgreSQL)
 tools/                  Measurement probes for open research questions
 docs/
-  decisions/            57 numbered decision records
+  decisions/            52 numbered decision records
   design/               Logo family, visual-direction prototype, contrast checks
   legal/                LIA / DPIA / privacy-notice drafts
   BUILD-PLAN.md         Phased plan, with honest status marks
